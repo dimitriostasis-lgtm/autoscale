@@ -247,33 +247,6 @@ function getRoleOptions(currentUser: UserRecord): Array<{ value: Role; label: st
   ];
 }
 
-function createSurfaceCopy(currentUser: UserRecord): { eyebrow: string; title: string; description: string } {
-  if (currentUser.role === "PLATFORM_ADMIN") {
-    return {
-      eyebrow: "Platform control",
-      title: "Admin Access",
-      description:
-        "Global control over agencies, account roles, model creation, and platform-wide assignments lives here. Agency-level boundaries are enforced everywhere else.",
-    };
-  }
-
-  if (currentUser.role === "AGENCY_ADMIN") {
-    return {
-      eyebrow: "Agency control",
-      title: "Agency Access",
-      description:
-        "Agency admins can manage users and managers inside their own agency only. No agency creation, platform model management, or cross-agency visibility is available here.",
-    };
-  }
-
-  return {
-    eyebrow: "Manager control",
-    title: "Manager Access",
-    description:
-      "Managers stay limited to the agencies assigned to them. Model access is assignment-based, and user-management actions only unlock where an admin has explicitly granted both the agencies and the permissions.",
-  };
-}
-
 export function AccessControlPanel({
   currentUser,
   agencies,
@@ -330,7 +303,6 @@ export function AccessControlPanel({
   const [influencerAgencyDraft, setInfluencerAgencyDraft] = useState<string[]>([]);
   const [influencerActiveDraft, setInfluencerActiveDraft] = useState(true);
 
-  const surfaceCopy = createSurfaceCopy(currentUser);
   const roleOptions = getRoleOptions(currentUser);
 
   useEffect(() => {
@@ -854,20 +826,6 @@ export function AccessControlPanel({
 
   return (
     <div className="space-y-6">
-      <section className={theme.cardStrong + " glass-panel p-6 sm:p-7"}>
-        <p className="text-xs uppercase tracking-[0.22em] text-white/42">{surfaceCopy.eyebrow}</p>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="font-display text-4xl text-white">{surfaceCopy.title}</h1>
-            <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">{surfaceCopy.description}</p>
-          </div>
-          <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/44">Current role</p>
-            <p className="mt-2 text-sm font-semibold text-white">{roleLabel(currentUser.role)}</p>
-          </div>
-        </div>
-      </section>
-
       {notice ? (
         <div
           className={cx(
