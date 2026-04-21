@@ -1,0 +1,22 @@
+model InfluencerModel {
+  id                      String           @id @default(uuid())
+  slug                    String           @unique
+  name                    String
+  handle                  String
+  archetype               String
+  description             String
+  accentFrom              String
+  accentTo                String
+  avatarLabel             String
+  defaultGenerationModel  String
+  defaultResolution       String
+  defaultAspectRatio      String
+  defaultQuantity         Int              @default(4)
+  promptPrefix            String
+  isActive                Boolean          @default(true)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  boards                  WorkspaceBoard[]
+  assets                  GeneratedAsset[]
+  modelAccessAssignments  ModelAccess[]
+}

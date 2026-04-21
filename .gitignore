@@ -1,0 +1,15 @@
+.DS_Store
+
+# Dependencies
+**/node_modules/
+
+# Build output
+**/dist/
+**/*.tsbuildinfo
+
+# Local environment files
+**/.env
+
+# Runtime/generated server assets
+Autoscale-Server/storage/generated/
+Autoscale-Server/storage/uploads/

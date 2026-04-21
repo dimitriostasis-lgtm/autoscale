@@ -1,0 +1,31 @@
+model WorkspaceBoard {
+  id                String         @id @default(uuid())
+  influencerModelId String
+  ownerId           String
+  name              String
+  settingsJson      Json
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  influencerModel   InfluencerModel @relation(fields: [influencerModelId], references: [id])
+  owner             User           @relation(fields: [ownerId], references: [id])
+  rows              WorkspaceRow[]
+  assets            GeneratedAsset[]
+}
+
+model WorkspaceRow {
+  id            String         @id @default(uuid())
+  boardId       String
+  orderIndex    Int
+  label         String
+  prompt        String
+  referenceJson Json?
+  status        String
+  errorMessage  String?
+  lastRunAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  board         WorkspaceBoard @relation(fields: [boardId], references: [id])
+  assets        GeneratedAsset[]
+
+  @@index([boardId, orderIndex])
+}

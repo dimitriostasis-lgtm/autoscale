@@ -1,0 +1,281 @@
+enum Role {
+  PLATFORM_ADMIN
+  AGENCY_ADMIN
+  AGENCY_MANAGER
+  USER
+}
+
+enum UserAccessScope {
+  PLATFORM_ADMIN_ACCESS
+  AGENCY_ADMIN_ACCESS
+  AGENCY_MANAGER_ACCESS
+  DIRECT_ASSIGNMENT
+}
+
+type ManagerPermissions {
+  canSuspendUsers: Boolean!
+  canDeleteUsers: Boolean!
+  canResetPasswords: Boolean!
+  canManageAssignments: Boolean!
+}
+
+enum GenerationStatus {
+  IDLE
+  QUEUED
+  GENERATING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  SKIPPED
+}
+
+enum ReferenceSourceType {
+  UPLOAD
+  ASSET
+}
+
+type User {
+  id: ID!
+  email: String!
+  name: String!
+  role: Role!
+  isActive: Boolean!
+  createdAt: String!
+  agencyId: ID
+  agencyName: String
+  managedAgencyIds: [ID!]!
+  managedAgencyNames: [String!]!
+  managerPermissions: ManagerPermissions
+  accessScope: UserAccessScope!
+  assignedModelIds: [ID!]!
+  effectiveModelIds: [ID!]!
+  lastPasswordResetAt: String
+}
+
+type Agency {
+  id: ID!
+  slug: String!
+  name: String!
+  createdAt: String!
+  memberCount: Int!
+  adminCount: Int!
+  managerCount: Int!
+  userCount: Int!
+  activeCount: Int!
+}
+
+type InfluencerDefaults {
+  generationModel: String!
+  resolution: String!
+  aspectRatio: String!
+  quantity: Int!
+  promptPrefix: String!
+}
+
+type ReferenceSelection {
+  id: ID!
+  slotIndex: Int!
+  label: String!
+  sourceType: ReferenceSourceType!
+  assetId: ID
+  assetUrl: String
+  uploadPath: String
+  uploadUrl: String
+  asset: GeneratedAsset
+}
+
+type BoardSettings {
+  generationModel: String!
+  resolution: String!
+  aspectRatio: String!
+  quantity: Int!
+  globalReferences: [ReferenceSelection!]!
+}
+
+type GeneratedAsset {
+  id: ID!
+  influencerModelId: ID!
+  boardId: ID!
+  rowId: ID!
+  createdById: ID!
+  fileName: String!
+  filePath: String!
+  url: String!
+  promptSnapshot: String!
+  generationModel: String!
+  resolution: String!
+  aspectRatio: String!
+  quantity: Int!
+  width: Int
+  height: Int
+  isSyntheticFailure: Boolean!
+  failureLabel: String
+  createdAt: String!
+}
+
+type WorkspaceRow {
+  id: ID!
+  orderIndex: Int!
+  label: String!
+  prompt: String!
+  reference: ReferenceSelection
+  status: GenerationStatus!
+  errorMessage: String
+  outputAssets: [GeneratedAsset!]!
+  lastRunAt: String
+}
+
+type WorkspaceBoard {
+  id: ID!
+  influencerModelId: ID!
+  ownerId: ID!
+  name: String!
+  createdAt: String!
+  updatedAt: String!
+  settings: BoardSettings!
+  rows: [WorkspaceRow!]!
+  owner: User
+}
+
+type InfluencerModel {
+  id: ID!
+  slug: String!
+  name: String!
+  handle: String!
+  archetype: String!
+  description: String!
+  avatarImageUrl: String
+  accentFrom: String!
+  accentTo: String!
+  avatarLabel: String!
+  isActive: Boolean!
+  assignedAgencyIds: [ID!]!
+  assignedAgencyNames: [String!]!
+  agencyAccessCount: Int!
+  defaults: InfluencerDefaults!
+  allowedGenerationModels: [String!]!
+  canAccess: Boolean!
+  boardCount: Int!
+  galleryCount: Int!
+  boards: [WorkspaceBoard!]!
+}
+
+type AuthPayload {
+  user: User!
+  csrfToken: String!
+}
+
+type PasswordResetPayload {
+  user: User!
+  temporaryPassword: String!
+}
+
+input ReferenceSelectionInput {
+  id: ID
+  slotIndex: Int!
+  label: String!
+  sourceType: ReferenceSourceType!
+  assetId: ID
+  assetUrl: String
+  uploadPath: String
+  uploadUrl: String
+}
+
+input UpdateBoardRowInput {
+  boardId: ID!
+  rowId: ID!
+  label: String
+  prompt: String
+  reference: ReferenceSelectionInput
+  clearReference: Boolean
+}
+
+input BoardSettingsInput {
+  generationModel: String!
+  resolution: String!
+  aspectRatio: String!
+  quantity: Int!
+  globalReferences: [ReferenceSelectionInput!]!
+}
+
+input CreateUserInput {
+  name: String!
+  email: String!
+  password: String!
+  role: Role!
+  agencyId: ID
+}
+
+input UpdateUserOrganizationInput {
+  agencyId: ID
+  managedAgencyIds: [ID!]
+}
+
+input ManagerPermissionsInput {
+  canSuspendUsers: Boolean!
+  canDeleteUsers: Boolean!
+  canResetPasswords: Boolean!
+  canManageAssignments: Boolean!
+}
+
+input InfluencerDefaultsInput {
+  generationModel: String!
+  resolution: String!
+  aspectRatio: String!
+  quantity: Int!
+  promptPrefix: String!
+}
+
+input CreateInfluencerModelInput {
+  name: String!
+  handle: String!
+  description: String!
+  avatarImageUrl: String
+  allowedGenerationModels: [String!]!
+  defaults: InfluencerDefaultsInput!
+}
+
+type Query {
+  me: User
+  agencies: [Agency!]!
+  influencerModels(includeInactive: Boolean = false): [InfluencerModel!]!
+  influencerModel(slug: String!): InfluencerModel
+  workspaceBoard(boardId: ID!): WorkspaceBoard
+  modelAssets(influencerModelId: ID!, limit: Int = 80): [GeneratedAsset!]!
+  users: [User!]!
+}
+
+type Mutation {
+  login(email: String!, password: String!): AuthPayload!
+  logout: Boolean!
+  createAgency(name: String!): Agency!
+  renameAgency(agencyId: ID!, name: String!): Agency!
+  deleteAgency(agencyId: ID!): Boolean!
+  createUser(input: CreateUserInput!): User!
+  renameUser(userId: ID!, name: String!): User!
+  updateUserRole(userId: ID!, role: Role!): User!
+  updateUserOrganization(userId: ID!, input: UpdateUserOrganizationInput!): User!
+  updateManagerPermissions(userId: ID!, input: ManagerPermissionsInput!): User!
+  resetUserPassword(userId: ID!): PasswordResetPayload!
+  setUserActive(userId: ID!, isActive: Boolean!): User!
+  deleteUser(userId: ID!): Boolean!
+  setUserModelAccess(userId: ID!, influencerModelIds: [ID!]!): User!
+  createInfluencerModel(input: CreateInfluencerModelInput!): InfluencerModel!
+  setInfluencerModelAgencyAccess(influencerModelId: ID!, agencyIds: [ID!]!): InfluencerModel!
+  setInfluencerModelActive(influencerModelId: ID!, isActive: Boolean!): InfluencerModel!
+  ensureBoard(influencerModelId: ID!): WorkspaceBoard!
+  createBoard(influencerModelId: ID!, name: String): WorkspaceBoard!
+  renameBoard(boardId: ID!, name: String!): WorkspaceBoard!
+  deleteBoard(boardId: ID!): Boolean!
+  addBoardRow(boardId: ID!): WorkspaceBoard!
+  deleteBoardRow(boardId: ID!, rowId: ID!): WorkspaceBoard!
+  updateBoardRow(input: UpdateBoardRowInput!): WorkspaceBoard!
+  updateBoardSettings(boardId: ID!, input: BoardSettingsInput!): WorkspaceBoard!
+  clearBoard(boardId: ID!): WorkspaceBoard!
+  runBoard(boardId: ID!): WorkspaceBoard!
+}
+
+type Subscription {
+  boardUpdated(boardId: ID!): WorkspaceBoard!
+  assetCreated(influencerModelId: ID!): GeneratedAsset!
+}

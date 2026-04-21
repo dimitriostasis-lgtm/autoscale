@@ -1,0 +1,25 @@
+model GeneratedAsset {
+  id                 String          @id @default(uuid())
+  influencerModelId  String
+  boardId            String
+  rowId              String
+  createdById        String
+  fileName           String
+  filePath           String
+  promptSnapshot     String
+  generationModel    String
+  resolution         String
+  aspectRatio        String
+  quantity           Int
+  width              Int?
+  height             Int?
+  isSyntheticFailure Boolean         @default(false)
+  failureLabel       String?
+  createdAt          DateTime        @default(now())
+  influencerModel    InfluencerModel @relation(fields: [influencerModelId], references: [id])
+  board              WorkspaceBoard  @relation(fields: [boardId], references: [id])
+  row                WorkspaceRow    @relation(fields: [rowId], references: [id])
+  createdBy          User            @relation("CreatedAssets", fields: [createdById], references: [id])
+
+  @@index([influencerModelId, createdAt])
+}

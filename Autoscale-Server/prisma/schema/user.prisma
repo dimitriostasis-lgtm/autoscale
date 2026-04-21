@@ -1,0 +1,33 @@
+enum Role {
+  ADMIN
+  MANAGER
+  USER
+}
+
+model User {
+  id               String               @id @default(uuid())
+  email            String               @unique
+  name             String
+  passwordHash     String
+  role             Role
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  boards           WorkspaceBoard[]
+  createdAssets    GeneratedAsset[]     @relation("CreatedAssets")
+  grantedAccess    ModelAccess[]        @relation("AccessGrantedBy")
+  assignedAccess   ModelAccess[]        @relation("AccessAssignedTo")
+}
+
+model ModelAccess {
+  id                String          @id @default(uuid())
+  userId            String
+  influencerModelId String
+  grantedById       String
+  createdAt         DateTime        @default(now())
+  user              User            @relation("AccessAssignedTo", fields: [userId], references: [id])
+  grantedBy         User            @relation("AccessGrantedBy", fields: [grantedById], references: [id])
+  influencerModel   InfluencerModel @relation(fields: [influencerModelId], references: [id])
+
+  @@unique([userId, influencerModelId])
+}

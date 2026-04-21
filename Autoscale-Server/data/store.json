@@ -1,0 +1,732 @@
+{
+  "agencies": [
+    {
+      "id": "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
+      "slug": "northstar-creative",
+      "name": "Northstar Creative",
+      "createdAt": "2026-04-21T10:01:08.196Z"
+    },
+    {
+      "id": "30008f4b-5af7-4181-a4c3-f99285d60434",
+      "slug": "lattice-social",
+      "name": "Lattice Social",
+      "createdAt": "2026-04-21T10:01:08.196Z"
+    },
+    {
+      "id": "360b69c5-37e1-4cbc-9e54-f8fe0269533b",
+      "slug": "autoscale-group",
+      "name": "AutoScale Group",
+      "createdAt": "2026-04-21T14:14:58.994Z"
+    },
+    {
+      "id": "c2674896-733a-480a-946c-36a02dd254a6",
+      "slug": "valera",
+      "name": "Valera",
+      "createdAt": "2026-04-21T15:10:23.646Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "email": "admin@autoscale.internal",
+      "name": "Dimitrios Tasis",
+      "role": "PLATFORM_ADMIN",
+      "agencyId": null,
+      "managedById": null,
+      "passwordHash": "$2a$10$sPTr/ztx/z11r6cFTESO2uH3WhMF.b0TAjeuowBUfOid21rtp5iDa",
+      "isActive": true,
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "lastPasswordResetAt": null,
+      "managerPermissions": null,
+      "managedAgencyIds": []
+    },
+    {
+      "id": "e86ed7b5-c9bc-45f8-9620-2b21ee962385",
+      "email": "manager@autoscale.internal",
+      "name": "Milo Chen",
+      "role": "AGENCY_ADMIN",
+      "agencyId": "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
+      "managedById": null,
+      "passwordHash": "$2a$10$1OzdwmMbZnk.Sk1PvBCHIujJAE9JaBRP04me4/o.wXXPBuofJ4DUS",
+      "isActive": true,
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "lastPasswordResetAt": "2026-04-21T11:54:35.974Z",
+      "managerPermissions": null,
+      "managedAgencyIds": []
+    },
+    {
+      "id": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
+      "email": "user@autoscale.internal",
+      "name": "Kira Wells",
+      "role": "USER",
+      "agencyId": "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
+      "managedById": "e86ed7b5-c9bc-45f8-9620-2b21ee962385",
+      "passwordHash": "$2a$10$bwZ51bz2K2EHARC9Cnvhy.6bC6JlWJ/UQZdWb7glnlJJDu0vVrM8.",
+      "isActive": true,
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "lastPasswordResetAt": null,
+      "managerPermissions": null,
+      "managedAgencyIds": []
+    },
+    {
+      "id": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
+      "email": "manager2@autoscale.internal",
+      "name": "Eleni Park",
+      "role": "AGENCY_ADMIN",
+      "agencyId": "30008f4b-5af7-4181-a4c3-f99285d60434",
+      "managedById": null,
+      "passwordHash": "$2a$10$P0we0ulxwVzpN6TW1ky.fuaYsOT0aRw5wAUKTBLi4Q6.Am3CowO7m",
+      "isActive": true,
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "lastPasswordResetAt": null,
+      "managerPermissions": null,
+      "managedAgencyIds": []
+    },
+    {
+      "id": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
+      "email": "user2@autoscale.internal",
+      "name": "Jordan Vale",
+      "role": "USER",
+      "agencyId": "30008f4b-5af7-4181-a4c3-f99285d60434",
+      "managedById": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
+      "passwordHash": "$2a$10$JzIJIhRLf1.hrO2EPIaoBuvkiX2faQbZe0SbufGgpMP5Z5aroQI9i",
+      "isActive": true,
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "lastPasswordResetAt": null,
+      "managerPermissions": null,
+      "managedAgencyIds": []
+    },
+    {
+      "id": "9cfd406c-47eb-401c-ade1-8e8271caa882",
+      "email": "user3@autoscale.internal",
+      "name": "Sam Torres",
+      "role": "USER",
+      "agencyId": "30008f4b-5af7-4181-a4c3-f99285d60434",
+      "managedById": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
+      "passwordHash": "$2a$10$/7F0JaPK4DmXCaRm0i18XOQ23TS7pEONwOzj6E0IbUgdvVavWCA8S",
+      "isActive": true,
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "lastPasswordResetAt": null,
+      "managerPermissions": null,
+      "managedAgencyIds": []
+    },
+    {
+      "id": "7f62d007-6a93-418a-b047-fbef8eb5969f",
+      "email": "dimtirioostasdasd@gmail.com",
+      "name": "Niki Tasi",
+      "role": "AGENCY_MANAGER",
+      "agencyId": "360b69c5-37e1-4cbc-9e54-f8fe0269533b",
+      "managerPermissions": {
+        "canSuspendUsers": true,
+        "canDeleteUsers": false,
+        "canResetPasswords": false,
+        "canManageAssignments": false
+      },
+      "passwordHash": "$2a$10$OsWLcw0Z1TkNGp2flmabJ..cs.MpDDZ31l2.hM8E5W3EJcdmGZspm",
+      "isActive": true,
+      "createdAt": "2026-04-21T11:59:29.275Z",
+      "lastPasswordResetAt": "2026-04-21T12:01:42.969Z",
+      "managedAgencyIds": [
+        "360b69c5-37e1-4cbc-9e54-f8fe0269533b"
+      ]
+    }
+  ],
+  "influencerModels": [
+    {
+      "id": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "slug": "ava-sterling",
+      "name": "Ava Sterling",
+      "handle": "@ava.sterling",
+      "archetype": "Luxury editorial",
+      "description": "Polished fashion-led outputs tuned for premium lifestyle sets and controlled campaign styling.",
+      "avatarImageUrl": null,
+      "accentFrom": "from-lime-300",
+      "accentTo": "to-emerald-400",
+      "avatarLabel": "AS",
+      "isActive": true,
+      "defaults": {
+        "generationModel": "nb_pro",
+        "resolution": "2k",
+        "aspectRatio": "3:4",
+        "quantity": 4,
+        "promptPrefix": "Luxury editorial framing, grounded realism, premium wardrobe direction."
+      },
+      "allowedGenerationModels": [
+        "nb_pro",
+        "nb2",
+        "sd_4_5"
+      ],
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "agencyIds": [
+        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
+        "30008f4b-5af7-4181-a4c3-f99285d60434"
+      ]
+    },
+    {
+      "id": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
+      "slug": "sora-vale",
+      "name": "Sora Vale",
+      "handle": "@sora.vale",
+      "archetype": "Street kinetic",
+      "description": "Sharper motion, urban energy, and modern campaign poses designed for high-frequency social output.",
+      "avatarImageUrl": null,
+      "accentFrom": "from-sky-300",
+      "accentTo": "to-cyan-400",
+      "avatarLabel": "SV",
+      "isActive": true,
+      "defaults": {
+        "generationModel": "nb2",
+        "resolution": "1k",
+        "aspectRatio": "4:5",
+        "quantity": 4,
+        "promptPrefix": "Modern movement, social-first crop, tactile city atmosphere."
+      },
+      "allowedGenerationModels": [
+        "nb2",
+        "nb_pro",
+        "kling_o1"
+      ],
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "agencyIds": [
+        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
+        "30008f4b-5af7-4181-a4c3-f99285d60434"
+      ]
+    },
+    {
+      "id": "4b86429e-a601-428c-b801-2c3fa5772df5",
+      "slug": "lena-north",
+      "name": "Lena North",
+      "handle": "@lena.north",
+      "archetype": "Beauty close-up",
+      "description": "Closer portrait-led coverage with clean lighting and consistent facial framing across reference reuse.",
+      "avatarImageUrl": null,
+      "accentFrom": "from-amber-300",
+      "accentTo": "to-orange-400",
+      "avatarLabel": "LN",
+      "isActive": true,
+      "defaults": {
+        "generationModel": "sd_4_5",
+        "resolution": "2k",
+        "aspectRatio": "1:1",
+        "quantity": 4,
+        "promptPrefix": "Precision beauty styling, clean skin detail, premium campaign finish."
+      },
+      "allowedGenerationModels": [
+        "sd_4_5",
+        "nb_pro"
+      ],
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "agencyIds": [
+        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
+        "30008f4b-5af7-4181-a4c3-f99285d60434"
+      ]
+    },
+    {
+      "id": "e7c5da9f-b380-479b-9303-b49f29f77d56",
+      "slug": "mara-quinn",
+      "name": "Mara Quinn",
+      "handle": "@mara.quinn",
+      "archetype": "Nightlife cinematic",
+      "description": "High-contrast evening scenes, social glamour, and cinematic lounge compositions.",
+      "avatarImageUrl": null,
+      "accentFrom": "from-fuchsia-300",
+      "accentTo": "to-rose-400",
+      "avatarLabel": "MQ",
+      "isActive": true,
+      "defaults": {
+        "generationModel": "kling_o1",
+        "resolution": "1k",
+        "aspectRatio": "9:16",
+        "quantity": 4,
+        "promptPrefix": "Night-time premium mood, cinematic highlights, tactile depth."
+      },
+      "allowedGenerationModels": [
+        "kling_o1",
+        "nb2"
+      ],
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "agencyIds": [
+        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
+        "30008f4b-5af7-4181-a4c3-f99285d60434"
+      ]
+    }
+  ],
+  "modelAccess": [
+    {
+      "id": "a823aebe-5d65-4afb-aa65-50430e27b27c",
+      "userId": "9cfd406c-47eb-401c-ade1-8e8271caa882",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "grantedById": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
+      "createdAt": "2026-04-21T10:01:08.196Z"
+    },
+    {
+      "id": "6e96cab7-d4d1-41dd-bf8f-6d1c249ba8f6",
+      "userId": "9cfd406c-47eb-401c-ade1-8e8271caa882",
+      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
+      "grantedById": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
+      "createdAt": "2026-04-21T10:01:08.196Z"
+    },
+    {
+      "id": "07fb8864-d31f-486c-946d-419fce672410",
+      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
+      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T10:20:05.154Z"
+    },
+    {
+      "id": "c3d9e35e-31ac-4e8c-baf8-6617f078c1de",
+      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T10:20:05.154Z"
+    },
+    {
+      "id": "c4abf2be-c7a6-4cec-accd-cd3294ddbf5a",
+      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
+      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T10:20:05.154Z"
+    },
+    {
+      "id": "69a3d732-aada-4fbc-9976-23fb60a3d761",
+      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
+      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T10:20:05.154Z"
+    },
+    {
+      "id": "86e60711-f7e7-45d6-9af3-98879ee203e0",
+      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:52:26.137Z"
+    },
+    {
+      "id": "d178b1a1-ebb8-4262-a56e-264b630e67af",
+      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
+      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:52:26.138Z"
+    },
+    {
+      "id": "e47418fa-4098-4ad4-908a-7f50f0d167f1",
+      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
+      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:52:26.138Z"
+    },
+    {
+      "id": "b3674295-bcc2-42ca-853d-687ddd3946bf",
+      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
+      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:52:26.138Z"
+    },
+    {
+      "id": "7d4ef06e-04d0-4dfc-ba18-1c7badca60aa",
+      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:59:43.752Z"
+    },
+    {
+      "id": "118ba61c-ec4b-4dd2-8670-8ff1f9c9d6de",
+      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
+      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:59:43.752Z"
+    },
+    {
+      "id": "5c43638b-ea8f-4681-8d31-82359464c234",
+      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
+      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:59:43.752Z"
+    },
+    {
+      "id": "396f6644-23b3-4f24-a855-0a54fdaa6378",
+      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
+      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
+      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "createdAt": "2026-04-21T11:59:43.752Z"
+    }
+  ],
+  "boards": [
+    {
+      "id": "e6dcf316-1433-428b-8c38-771e61c33378",
+      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 1",
+      "createdAt": "2026-04-21T11:09:11.122Z",
+      "updatedAt": "2026-04-21T12:44:54.537Z",
+      "settings": {
+        "generationModel": "nb2",
+        "resolution": "1k",
+        "aspectRatio": "4:5",
+        "quantity": 4,
+        "globalReferences": [
+          {
+            "id": "98bb178d-8ed8-41c3-a716-2cb29dca171e",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "7fa89b67-ee2f-46d9-a453-7efc529da754",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "65e5a870-2068-4e4c-a8c3-3334bfb6a79a",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "d928a221-2374-4240-a25b-8dfe7585d2f2",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "5a393f37-14be-4cdb-b894-d460edaee9ae",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "7e620add-490b-46d0-85e5-f61e7e6640c0",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 1",
+      "createdAt": "2026-04-21T11:27:20.570Z",
+      "updatedAt": "2026-04-21T11:27:20.570Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "2k",
+        "aspectRatio": "3:4",
+        "quantity": 4,
+        "globalReferences": [
+          {
+            "id": "701364ae-a078-4b5e-af16-813207f957a6",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "e2c261cf-2e62-47b5-86c4-8d344a74a4f4",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "bea7373e-d648-405b-bdc9-aead11c494d6",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "b118b721-8051-4367-9f4f-4feded6332ea",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "8bb8be47-b227-4b86-9b57-5fe8a7d16a5c",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "6fca9114-4b8d-4e5d-9df9-a168b90cb2ea",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "aaed09bd-c270-411c-8719-150bdc164523",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "d84d9315-d1c1-458b-9013-f17a78b669b0",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "e19b86d2-36f3-4b4b-bb3a-9f58d0472664",
+      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 1",
+      "createdAt": "2026-04-21T12:03:14.576Z",
+      "updatedAt": "2026-04-21T12:03:14.576Z",
+      "settings": {
+        "generationModel": "sd_4_5",
+        "resolution": "2k",
+        "aspectRatio": "1:1",
+        "quantity": 4,
+        "globalReferences": [
+          {
+            "id": "a2684d09-ebcd-41ae-a964-72140eb300d9",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "2026bfbc-25cb-4c46-a8c9-796c0240ec9f",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "4fc0f5c3-3eea-4121-8e71-35f1edf30896",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "47a9a2fc-5450-4d1c-8285-46eec8b603bd",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "73fb15c8-dfa2-47d2-b526-c7eab16e1f84",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "baa56486-0263-4091-a3d3-6e402afde301",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "702d9f04-62a6-4faa-a58d-b10247a4e5df",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "dbc09a3f-ec91-4cc5-a301-154c03c46b23",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "9d061594-e27b-4a82-b675-02fd5139a34d",
+      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 1",
+      "createdAt": "2026-04-21T12:37:46.558Z",
+      "updatedAt": "2026-04-21T12:37:46.558Z",
+      "settings": {
+        "generationModel": "kling_o1",
+        "resolution": "1k",
+        "aspectRatio": "9:16",
+        "quantity": 4,
+        "globalReferences": [
+          {
+            "id": "8230c5d1-18ad-4700-a13d-18c7a5893086",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "4eeb6fc8-7737-45d3-8eaf-16b7910078ec",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "b2887498-926f-46ac-aada-32df1e1d0fb1",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "f7e0e1dd-7a44-4ebe-9b8f-c6ec2db6ff1b",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "2ccbcd6d-c552-45b8-a012-df35bb6d9b07",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "a733466f-fb8d-4802-8e5a-fabecae9edc8",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "15688a21-b485-4921-8d4a-063a653fad30",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "2d443819-4f65-4eca-84c0-6d1200ea0407",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    }
+  ],
+  "assets": []
+}
