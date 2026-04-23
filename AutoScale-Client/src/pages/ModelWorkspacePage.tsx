@@ -180,11 +180,17 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
     }
   }
 
-  async function handleDeleteBoard() {
-    if (!board || !model) {
+  async function handleDeleteBoard(targetBoardId?: string) {
+    if (!model) {
       return;
     }
-    await deleteBoardMutation({ variables: { boardId: board.id } });
+
+    const boardIdToDelete = targetBoardId || board?.id;
+    if (!boardIdToDelete) {
+      return;
+    }
+
+    await deleteBoardMutation({ variables: { boardId: boardIdToDelete } });
     await refetchModel();
     const queryResult = await client.query<{ influencerModel: InfluencerModel | null }>({
       query: INFLUENCER_MODEL_QUERY,
@@ -192,15 +198,26 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
       fetchPolicy: "network-only",
     });
     const remainingBoards = queryResult.data?.influencerModel?.boards;
-    if (remainingBoards?.[0]) {
-      onSelectBoard(remainingBoards[0].id);
+
+    if (!remainingBoards?.length) {
+      return;
     }
+
+    if (boardIdToDelete === activeBoardId) {
+      onSelectBoard(remainingBoards[0].id);
+      return;
+    }
+
+    const stillActive = remainingBoards.find((entry) => entry.id === activeBoardId);
+    onSelectBoard(stillActive?.id || remainingBoards[0].id);
   }
 
   async function handleCommitRow(input: {
     rowId: string;
     label?: string;
     prompt?: string;
+    poseMultiplier?: number;
+    faceSwap?: boolean;
     reference?: ReferenceSelection;
     clearReference?: boolean;
   }) {
@@ -214,6 +231,8 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
           rowId: input.rowId,
           label: input.label,
           prompt: input.prompt,
+          poseMultiplier: input.poseMultiplier,
+          faceSwap: input.faceSwap,
           reference: input.reference,
           clearReference: input.clearReference,
         },
@@ -235,6 +254,13 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
           resolution: nextSettings.resolution,
           aspectRatio: nextSettings.aspectRatio,
           quantity: nextSettings.quantity,
+          poseMultiplierEnabled: nextSettings.poseMultiplierEnabled,
+          poseMultiplier: nextSettings.poseMultiplier,
+          faceSwap: nextSettings.faceSwap,
+          autoPromptGen: nextSettings.autoPromptGen,
+          autoPromptImage: nextSettings.autoPromptImage,
+          posePromptMode: nextSettings.posePromptMode,
+          posePromptTemplate: nextSettings.posePromptTemplate,
           globalReferences: nextSettings.globalReferences.map((reference) => ({
             id: reference.id,
             slotIndex: reference.slotIndex,
@@ -306,67 +332,99 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
     return <div className={theme.cardStrong + " glass-panel p-10 text-white/58"}>This influencer model is not available.</div>;
   }
 
+  const completedRows = board?.rows.filter((row) => row.status === "SUCCEEDED").length ?? 0;
+
   return (
-    <div className="space-y-5">
-      <section className={theme.cardStrong + " glass-panel p-6 sm:p-7"}>
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-white/42">Airtable-style generation workspace</p>
-            <h1 className="font-display mt-3 text-4xl text-white">{model.name}</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
-              {model.description} This workspace mirrors the eight-slot Higgsfield batch contract: shared global references live above the grid, each row controls one worker job, and outputs are routed back into the matching row.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button className={theme.buttonSecondary} disabled={!board || running} onClick={() => void handleCreateBoard()} type="button">
-              Add table
-            </button>
-            <button className={theme.buttonSecondary} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
-              Clear table
-            </button>
-            <button className={theme.buttonDanger} disabled={!board || running || (model.boards.length ?? 0) <= 1} onClick={() => void handleDeleteBoard()} type="button">
-              Delete table
-            </button>
-            <button className={theme.buttonPrimary} disabled={!board || running} onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())} type="button">
-              {running ? "Running..." : "Run workflow"}
-            </button>
+    <div className="space-y-4">
+      <section className={theme.cardStrong + " overflow-hidden border-white/10 bg-[#171717]/92 shadow-[0_28px_80px_rgba(0,0,0,0.35)]"}>
+        <div className="border-b border-white/8 bg-[#1f1f1f] px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Generation workspace</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <h1 className="font-display text-2xl text-white sm:text-3xl">{model.name}</h1>
+                <span className="rounded-full border border-white/10 bg-[#2b2b2b] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                  {board?.name ?? "Workspace"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-white/48">
+              <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
+                {board?.rows.length ?? 0} rows
+              </span>
+              <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
+                {completedRows} complete
+              </span>
+              <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
+                8-slot batch
+              </span>
+            </div>
           </div>
         </div>
+
+        <div className="border-b border-white/8 bg-[#222222] px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="max-w-3xl text-sm leading-6 text-white/58">
+              {model.description} Shared references live in the left rail, each row maps to one worker job, and outputs return directly into the matching record.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
+                Clear table
+              </button>
+              <button className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"} disabled={!board || running} onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())} type="button">
+                {running ? "Running..." : "Run workflow"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid min-h-[68vh] gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
+          {boardLoading && !board ? (
+            <div className="xl:col-span-2 h-[50vh] animate-pulse bg-white/[0.03]" />
+          ) : board ? (
+            <>
+              <div className="border-b border-white/8 bg-[#202020] xl:border-r xl:border-b-0">
+                <SettingsPanel
+                  allowedGenerationModels={model.allowedGenerationModels}
+                  onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex })}
+                  onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
+                  onToggle={() => setSettingsOpen((current) => !current)}
+                  onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
+                  open={settingsOpen}
+                  promptPrefix={model.defaults.promptPrefix}
+                  settings={board.settings}
+                />
+              </div>
+
+              <div className="min-w-0 bg-[#171717]">
+                <BoardTabs
+                  boards={model.boards}
+                  activeBoardId={activeBoardId}
+                  onCreate={() => void handleCreateBoard()}
+                  onDelete={(nextBoardId) => void handleDeleteBoard(nextBoardId)}
+                  onSelect={onSelectBoard}
+                />
+
+                <WorkspaceGrid
+                  board={board}
+                  onAddRow={async () => {
+                    await addRowMutation({ variables: { boardId: board.id } });
+                    await refetchBoard();
+                  }}
+                  onCommitRow={(input) => handleCommitRow(input)}
+                  onDeleteRow={async (rowId) => {
+                    await deleteRowMutation({ variables: { boardId: board.id, rowId } });
+                    await refetchBoard();
+                  }}
+                  onPickReference={(row) => setPickerState({ kind: "row", row })}
+                  onUploadReference={(row, file) => handleUploadRowReference(row, file)}
+                />
+              </div>
+            </>
+          ) : null}
+        </div>
       </section>
-
-      <BoardTabs boards={model.boards} activeBoardId={activeBoardId} onCreate={() => void handleCreateBoard()} onSelect={onSelectBoard} />
-
-      {boardLoading && !board ? (
-        <div className="h-[50vh] animate-pulse rounded-[32px] border border-white/8 bg-white/[0.03]" />
-      ) : board ? (
-        <>
-          <SettingsPanel
-            allowedGenerationModels={model.allowedGenerationModels}
-            onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex })}
-            onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
-            onToggle={() => setSettingsOpen((current) => !current)}
-            onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
-            open={settingsOpen}
-            promptPrefix={model.defaults.promptPrefix}
-            settings={board.settings}
-          />
-
-          <WorkspaceGrid
-            board={board}
-            onAddRow={async () => {
-              await addRowMutation({ variables: { boardId: board.id } });
-              await refetchBoard();
-            }}
-            onCommitRow={(input) => handleCommitRow(input)}
-            onDeleteRow={async (rowId) => {
-              await deleteRowMutation({ variables: { boardId: board.id, rowId } });
-              await refetchBoard();
-            }}
-            onPickReference={(row) => setPickerState({ kind: "row", row })}
-            onUploadReference={(row, file) => handleUploadRowReference(row, file)}
-          />
-        </>
-      ) : null}
 
       <ImagePickerModal assets={assets} onClose={() => setPickerState(null)} onSelect={(asset) => void handleSelectAsset(asset)} open={Boolean(pickerState)} />
     </div>

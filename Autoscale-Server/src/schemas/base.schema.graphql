@@ -89,6 +89,13 @@ type BoardSettings {
   resolution: String!
   aspectRatio: String!
   quantity: Int!
+  poseMultiplierEnabled: Boolean!
+  poseMultiplier: Float!
+  faceSwap: Boolean!
+  autoPromptGen: Boolean!
+  autoPromptImage: Boolean!
+  posePromptMode: String!
+  posePromptTemplate: String!
   globalReferences: [ReferenceSelection!]!
 }
 
@@ -118,6 +125,8 @@ type WorkspaceRow {
   orderIndex: Int!
   label: String!
   prompt: String!
+  poseMultiplier: Float!
+  faceSwap: Boolean!
   reference: ReferenceSelection
   status: GenerationStatus!
   errorMessage: String
@@ -186,6 +195,8 @@ input UpdateBoardRowInput {
   rowId: ID!
   label: String
   prompt: String
+  poseMultiplier: Float
+  faceSwap: Boolean
   reference: ReferenceSelectionInput
   clearReference: Boolean
 }
@@ -195,6 +206,13 @@ input BoardSettingsInput {
   resolution: String!
   aspectRatio: String!
   quantity: Int!
+  poseMultiplierEnabled: Boolean!
+  poseMultiplier: Float!
+  faceSwap: Boolean!
+  autoPromptGen: Boolean!
+  autoPromptImage: Boolean!
+  posePromptMode: String!
+  posePromptTemplate: String!
   globalReferences: [ReferenceSelectionInput!]!
 }
 

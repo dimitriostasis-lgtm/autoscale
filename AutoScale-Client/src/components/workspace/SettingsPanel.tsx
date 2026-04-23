@@ -1,4 +1,3 @@
-import { cx } from "../../lib/cx";
 import type { BoardSettings } from "../../types";
 import { aspectRatioOptions, generationModelOptions, resolutionLabels, resolutionOptions, theme, workerModelLabels } from "../../styles/theme";
 
@@ -23,25 +22,27 @@ export function SettingsPanel({
   onUploadReference,
   onPickReference,
 }: SettingsPanelProps) {
+  const poseMultiplierEnabled = settings.poseMultiplierEnabled;
+
   return (
-    <section className={cx(theme.cardStrong, "overflow-hidden") + " glass-panel"}>
-      <button className="flex w-full items-center justify-between px-5 py-4 text-left" onClick={onToggle} type="button">
+    <section className="h-full bg-[#202020] text-white">
+      <button className="flex w-full items-center justify-between border-b border-white/8 px-5 py-4 text-left" onClick={onToggle} type="button">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-white/42">Generation Settings</p>
-          <h3 className="font-display mt-2 text-2xl text-white">Shared workflow controls</h3>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Workspace rail</p>
+          <h3 className="font-display mt-2 text-xl text-white">Shared controls</h3>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/64">
+        <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-4 py-2 text-xs font-semibold text-white/64">
           {open ? "Collapse" : "Expand"}
         </span>
       </button>
 
       {open ? (
-        <div className="grid gap-6 border-t border-white/8 px-5 py-5 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="space-y-5 px-5 py-5">
+          <div className="grid gap-4">
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-white/82">Worker model</span>
+              <span className="text-sm font-semibold text-white/76">Worker model</span>
               <select
-                className={theme.input}
+                className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
                 value={settings.generationModel}
                 onChange={(event) =>
                   onSettingsChange({
@@ -61,9 +62,9 @@ export function SettingsPanel({
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-white/82">Resolution</span>
+              <span className="text-sm font-semibold text-white/76">Resolution</span>
               <select
-                className={theme.input}
+                className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
                 value={settings.resolution}
                 onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
               >
@@ -76,9 +77,9 @@ export function SettingsPanel({
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-white/82">Aspect ratio</span>
+              <span className="text-sm font-semibold text-white/76">Aspect ratio</span>
               <select
-                className={theme.input}
+                className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
                 value={settings.aspectRatio}
                 onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
               >
@@ -91,9 +92,9 @@ export function SettingsPanel({
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-white/82">Quantity</span>
+              <span className="text-sm font-semibold text-white/76">Quantity</span>
               <select
-                className={theme.input}
+                className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
                 value={settings.quantity}
                 onChange={(event) => onSettingsChange({ ...settings, quantity: Number(event.target.value) })}
               >
@@ -105,29 +106,165 @@ export function SettingsPanel({
               </select>
             </label>
 
-            <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 md:col-span-2 xl:col-span-4">
-              <p className="text-sm font-semibold text-white">Influencer prompt defaults</p>
-              <p className="mt-3 text-sm leading-7 text-white/58">{promptPrefix}</p>
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-white/76">Prompt automation</span>
+              <button
+                className={
+                  settings.autoPromptGen
+                    ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                    : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                }
+                onClick={() => onSettingsChange({ ...settings, autoPromptGen: !settings.autoPromptGen })}
+                type="button"
+              >
+                <span>{settings.autoPromptGen ? "Auto Prompt On" : "Auto Prompt Off"}</span>
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-white/76">Prompt image automation</span>
+              <button
+                className={
+                  settings.autoPromptImage
+                    ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                    : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                }
+                onClick={() => {
+                  const nextAutoPromptImage = !settings.autoPromptImage;
+                  onSettingsChange({
+                    ...settings,
+                    autoPromptImage: nextAutoPromptImage,
+                    autoPromptGen: nextAutoPromptImage ? true : settings.autoPromptGen,
+                  });
+                }}
+                type="button"
+              >
+                <span>{settings.autoPromptImage ? "Auto Image On" : "Auto Image Off"}</span>
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
+              <button
+                className={
+                  poseMultiplierEnabled
+                    ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                    : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                }
+                onClick={() =>
+                  onSettingsChange({
+                    ...settings,
+                    poseMultiplierEnabled: !poseMultiplierEnabled,
+                  })
+                }
+                type="button"
+              >
+                <span>{poseMultiplierEnabled ? "Pose Multiplier On" : "Pose Multiplier Off"}</span>
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
+              </button>
+              <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#262626] p-2">
+                <button
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/8 bg-[#202020] text-lg font-semibold text-white/78 transition hover:bg-[#2c2c2c] disabled:cursor-not-allowed disabled:opacity-35"
+                  disabled={!poseMultiplierEnabled || settings.poseMultiplier <= 1}
+                  onClick={() => onSettingsChange({ ...settings, poseMultiplier: Math.max(1, settings.poseMultiplier - 1) })}
+                  type="button"
+                >
+                  -
+                </button>
+                <div className="flex-1 rounded-lg border border-white/8 bg-[#202020] px-3 py-2 text-center text-sm font-semibold text-white">
+                  {poseMultiplierEnabled ? `${settings.poseMultiplier}x` : "Off"}
+                </div>
+                <button
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/8 bg-[#202020] text-lg font-semibold text-white/78 transition hover:bg-[#2c2c2c] disabled:cursor-not-allowed disabled:opacity-35"
+                  disabled={!poseMultiplierEnabled || settings.poseMultiplier >= 4}
+                  onClick={() => onSettingsChange({ ...settings, poseMultiplier: Math.min(4, settings.poseMultiplier + 1) })}
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-white/76">Pose multiplier prompt mode</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  className={
+                    settings.posePromptMode === "AUTO"
+                      ? "inline-flex items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                      : "inline-flex items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                  }
+                  onClick={() => onSettingsChange({ ...settings, posePromptMode: "AUTO" })}
+                  type="button"
+                >
+                  Auto mode
+                </button>
+                <button
+                  className={
+                    settings.posePromptMode === "CUSTOM"
+                      ? "inline-flex items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                      : "inline-flex items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                  }
+                  onClick={() => onSettingsChange({ ...settings, posePromptMode: "CUSTOM" })}
+                  type="button"
+                >
+                  Custom prompt
+                </button>
+              </div>
+              {settings.posePromptMode === "AUTO" ? (
+                <div className="rounded-xl border border-white/8 bg-[#262626] px-3 py-3 text-sm leading-6 text-white/58">
+                  Backend default pose-expansion prompt will be used automatically for the selected multiplier.
+                </div>
+              ) : (
+                <textarea
+                  className={theme.input + " min-h-[112px] rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 text-sm leading-6"}
+                  value={settings.posePromptTemplate}
+                  onChange={(event) => onSettingsChange({ ...settings, posePromptTemplate: event.target.value })}
+                  placeholder="Describe how multiplied pose variations should differ from the base shot"
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-white/76">Face swap</span>
+              <button
+                className={
+                  settings.faceSwap
+                    ? "inline-flex w-full items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                    : "inline-flex w-full items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                }
+                onClick={() => onSettingsChange({ ...settings, faceSwap: !settings.faceSwap })}
+                type="button"
+              >
+                {settings.faceSwap ? "Enabled for all rows" : "Disabled for all rows"}
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-white/8 bg-[#262626] p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/40">Default prompt context</p>
+              <p className="mt-3 text-sm leading-6 text-white/58">{promptPrefix}</p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 border-t border-white/8 pt-5">
             <div>
               <p className="text-sm font-semibold text-white">Global reference images</p>
               <p className="mt-2 text-sm leading-6 text-white/54">
                 These match the shared workflow inputs that should not be repeated row by row. Each slot can pull from uploads or the model gallery.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               {settings.globalReferences.map((selection) => {
                 const previewSrc = selection.asset?.url || selection.assetUrl || selection.uploadUrl || null;
                 return (
-                  <div key={selection.id} className="rounded-[24px] border border-white/8 bg-black/16 p-3">
+                  <div key={selection.id} className="rounded-2xl border border-white/8 bg-[#262626] p-3">
                     <div className="mb-3 flex items-center justify-between">
                       <p className="text-sm font-semibold text-white">Slot {selection.slotIndex + 1}</p>
                       <span className="text-xs uppercase tracking-[0.18em] text-white/40">Global</span>
                     </div>
-                    <div className="mb-3 aspect-[4/3] overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]">
+                    <div className="mb-3 aspect-[4/3] overflow-hidden rounded-xl border border-white/8 bg-[#1d1d1d]">
                       {previewSrc ? (
                         <img alt={selection.label} className="h-full w-full object-cover" src={previewSrc} />
                       ) : (
@@ -135,7 +272,7 @@ export function SettingsPanel({
                       )}
                     </div>
                     <div className="grid gap-2">
-                      <label className={theme.buttonSecondary + " cursor-pointer text-center"}>
+                      <label className={theme.buttonSecondary + " cursor-pointer rounded-xl border-white/8 bg-[#2f2f2f] text-center text-xs text-white/78 hover:bg-[#353535]"}>
                         Upload
                         <input
                           className="hidden"
@@ -149,7 +286,7 @@ export function SettingsPanel({
                           type="file"
                         />
                       </label>
-                      <button className={theme.buttonSecondary} onClick={() => onPickReference(selection.slotIndex)} type="button">
+                      <button className={theme.buttonSecondary + " rounded-xl border-white/8 bg-[#2f2f2f] text-xs text-white/78 hover:bg-[#353535]"} onClick={() => onPickReference(selection.slotIndex)} type="button">
                         Use gallery image
                       </button>
                     </div>

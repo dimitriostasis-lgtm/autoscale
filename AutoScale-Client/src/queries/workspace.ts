@@ -23,6 +23,13 @@ export const BOARD_DETAIL_QUERY = gql`
         resolution
         aspectRatio
         quantity
+        poseMultiplierEnabled
+        poseMultiplier
+        faceSwap
+        autoPromptGen
+        autoPromptImage
+        posePromptMode
+        posePromptTemplate
         globalReferences {
           id
           slotIndex
@@ -48,6 +55,8 @@ export const BOARD_DETAIL_QUERY = gql`
         orderIndex
         label
         prompt
+        poseMultiplier
+        faceSwap
         status
         errorMessage
         lastRunAt
@@ -189,6 +198,13 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         resolution
         aspectRatio
         quantity
+        poseMultiplierEnabled
+        poseMultiplier
+        faceSwap
+        autoPromptGen
+        autoPromptImage
+        posePromptMode
+        posePromptTemplate
         globalReferences {
           id
           slotIndex
@@ -214,6 +230,8 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         orderIndex
         label
         prompt
+        poseMultiplier
+        faceSwap
         status
         errorMessage
         lastRunAt

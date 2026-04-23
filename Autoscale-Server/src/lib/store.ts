@@ -136,7 +136,32 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
       createdAt: model.createdAt || timestamp,
     })),
     modelAccess: rawStore.modelAccess || [],
-    boards: rawStore.boards || [],
+    boards: (rawStore.boards || []).map((board) => ({
+      ...board,
+      settings: {
+        ...board.settings,
+        poseMultiplierEnabled:
+          typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
+            ? board.settings.poseMultiplierEnabled
+            : false,
+        poseMultiplier: typeof (board.settings as { poseMultiplier?: unknown }).poseMultiplier === "number" ? board.settings.poseMultiplier : 1,
+        faceSwap: typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
+        autoPromptGen: typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
+        autoPromptImage: typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
+        posePromptMode: (board.settings as { posePromptMode?: unknown }).posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
+        posePromptTemplate:
+          typeof (board.settings as { posePromptTemplate?: unknown }).posePromptTemplate === "string"
+            ? board.settings.posePromptTemplate
+            : "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+      },
+      rows: (board.rows || []).map((row, index) => ({
+        ...row,
+        orderIndex: typeof row.orderIndex === "number" ? row.orderIndex : index,
+        label: row.label || `${index + 1}`,
+        poseMultiplier: typeof (row as { poseMultiplier?: unknown }).poseMultiplier === "number" ? row.poseMultiplier : 1,
+        faceSwap: typeof (row as { faceSwap?: unknown }).faceSwap === "boolean" ? row.faceSwap : false,
+      })),
+    })),
     assets: rawStore.assets || [],
   };
 }
@@ -147,6 +172,13 @@ function defaultBoardSettings(model: InfluencerModel): BoardSettings {
     resolution: model.defaults.resolution,
     aspectRatio: model.defaults.aspectRatio,
     quantity: model.defaults.quantity,
+    poseMultiplierEnabled: false,
+    poseMultiplier: 1,
+    faceSwap: false,
+    autoPromptGen: false,
+    autoPromptImage: false,
+    posePromptMode: "AUTO",
+    posePromptTemplate: "Keep the same framing and styling while varying the body pose for each multiplied shot.",
     globalReferences: Array.from({ length: 4 }, (_, index) => ({
       id: randomUUID(),
       slotIndex: index,
@@ -160,12 +192,14 @@ function defaultBoardSettings(model: InfluencerModel): BoardSettings {
   };
 }
 
-export function createDefaultRows(count = 4): WorkspaceRow[] {
+export function createDefaultRows(count = 4, defaults?: Pick<BoardSettings, "poseMultiplier" | "faceSwap">): WorkspaceRow[] {
   return Array.from({ length: count }, (_, index) => ({
     id: randomUUID(),
     orderIndex: index,
     label: `${index + 1}`,
     prompt: "",
+    poseMultiplier: defaults?.poseMultiplier ?? 1,
+    faceSwap: defaults?.faceSwap ?? false,
     reference: null,
     status: "IDLE",
     errorMessage: null,
@@ -176,6 +210,7 @@ export function createDefaultRows(count = 4): WorkspaceRow[] {
 
 export function createBoardSeed(model: InfluencerModel, ownerId: string, name = "Table 1"): WorkspaceBoard {
   const timestamp = nowIso();
+  const settings = defaultBoardSettings(model);
   return {
     id: randomUUID(),
     influencerModelId: model.id,
@@ -183,8 +218,8 @@ export function createBoardSeed(model: InfluencerModel, ownerId: string, name = 
     name,
     createdAt: timestamp,
     updatedAt: timestamp,
-    settings: defaultBoardSettings(model),
-    rows: createDefaultRows(4),
+    settings,
+    rows: createDefaultRows(4, settings),
   };
 }
 

@@ -81,6 +81,13 @@ export interface BoardSettings {
   resolution: string;
   aspectRatio: string;
   quantity: number;
+  poseMultiplierEnabled: boolean;
+  poseMultiplier: number;
+  faceSwap: boolean;
+  autoPromptGen: boolean;
+  autoPromptImage: boolean;
+  posePromptMode: "AUTO" | "CUSTOM";
+  posePromptTemplate: string;
   globalReferences: ReferenceSelection[];
 }
 
@@ -89,6 +96,8 @@ export interface WorkspaceRow {
   orderIndex: number;
   label: string;
   prompt: string;
+  poseMultiplier: number;
+  faceSwap: boolean;
   reference: ReferenceSelection | null;
   status: GenerationStatus;
   errorMessage: string | null;

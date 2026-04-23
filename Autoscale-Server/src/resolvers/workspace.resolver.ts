@@ -49,6 +49,8 @@ export const workspaceResolvers = {
           rowId: string;
           label?: string | null;
           prompt?: string | null;
+          poseMultiplier?: number | null;
+          faceSwap?: boolean | null;
           reference?: ReferenceSelection | null;
           clearReference?: boolean | null;
         };
@@ -64,6 +66,13 @@ export const workspaceResolvers = {
           resolution: string;
           aspectRatio: string;
           quantity: number;
+          poseMultiplierEnabled: boolean;
+          poseMultiplier: number;
+          faceSwap: boolean;
+          autoPromptGen: boolean;
+          autoPromptImage: boolean;
+          posePromptMode: string;
+          posePromptTemplate: string;
           globalReferences: ReferenceSelection[];
         };
       },

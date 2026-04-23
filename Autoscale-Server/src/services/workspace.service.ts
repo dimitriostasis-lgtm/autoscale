@@ -26,6 +26,8 @@ function normalizeRows(rows: WorkspaceRow[]): WorkspaceRow[] {
       ...row,
       orderIndex: index,
       label: row.label || `${index + 1}`,
+      poseMultiplier: typeof row.poseMultiplier === "number" ? row.poseMultiplier : 1,
+      faceSwap: typeof row.faceSwap === "boolean" ? row.faceSwap : false,
     }));
 }
 
@@ -129,7 +131,10 @@ export async function addBoardRow(currentUser: AuthUser | null, boardId: string)
     if (board.rows.length >= MAX_BOARD_ROWS) {
       throw new Error(`A board can contain at most ${MAX_BOARD_ROWS} rows`);
     }
-    const [newRow] = createDefaultRows(1);
+    const [newRow] = createDefaultRows(1, {
+      poseMultiplier: board.settings.poseMultiplier,
+      faceSwap: board.settings.faceSwap,
+    });
     newRow.orderIndex = board.rows.length;
     newRow.label = `${board.rows.length + 1}`;
     board.rows.push(newRow);
@@ -170,6 +175,8 @@ export async function updateBoardRow(
     rowId: string;
     label?: string | null;
     prompt?: string | null;
+    poseMultiplier?: number | null;
+    faceSwap?: boolean | null;
     reference?: ReferenceSelection | null;
     clearReference?: boolean | null;
   },
@@ -187,6 +194,12 @@ export async function updateBoardRow(
     }
     if (typeof input.prompt === "string") {
       row.prompt = input.prompt;
+    }
+    if (typeof input.poseMultiplier === "number") {
+      row.poseMultiplier = Math.max(1, Math.min(4, input.poseMultiplier));
+    }
+    if (typeof input.faceSwap === "boolean") {
+      row.faceSwap = input.faceSwap;
     }
     if (input.clearReference) {
       row.reference = null;
@@ -215,6 +228,13 @@ export async function updateBoardSettings(
     resolution: string;
     aspectRatio: string;
     quantity: number;
+    poseMultiplierEnabled: boolean;
+    poseMultiplier: number;
+    faceSwap: boolean;
+    autoPromptGen: boolean;
+    autoPromptImage: boolean;
+    posePromptMode: string;
+    posePromptTemplate: string;
     globalReferences: ReferenceSelection[];
   },
 ) {
@@ -226,8 +246,22 @@ export async function updateBoardSettings(
       resolution: input.resolution as WorkspaceBoard["settings"]["resolution"],
       aspectRatio: input.aspectRatio as WorkspaceBoard["settings"]["aspectRatio"],
       quantity: Math.max(1, Math.min(4, input.quantity)),
+      poseMultiplierEnabled: input.poseMultiplierEnabled,
+      poseMultiplier: Math.max(1, Math.min(4, input.poseMultiplier)),
+      faceSwap: input.faceSwap,
+      autoPromptGen: input.autoPromptGen,
+      autoPromptImage: input.autoPromptImage,
+      posePromptMode: input.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
+      posePromptTemplate: input.posePromptTemplate.trim() || "Keep the same framing and styling while varying the body pose for each multiplied shot.",
       globalReferences: input.globalReferences.map((selection) => normalizeReference(selection)),
     };
+    board.rows = board.rows.map((row) => ({
+      ...row,
+      poseMultiplier: board.settings.poseMultiplier,
+      faceSwap: board.settings.faceSwap,
+      status: "IDLE",
+      errorMessage: null,
+    }));
     board.updatedAt = nowIso();
     return current;
   });
