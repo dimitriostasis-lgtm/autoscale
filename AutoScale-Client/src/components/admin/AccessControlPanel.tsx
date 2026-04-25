@@ -446,6 +446,35 @@ export function AccessControlPanel({
   }, [agencies, filteredUsers]);
 
   const totalGalleryAssets = useMemo(() => models.reduce((sum, model) => sum + model.galleryCount, 0), [models]);
+  const agencySummaryAgencyId = currentUser.agencyId || agencies[0]?.id || "";
+  const agencySummaryAgency = agencies.find((agency) => agency.id === agencySummaryAgencyId) || null;
+  const agencySummaryUsers = useMemo(
+    () => users.filter((user) => user.agencyId === agencySummaryAgencyId && user.role !== "PLATFORM_ADMIN"),
+    [agencySummaryAgencyId, users],
+  );
+  const agencySummaryCounts = useMemo(
+    () => ({
+      memberCount: agencySummaryAgency?.memberCount ?? agencySummaryUsers.length,
+      adminCount: agencySummaryAgency?.adminCount ?? agencySummaryUsers.filter((user) => user.role === "AGENCY_ADMIN").length,
+      managerCount: agencySummaryAgency?.managerCount ?? agencySummaryUsers.filter((user) => user.role === "AGENCY_MANAGER").length,
+      userCount: agencySummaryAgency?.userCount ?? agencySummaryUsers.filter((user) => user.role === "USER").length,
+      activeCount: agencySummaryAgency?.activeCount ?? agencySummaryUsers.filter((user) => user.isActive).length,
+    }),
+    [agencySummaryAgency, agencySummaryUsers],
+  );
+  const agencyAvailableModels = useMemo(() => models.filter((model) => model.isActive && model.canAccess), [models]);
+  const agencyGalleryAssets = useMemo(
+    () => agencyAvailableModels.reduce((sum, model) => sum + model.galleryCount, 0),
+    [agencyAvailableModels],
+  );
+  const agencyBoardCount = useMemo(
+    () => agencyAvailableModels.reduce((sum, model) => sum + model.boardCount, 0),
+    [agencyAvailableModels],
+  );
+  const agencyModelsByGallery = useMemo(
+    () => [...agencyAvailableModels].sort((left, right) => right.galleryCount - left.galleryCount || left.name.localeCompare(right.name)),
+    [agencyAvailableModels],
+  );
   const assignableModels = useMemo(() => models.filter((model) => model.isActive), [models]);
   const agencyPendingDeletion = agencies.find((agency) => agency.id === agencyPendingDeletionId) || null;
   const agencyPendingDeletionUsers = useMemo(
@@ -892,6 +921,102 @@ export function AccessControlPanel({
               <p className="mt-3 max-w-sm text-sm leading-7 text-white/60">
                 Generated assets currently available across the internal gallery surface for review, download, and reuse.
               </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {isAgencyAdmin ? (
+        <section className={theme.cardStrong + " glass-panel overflow-hidden p-0"}>
+          <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7">
+            <p className="text-xs uppercase tracking-[0.22em] text-white/42">Overview</p>
+            <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="font-display text-3xl text-white">Agency summary</h2>
+                <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
+                  {agencySummaryAgency?.name || currentUser.agencyName || "Your agency"} model availability, account mix, and gallery output volume.
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/62">
+                {agencySummaryCounts.activeCount} active / {agencySummaryCounts.memberCount} total
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-px bg-white/8 lg:grid-cols-[1.05fr_1.15fr_0.95fr]">
+            <div
+              className="px-6 py-6 sm:px-7 sm:py-7"
+              style={{
+                background:
+                  "linear-gradient(180deg, color-mix(in srgb, var(--accent-main) 18%, transparent) 0%, var(--surface-card-strong) 100%)",
+              }}
+            >
+              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Available Models</p>
+              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{agencyAvailableModels.length}</p>
+              <p className="mt-3 max-w-sm text-sm leading-7 text-white/60">
+                Influencer profiles enabled for this agency and visible to agency admins.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {agencyAvailableModels.slice(0, 4).map((model) => (
+                  <span key={model.id} className="rounded-full border border-white/10 bg-black/18 px-3 py-2 text-xs uppercase tracking-[0.16em] text-white/70">
+                    {model.handle}
+                  </span>
+                ))}
+                {agencyAvailableModels.length > 4 ? (
+                  <span className="rounded-full border border-white/10 bg-black/18 px-3 py-2 text-xs uppercase tracking-[0.16em] text-white/48">
+                    +{agencyAvailableModels.length - 4} more
+                  </span>
+                ) : null}
+                {!agencyAvailableModels.length ? (
+                  <span className="rounded-full border border-white/10 bg-black/18 px-3 py-2 text-xs uppercase tracking-[0.16em] text-white/48">
+                    None enabled
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="bg-[color:var(--surface-card)] px-6 py-6 sm:px-7 sm:py-7">
+              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Agency Users</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {[
+                  ["Agency admins", agencySummaryCounts.adminCount],
+                  ["Managers", agencySummaryCounts.managerCount],
+                  ["Users", agencySummaryCounts.userCount],
+                  ["Active accounts", agencySummaryCounts.activeCount],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/42">{label}</p>
+                    <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              className="px-6 py-6 sm:px-7 sm:py-7"
+              style={{
+                background:
+                  "linear-gradient(180deg, color-mix(in srgb, var(--text-strong) 6%, transparent) 0%, var(--surface-card-strong) 100%)",
+              }}
+            >
+              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Gallery Outputs</p>
+              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{agencyGalleryAssets}</p>
+              <p className="mt-3 max-w-sm text-sm leading-7 text-white/60">
+                Generated assets across {agencyBoardCount} workspace board{agencyBoardCount === 1 ? "" : "s"} for this agency.
+              </p>
+              <div className="mt-6 space-y-3">
+                {agencyModelsByGallery.slice(0, 3).map((model) => (
+                  <div key={model.id} className="flex items-center justify-between gap-3 rounded-3xl border border-white/8 bg-black/18 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white">{model.name}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/44">{model.handle}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/62">
+                      {model.galleryCount} output{model.galleryCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
