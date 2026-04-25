@@ -49,6 +49,7 @@ function normalizeManagerPermissions(value: Partial<ManagerPermissions> | null |
     canDeleteUsers: value?.canDeleteUsers ?? DEFAULT_MANAGER_PERMISSIONS.canDeleteUsers,
     canResetPasswords: value?.canResetPasswords ?? DEFAULT_MANAGER_PERMISSIONS.canResetPasswords,
     canManageAssignments: value?.canManageAssignments ?? DEFAULT_MANAGER_PERMISSIONS.canManageAssignments,
+    canManageCredits: value?.canManageCredits ?? DEFAULT_MANAGER_PERMISSIONS.canManageCredits,
   };
 }
 
@@ -98,19 +99,13 @@ function defaultManagerPermissionsForRole(role: Role, current?: Partial<ManagerP
   return role === "AGENCY_MANAGER" ? normalizeManagerPermissions(current) : null;
 }
 
-function normalizeManagerAgencyIds(
-  agencyIds: string[] | null | undefined,
-  agencies: StoreData["agencies"],
-  primaryAgencyId: string | null,
-): string[] {
+function normalizeManagerAgencyIds(agencies: StoreData["agencies"], primaryAgencyId: string | null): string[] {
   if (!primaryAgencyId) {
     return [];
   }
 
   const validAgencyIds = new Set(agencies.map((agency) => agency.id));
-  const normalized = Array.isArray(agencyIds) ? agencyIds.filter((agencyId) => validAgencyIds.has(agencyId)) : [];
-  normalized.unshift(primaryAgencyId);
-  return Array.from(new Set(normalized));
+  return validAgencyIds.has(primaryAgencyId) ? [primaryAgencyId] : [];
 }
 
 function removeUsersFromStore(store: StoreData, userIds: string[]): void {
@@ -260,10 +255,7 @@ export async function deleteAgency(currentUser: AuthUser | null, agencyId: strin
         continue;
       }
 
-      user.managedAgencyIds = user.managedAgencyIds.filter((managedAgencyId) => managedAgencyId !== agencyId);
-      if (user.agencyId && !user.managedAgencyIds.includes(user.agencyId)) {
-        user.managedAgencyIds.unshift(user.agencyId);
-      }
+      user.managedAgencyIds = user.agencyId && user.agencyId !== agencyId ? [user.agencyId] : [];
     }
     for (const model of current.influencerModels) {
       model.agencyIds = model.agencyIds.filter((modelAgencyId) => modelAgencyId !== agencyId);
@@ -421,7 +413,7 @@ export async function updateUserRole(currentUser: AuthUser | null, userId: strin
     }
 
     if (role === "AGENCY_MANAGER") {
-      user.managedAgencyIds = normalizeManagerAgencyIds(user.managedAgencyIds, current.agencies, user.agencyId);
+      user.managedAgencyIds = normalizeManagerAgencyIds(current.agencies, user.agencyId);
       user.managerPermissions = defaultManagerPermissionsForRole(role, user.managerPermissions);
       return current;
     }
@@ -442,7 +434,7 @@ export async function updateUserRole(currentUser: AuthUser | null, userId: strin
 export async function updateUserOrganization(
   currentUser: AuthUser | null,
   userId: string,
-  input: { agencyId?: string | null; managedAgencyIds?: string[] | null },
+  input: { agencyId?: string | null },
 ) {
   const viewer = requireAuthenticatedUser(currentUser);
   assertPlatformAdmin(viewer);
@@ -474,7 +466,7 @@ export async function updateUserOrganization(
 
     targetUser.agencyId = nextAgencyId;
     if (targetUser.role === "AGENCY_MANAGER") {
-      targetUser.managedAgencyIds = normalizeManagerAgencyIds(input.managedAgencyIds || targetUser.managedAgencyIds, current.agencies, nextAgencyId);
+      targetUser.managedAgencyIds = normalizeManagerAgencyIds(current.agencies, nextAgencyId);
       return current;
     }
 

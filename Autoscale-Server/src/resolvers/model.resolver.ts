@@ -5,8 +5,8 @@ import {
   getInfluencerModel,
   listInfluencerModels,
   listModelAssets,
-  setInfluencerModelActive,
   setInfluencerModelAgencyAccess,
+  updateInfluencerModelProfile,
 } from "../services/model.service.js";
 
 export const modelResolvers = {
@@ -45,15 +45,23 @@ export const modelResolvers = {
       },
       context: GraphQLContext,
     ) => createInfluencerModel(context.currentUser, args.input),
+    updateInfluencerModelProfile: async (
+      _parent: unknown,
+      args: {
+        influencerModelId: string;
+        input: {
+          name: string;
+          handle: string;
+          description: string;
+          avatarImageUrl?: string | null;
+        };
+      },
+      context: GraphQLContext,
+    ) => updateInfluencerModelProfile(context.currentUser, args.influencerModelId, args.input),
     setInfluencerModelAgencyAccess: async (
       _parent: unknown,
       args: { influencerModelId: string; agencyIds: string[] },
       context: GraphQLContext,
     ) => setInfluencerModelAgencyAccess(context.currentUser, args.influencerModelId, args.agencyIds),
-    setInfluencerModelActive: async (
-      _parent: unknown,
-      args: { influencerModelId: string; isActive: boolean },
-      context: GraphQLContext,
-    ) => setInfluencerModelActive(context.currentUser, args.influencerModelId, args.isActive),
   },
 };

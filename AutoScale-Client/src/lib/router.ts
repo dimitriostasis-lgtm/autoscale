@@ -3,9 +3,10 @@ import { startTransition, useEffect, useEffectEvent, useState } from "react";
 export type Route =
   | { name: "login" }
   | { name: "models" }
-  | { name: "workspace"; slug: string; boardId?: string | null }
+  | { name: "workspace"; slug: string; boardId?: string | null; mode?: "sfw" | "nsfw" | "playground" }
   | { name: "gallery"; slug: string }
-  | { name: "admin" };
+  | { name: "billing" }
+  | { name: "admin"; sectionId?: string | null };
 
 function currentUrl(): URL {
   return new URL(window.location.href);
@@ -27,10 +28,12 @@ export function parseRoute(url = currentUrl()): Route {
   }
 
   if (segments[0] === "models" && segments.length >= 3 && segments[2] === "workspace") {
+    const requestedMode = segments[3];
     return {
       name: "workspace",
       slug: segments[1],
       boardId: url.searchParams.get("board"),
+      mode: requestedMode === "nsfw" || requestedMode === "playground" ? requestedMode : "sfw",
     };
   }
 
@@ -42,7 +45,11 @@ export function parseRoute(url = currentUrl()): Route {
   }
 
   if (segments[0] === "admin") {
-    return { name: "admin" };
+    return { name: "admin", sectionId: url.hash ? url.hash.slice(1) : null };
+  }
+
+  if (segments[0] === "billing") {
+    return { name: "billing" };
   }
 
   return { name: "models" };
@@ -56,7 +63,8 @@ export function toPath(route: Route): string {
     return "/models";
   }
   if (route.name === "workspace") {
-    const url = new URL(`/models/${route.slug}/workspace`, window.location.origin);
+    const modeSegment = route.mode && route.mode !== "sfw" ? `/${route.mode}` : "";
+    const url = new URL(`/models/${route.slug}/workspace${modeSegment}`, window.location.origin);
     if (route.boardId) {
       url.searchParams.set("board", route.boardId);
     }
@@ -65,7 +73,14 @@ export function toPath(route: Route): string {
   if (route.name === "gallery") {
     return `/models/${route.slug}/gallery`;
   }
-  return "/admin";
+  if (route.name === "billing") {
+    return "/billing";
+  }
+  const url = new URL("/admin", window.location.origin);
+  if (route.sectionId) {
+    url.hash = route.sectionId;
+  }
+  return `${url.pathname}${url.hash}`;
 }
 
 export function useRoute() {

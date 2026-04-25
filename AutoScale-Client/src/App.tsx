@@ -7,6 +7,7 @@ import { apolloClient } from "./lib/apollo";
 import { useRoute } from "./lib/router";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminPage } from "./pages/AdminPage";
+import { AgencyBillingPage } from "./pages/AgencyBillingPage";
 import { ModelGalleryPage } from "./pages/ModelGalleryPage";
 import { ModelSelectionPage } from "./pages/ModelSelectionPage";
 import { ModelWorkspacePage } from "./pages/ModelWorkspacePage";
@@ -86,7 +87,9 @@ function AppContent() {
     page = (
       <ModelWorkspacePage
         boardId={route.boardId}
-        onSelectBoard={(nextBoardId) => navigate({ name: "workspace", slug: route.slug, boardId: nextBoardId })}
+        mode={route.mode ?? "sfw"}
+        onSelectBoard={(nextBoardId) => navigate({ name: "workspace", slug: route.slug, boardId: nextBoardId, mode: route.mode ?? "sfw" })}
+        onSelectMode={(nextMode) => navigate({ name: "workspace", slug: route.slug, boardId: null, mode: nextMode })}
         slug={route.slug}
       />
     );
@@ -94,6 +97,8 @@ function AppContent() {
     page = <ModelGalleryPage slug={route.slug} />;
   } else if (route.name === "admin") {
     page = <AdminPage currentUser={user} />;
+  } else if (route.name === "billing") {
+    page = user.role === "AGENCY_ADMIN" ? <AgencyBillingPage currentUser={user} /> : <AdminPage currentUser={user} />;
   }
 
   return (

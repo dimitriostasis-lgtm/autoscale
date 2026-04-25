@@ -7,6 +7,7 @@ export interface ManagerPermissions {
   canDeleteUsers: boolean;
   canResetPasswords: boolean;
   canManageAssignments: boolean;
+  canManageCredits: boolean;
 }
 
 export const DEFAULT_MANAGER_PERMISSIONS: ManagerPermissions = {
@@ -14,6 +15,7 @@ export const DEFAULT_MANAGER_PERMISSIONS: ManagerPermissions = {
   canDeleteUsers: false,
   canResetPasswords: false,
   canManageAssignments: false,
+  canManageCredits: false,
 };
 
 export type GenerationStatus =
@@ -27,9 +29,97 @@ export type GenerationStatus =
 
 export type ReferenceSourceType = "UPLOAD" | "ASSET";
 
-export type WorkerGenerationModel = "nb_pro" | "nb2" | "sd_4_5" | "kling_o1";
+export const SUPPORTED_WORKER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
 
-export type WorkerResolution = "1k" | "2k" | "4k";
+export type WorkerGenerationModel = (typeof SUPPORTED_WORKER_GENERATION_MODELS)[number];
+
+export function getMaxBoardQuantityForGenerationModel(generationModel: WorkerGenerationModel | string): number {
+  return generationModel === "sdxl" ? 20 : 4;
+}
+
+export const SUPPORTED_WORKER_RESOLUTIONS = ["1k", "2k", "4k"] as const;
+
+export type WorkerResolution = (typeof SUPPORTED_WORKER_RESOLUTIONS)[number];
+
+export function getAllowedResolutionsForGenerationModel(generationModel: WorkerGenerationModel | string): WorkerResolution[] {
+  if (generationModel === "sd_4_5") {
+    return ["2k", "4k"];
+  }
+
+  if (generationModel === "kling_o1") {
+    return ["1k", "2k"];
+  }
+
+  return [...SUPPORTED_WORKER_RESOLUTIONS];
+}
+
+export function normalizeResolutionForGenerationModel(
+  generationModel: WorkerGenerationModel | string,
+  resolution: WorkerResolution | string,
+): WorkerResolution {
+  const allowedResolutions = getAllowedResolutionsForGenerationModel(generationModel);
+
+  if (allowedResolutions.includes(resolution as WorkerResolution)) {
+    return resolution as WorkerResolution;
+  }
+
+  const requestedIndex = SUPPORTED_WORKER_RESOLUTIONS.indexOf(resolution as WorkerResolution);
+  if (requestedIndex !== -1) {
+    const upgradedResolution = allowedResolutions.find((option) => SUPPORTED_WORKER_RESOLUTIONS.indexOf(option) >= requestedIndex);
+    if (upgradedResolution) {
+      return upgradedResolution;
+    }
+  }
+
+  return allowedResolutions[allowedResolutions.length - 1] || SUPPORTED_WORKER_RESOLUTIONS[0];
+}
+
+export const SUPPORTED_WORKER_QUALITIES = ["low", "medium", "high"] as const;
+
+export type WorkerQuality = (typeof SUPPORTED_WORKER_QUALITIES)[number];
+
+export function getAllowedQualitiesForGenerationModel(generationModel: WorkerGenerationModel | string): WorkerQuality[] {
+  return generationModel === "gpt_2" ? [...SUPPORTED_WORKER_QUALITIES] : ["medium"];
+}
+
+export function normalizeQualityForGenerationModel(
+  generationModel: WorkerGenerationModel | string,
+  quality: WorkerQuality | string,
+): WorkerQuality {
+  const allowedQualities = getAllowedQualitiesForGenerationModel(generationModel);
+
+  if (allowedQualities.includes(quality as WorkerQuality)) {
+    return quality as WorkerQuality;
+  }
+
+  return allowedQualities[0] || "medium";
+}
+
+export const DEFAULT_POSE_PROMPT_TEMPLATE = "Keep the same framing and styling while varying the body pose for each multiplied shot.";
+
+export function normalizePosePromptTemplates(templates: unknown, fallbackTemplate?: unknown): string[] {
+  const fallbackPrompt =
+    typeof fallbackTemplate === "string" && fallbackTemplate.trim() ? fallbackTemplate.trim() : DEFAULT_POSE_PROMPT_TEMPLATE;
+
+  const normalizedTemplates = Array.isArray(templates)
+    ? templates
+        .filter((template): template is string => typeof template === "string")
+        .slice(0, 4)
+        .map((template) => template.trim())
+    : [];
+
+  const basePrompt = normalizedTemplates.find(Boolean) || fallbackPrompt;
+
+  return Array.from({ length: 4 }, (_, index) => normalizedTemplates[index] || basePrompt);
+}
+
+export function normalizeOptionalPosePromptTemplates(templates: unknown, fallbackTemplate?: unknown): string[] | null {
+  if (!Array.isArray(templates)) {
+    return null;
+  }
+
+  return normalizePosePromptTemplates(templates, fallbackTemplate);
+}
 
 export type WorkerAspectRatio =
   | "auto"
@@ -89,6 +179,9 @@ export interface InfluencerModel {
   avatarLabel: string;
   isActive: boolean;
   agencyIds: string[];
+  defaultPlatformWorkflowName?: string;
+  platformWorkflowCount?: number;
+  customWorkflowCount?: number;
   defaults: InfluencerDefaults;
   allowedGenerationModels: WorkerGenerationModel[];
   createdAt: string;
@@ -116,6 +209,7 @@ export interface ReferenceSelection {
 export interface BoardSettings {
   generationModel: WorkerGenerationModel;
   resolution: WorkerResolution;
+  quality: WorkerQuality;
   aspectRatio: WorkerAspectRatio;
   quantity: number;
   poseMultiplierEnabled: boolean;
@@ -125,6 +219,7 @@ export interface BoardSettings {
   autoPromptImage: boolean;
   posePromptMode: "AUTO" | "CUSTOM";
   posePromptTemplate: string;
+  posePromptTemplates: string[];
   globalReferences: ReferenceSelection[];
 }
 
@@ -134,6 +229,7 @@ export interface WorkspaceRow {
   label: string;
   prompt: string;
   poseMultiplier: number;
+  posePromptTemplates: string[] | null;
   faceSwap: boolean;
   reference: ReferenceSelection | null;
   status: GenerationStatus;

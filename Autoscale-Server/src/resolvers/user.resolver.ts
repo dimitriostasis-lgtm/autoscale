@@ -50,7 +50,7 @@ export const userResolvers = {
     ) => updateUserRole(context.currentUser, args.userId, args.role),
     updateUserOrganization: async (
       _parent: unknown,
-      args: { userId: string; input: { agencyId?: string | null; managedAgencyIds?: string[] | null } },
+      args: { userId: string; input: { agencyId?: string | null } },
       context: GraphQLContext,
     ) => updateUserOrganization(context.currentUser, args.userId, args.input),
     updateManagerPermissions: async (
@@ -62,6 +62,7 @@ export const userResolvers = {
           canDeleteUsers: boolean;
           canResetPasswords: boolean;
           canManageAssignments: boolean;
+          canManageCredits: boolean;
         };
       },
       context: GraphQLContext,

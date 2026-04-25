@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { readStore, updateStore } from "../lib/store.js";
+import { SUPPORTED_WORKER_GENERATION_MODELS, SUPPORTED_WORKER_RESOLUTIONS, getAllowedResolutionsForGenerationModel } from "../types/domain.js";
 import type { AuthUser, InfluencerModel, InfluencerDefaults, WorkerAspectRatio, WorkerGenerationModel, WorkerResolution } from "../types/domain.js";
 
 import {
@@ -12,8 +13,8 @@ import {
 } from "./permissions.service.js";
 import { presentInfluencerModel } from "./presenters.js";
 
-const allowedGenerationModels: WorkerGenerationModel[] = ["nb_pro", "nb2", "sd_4_5", "kling_o1"];
-const allowedResolutions: WorkerResolution[] = ["1k", "2k", "4k"];
+const allowedGenerationModels: WorkerGenerationModel[] = [...SUPPORTED_WORKER_GENERATION_MODELS];
+const allowedResolutions: WorkerResolution[] = [...SUPPORTED_WORKER_RESOLUTIONS];
 const allowedAspectRatios: WorkerAspectRatio[] = [
   "auto",
   "1:1",
@@ -95,6 +96,10 @@ function validateDefaults(defaults: InfluencerDefaults, allowedModels: WorkerGen
 
   if (!allowedResolutions.includes(defaults.resolution)) {
     throw new Error("Unsupported resolution");
+  }
+
+  if (!getAllowedResolutionsForGenerationModel(defaults.generationModel).includes(defaults.resolution)) {
+    throw new Error("Resolution is not supported for the selected generation model");
   }
 
   if (!allowedAspectRatios.includes(defaults.aspectRatio)) {
@@ -212,6 +217,9 @@ export async function createInfluencerModel(
       avatarLabel: buildAvatarLabel(normalizedName),
       isActive: true,
       agencyIds: [],
+      defaultPlatformWorkflowName: "Default platform workflow",
+      platformWorkflowCount: 3,
+      customWorkflowCount: 0,
       defaults: normalizedDefaults,
       allowedGenerationModels: normalizedAllowedModels,
       createdAt,
@@ -226,6 +234,58 @@ export async function createInfluencerModel(
   }
 
   return presentInfluencerModel(created.id, store, viewer);
+}
+
+export async function updateInfluencerModelProfile(
+  currentUser: AuthUser | null,
+  influencerModelId: string,
+  input: {
+    name: string;
+    handle: string;
+    description: string;
+    avatarImageUrl?: string | null;
+  },
+) {
+  const viewer = requireAuthenticatedUser(currentUser);
+  assertAdmin(viewer);
+
+  const normalizedName = input.name.trim();
+  const normalizedHandle = normalizeHandle(input.handle);
+  const normalizedDescription = input.description.trim();
+
+  if (!normalizedName) {
+    throw new Error("Model name is required");
+  }
+  if (!normalizedHandle) {
+    throw new Error("Model handle is required");
+  }
+  if (!normalizedDescription) {
+    throw new Error("Model description is required");
+  }
+
+  const store = await updateStore((current) => {
+    const model = current.influencerModels.find((entry) => entry.id === influencerModelId);
+    if (!model) {
+      throw new Error("Influencer model not found");
+    }
+
+    if (current.influencerModels.some((entry) => entry.id !== influencerModelId && entry.name.toLowerCase() === normalizedName.toLowerCase())) {
+      throw new Error("A model with this name already exists");
+    }
+    if (current.influencerModels.some((entry) => entry.id !== influencerModelId && entry.handle.toLowerCase() === normalizedHandle.toLowerCase())) {
+      throw new Error("A model with this handle already exists");
+    }
+
+    model.name = normalizedName;
+    model.handle = normalizedHandle;
+    model.description = normalizedDescription;
+    model.avatarImageUrl = input.avatarImageUrl?.trim() || null;
+    model.avatarLabel = buildAvatarLabel(normalizedName);
+
+    return current;
+  });
+
+  return presentInfluencerModel(influencerModelId, store, viewer);
 }
 
 export async function setInfluencerModelAgencyAccess(
@@ -244,6 +304,10 @@ export async function setInfluencerModelAgencyAccess(
 
     const validAgencyIds = new Set(current.agencies.map((agency) => agency.id));
     const nextAgencyIds = Array.from(new Set(agencyIds)).filter((agencyId) => validAgencyIds.has(agencyId));
+    if (nextAgencyIds.length > 1) {
+      throw new Error("An influencer model can only belong to one agency");
+    }
+
     const removedAgencyIds = model.agencyIds.filter((agencyId) => !nextAgencyIds.includes(agencyId));
 
     model.agencyIds = nextAgencyIds;
@@ -259,27 +323,6 @@ export async function setInfluencerModelAgencyAccess(
       });
     }
 
-    return current;
-  });
-
-  return presentInfluencerModel(influencerModelId, store, viewer);
-}
-
-export async function setInfluencerModelActive(
-  currentUser: AuthUser | null,
-  influencerModelId: string,
-  isActive: boolean,
-) {
-  const viewer = requireAuthenticatedUser(currentUser);
-  assertAdmin(viewer);
-
-  const store = await updateStore((current) => {
-    const model = current.influencerModels.find((entry) => entry.id === influencerModelId);
-    if (!model) {
-      throw new Error("Influencer model not found");
-    }
-
-    model.isActive = isActive;
     return current;
   });
 

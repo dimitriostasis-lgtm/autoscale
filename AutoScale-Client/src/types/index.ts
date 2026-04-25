@@ -7,6 +7,7 @@ export interface ManagerPermissions {
   canDeleteUsers: boolean;
   canResetPasswords: boolean;
   canManageAssignments: boolean;
+  canManageCredits: boolean;
 }
 
 export type GenerationStatus = "IDLE" | "QUEUED" | "GENERATING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "SKIPPED";
@@ -79,6 +80,7 @@ export interface ReferenceSelection {
 export interface BoardSettings {
   generationModel: string;
   resolution: string;
+  quality: string;
   aspectRatio: string;
   quantity: number;
   poseMultiplierEnabled: boolean;
@@ -88,6 +90,7 @@ export interface BoardSettings {
   autoPromptImage: boolean;
   posePromptMode: "AUTO" | "CUSTOM";
   posePromptTemplate: string;
+  posePromptTemplates: string[];
   globalReferences: ReferenceSelection[];
 }
 
@@ -97,6 +100,7 @@ export interface WorkspaceRow {
   label: string;
   prompt: string;
   poseMultiplier: number;
+  posePromptTemplates: string[] | null;
   faceSwap: boolean;
   reference: ReferenceSelection | null;
   status: GenerationStatus;
@@ -140,11 +144,15 @@ export interface InfluencerModel {
   assignedAgencyIds: string[];
   assignedAgencyNames: string[];
   agencyAccessCount: number;
+  defaultPlatformWorkflowName: string;
+  platformWorkflowCount: number;
+  customWorkflowCount: number;
   defaults: InfluencerDefaults;
   allowedGenerationModels: string[];
   canAccess: boolean;
   boardCount: number;
   galleryCount: number;
+  outputCount: number;
   boards: WorkspaceBoard[];
 }
 

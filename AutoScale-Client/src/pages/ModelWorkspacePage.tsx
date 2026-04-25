@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApolloClient, useMutation, useQuery, useSubscription } from "@apollo/client/react";
 
+import { InfluencerAvatar } from "../components/model/InfluencerAvatar";
 import { BoardTabs } from "../components/workspace/BoardTabs";
 import { ImagePickerModal } from "../components/workspace/ImagePickerModal";
 import { SettingsPanel } from "../components/workspace/SettingsPanel";
@@ -15,7 +16,6 @@ import {
   CREATE_BOARD_MUTATION,
   DELETE_BOARD_MUTATION,
   DELETE_ROW_MUTATION,
-  ENSURE_BOARD_MUTATION,
   RUN_BOARD_MUTATION,
   UPDATE_ROW_MUTATION,
   UPDATE_SETTINGS_MUTATION,
@@ -26,13 +26,9 @@ import type { BoardSettings, GeneratedAsset, InfluencerModel, ReferenceSelection
 interface ModelWorkspacePageProps {
   slug: string;
   boardId?: string | null;
+  mode: WorkspaceMode;
   onSelectBoard: (boardId: string) => void;
-}
-
-interface EnsureBoardMutationData {
-  ensureBoard: {
-    id: string;
-  };
+  onSelectMode: (mode: WorkspaceMode) => void;
 }
 
 interface CreateBoardMutationData {
@@ -44,6 +40,10 @@ interface CreateBoardMutationData {
 interface BoardUpdatedSubscriptionData {
   boardUpdated: WorkspaceBoard;
 }
+
+type WorkspaceBoardTab = Pick<WorkspaceBoard, "id" | "name" | "updatedAt">;
+
+type WorkspaceMode = "sfw" | "nsfw" | "playground";
 
 type PickerState =
   | { kind: "row"; row: WorkspaceRow }
@@ -76,9 +76,156 @@ function buildAssetReference(slotIndex: number, asset: GeneratedAsset): Referenc
   };
 }
 
-export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorkspacePageProps) {
+function buildPositionNamedBoards(boards: WorkspaceBoardTab[]): WorkspaceBoardTab[] {
+  return boards.map((board, index) => ({
+    ...board,
+    name: `Table ${index + 1}`,
+  }));
+}
+
+const workspaceModeBoardPrefixes: Partial<Record<WorkspaceMode, string>> = {
+  nsfw: "__autoscale_workspace_nsfw__:",
+  playground: "__autoscale_workspace_playground__:",
+};
+
+function resolveBoardWorkspaceMode(board: WorkspaceBoardTab): WorkspaceMode {
+  if (board.name.startsWith(workspaceModeBoardPrefixes.nsfw || "")) {
+    return "nsfw";
+  }
+
+  if (board.name.startsWith(workspaceModeBoardPrefixes.playground || "")) {
+    return "playground";
+  }
+
+  return "sfw";
+}
+
+function filterBoardsForWorkspaceMode(boards: WorkspaceBoardTab[], mode: WorkspaceMode): WorkspaceBoardTab[] {
+  return boards.filter((board) => resolveBoardWorkspaceMode(board) === mode);
+}
+
+function buildBoardNameForWorkspaceMode(mode: WorkspaceMode, index: number): string {
+  const label = `Table ${index}`;
+  const prefix = workspaceModeBoardPrefixes[mode];
+
+  return prefix ? `${prefix}${label}` : label;
+}
+
+function ModeTabs({ activeMode, onSelectMode }: { activeMode: WorkspaceMode; onSelectMode: (mode: WorkspaceMode) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-[#262626] p-1">
+      {[
+        { mode: "sfw", label: "SFW" },
+        { mode: "nsfw", label: "NSFW" },
+        { mode: "playground", label: "Playground" },
+      ].map((item) => {
+        const active = activeMode === item.mode;
+
+        return (
+          <button
+            key={item.mode}
+            className={
+              "rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition " +
+              (active ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82")
+            }
+            onClick={() => onSelectMode(item.mode as WorkspaceMode)}
+            type="button"
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PlaygroundSurface({
+  assets,
+  board,
+  model,
+}: {
+  assets: GeneratedAsset[];
+  board: WorkspaceBoard | null;
+  model: InfluencerModel;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const visibleAssets = assets.slice(0, 18);
+
+  return (
+    <div className="relative min-h-[68vh] overflow-hidden bg-[#171717]">
+      <div className="grid gap-px bg-white/8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {visibleAssets.map((asset) => (
+          <button key={asset.id} className="group relative aspect-[3/4] overflow-hidden bg-[#202020] text-left" type="button">
+            <img alt={asset.fileName} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" src={asset.url} />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 transition group-hover:opacity-100">
+              <p className="line-clamp-1 text-sm font-semibold text-white">{asset.fileName}</p>
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/62">{asset.promptSnapshot}</p>
+            </div>
+          </button>
+        ))}
+
+        {!visibleAssets.length ? (
+          <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[#1b1b1b] px-6 text-center">
+            <div>
+              <p className="font-display text-2xl text-white">Playground is ready</p>
+              <p className="mt-3 max-w-xl text-sm leading-7 text-white/56">
+                Generated images for {model.name} will appear here as a Higgsfield-style working wall.
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {settingsOpen ? (
+        <div className="absolute right-4 top-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-[28px] border border-white/10 bg-[#202020]/95 p-4 shadow-[0_22px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Settings</p>
+              <p className="mt-2 text-sm font-semibold text-white">Playground defaults</p>
+            </div>
+            <button className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/62" onClick={() => setSettingsOpen(false)} type="button">
+              Close
+            </button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              ["Model", board?.settings.generationModel || model.defaults.generationModel],
+              ["Resolution", board?.settings.resolution || model.defaults.resolution],
+              ["Ratio", board?.settings.aspectRatio || model.defaults.aspectRatio],
+              ["Quantity", String(board?.settings.quantity || model.defaults.quantity)],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/38">{label}</p>
+                <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="sticky bottom-0 z-10 border-t border-white/8 bg-[#171717]/82 px-4 py-4 backdrop-blur-2xl sm:px-6">
+        <div className="mx-auto flex max-w-5xl items-end gap-3 rounded-[32px] border border-white/10 bg-[#252525] p-2 shadow-[0_22px_70px_rgba(0,0,0,0.45)]">
+          <textarea
+            className="min-h-16 flex-1 resize-none rounded-[26px] border border-white/8 bg-[#181818] px-5 py-4 text-sm leading-6 text-white outline-none placeholder:text-white/34 focus:border-lime-300/25"
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder="Describe what you want to generate..."
+            value={prompt}
+          />
+          <button className={theme.buttonSecondary + " h-12 rounded-full px-4"} onClick={() => setSettingsOpen((current) => !current)} type="button">
+            Settings
+          </button>
+          <button className={theme.buttonPrimary + " h-12 rounded-full px-5"} disabled={!prompt.trim()} type="button">
+            Generate
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelectMode }: ModelWorkspacePageProps) {
   const client = useApolloClient();
-  const [settingsOpen, setSettingsOpen] = useState(true);
   const [pickerState, setPickerState] = useState<PickerState | null>(null);
 
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<{ influencerModel: InfluencerModel | null }>(
@@ -91,7 +238,6 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
 
   const model = modelData?.influencerModel ?? null;
 
-  const [ensureBoardMutation] = useMutation<EnsureBoardMutationData>(ENSURE_BOARD_MUTATION);
   const [createBoardMutation] = useMutation<CreateBoardMutationData>(CREATE_BOARD_MUTATION);
   const [deleteBoardMutation] = useMutation(DELETE_BOARD_MUTATION);
   const [addRowMutation] = useMutation(ADD_ROW_MUTATION);
@@ -100,15 +246,23 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
   const [updateSettingsMutation] = useMutation(UPDATE_SETTINGS_MUTATION);
   const [clearBoardMutation] = useMutation(CLEAR_BOARD_MUTATION);
   const [runBoardMutation] = useMutation(RUN_BOARD_MUTATION);
+  const modeBoards = useMemo(() => filterBoardsForWorkspaceMode(model?.boards ?? [], mode), [mode, model?.boards]);
+  const requestedBoardBelongsToMode = Boolean(boardId && modeBoards.some((board) => board.id === boardId));
+  const activeBoardId = requestedBoardBelongsToMode ? boardId ?? null : modeBoards[0]?.id || null;
 
   useEffect(() => {
     if (!model || modelLoading) {
       return;
     }
 
-    if (!model.boards.length) {
-      void ensureBoardMutation({ variables: { influencerModelId: model.id } }).then(async ({ data }) => {
-        const ensuredBoardId = data?.ensureBoard.id;
+    if (!modeBoards.length) {
+      void createBoardMutation({
+        variables: {
+          influencerModelId: model.id,
+          name: buildBoardNameForWorkspaceMode(mode, 1),
+        },
+      }).then(async ({ data }) => {
+        const ensuredBoardId = data?.createBoard.id;
         await refetchModel();
         if (ensuredBoardId) {
           onSelectBoard(ensuredBoardId);
@@ -117,12 +271,10 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
       return;
     }
 
-    if (!boardId && model.boards[0]) {
-      onSelectBoard(model.boards[0].id);
+    if (!requestedBoardBelongsToMode && modeBoards[0]) {
+      onSelectBoard(modeBoards[0].id);
     }
-  }, [boardId, ensureBoardMutation, model, modelLoading, onSelectBoard, refetchModel]);
-
-  const activeBoardId = boardId || model?.boards[0]?.id || null;
+  }, [createBoardMutation, mode, modeBoards, model, modelLoading, onSelectBoard, refetchModel, requestedBoardBelongsToMode]);
 
   const { data: boardData, loading: boardLoading, refetch: refetchBoard } = useQuery<{ workspaceBoard: WorkspaceBoard | null }>(
     BOARD_DETAIL_QUERY,
@@ -134,6 +286,8 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
   );
 
   const board = boardData?.workspaceBoard ?? null;
+  const positionedBoards = buildPositionNamedBoards(modeBoards);
+  const activeBoardLabel = positionedBoards.find((entry) => entry.id === activeBoardId)?.name ?? board?.name ?? "Workspace";
 
   const { data: assetData, refetch: refetchAssets } = useQuery<{ modelAssets: GeneratedAsset[] }>(MODEL_ASSETS_QUERY, {
     skip: !model?.id,
@@ -171,11 +325,19 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
       return;
     }
     const { data } = await createBoardMutation({
-      variables: { influencerModelId: model.id },
+      variables: {
+        influencerModelId: model.id,
+        name: buildBoardNameForWorkspaceMode(mode, modeBoards.length + 1),
+      },
     });
     const nextBoardId = data?.createBoard.id as string | undefined;
     await refetchModel();
     if (nextBoardId) {
+      await client.query({
+        query: BOARD_DETAIL_QUERY,
+        variables: { boardId: nextBoardId },
+        fetchPolicy: "network-only",
+      });
       onSelectBoard(nextBoardId);
     }
   }
@@ -197,7 +359,7 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
       variables: { slug },
       fetchPolicy: "network-only",
     });
-    const remainingBoards = queryResult.data?.influencerModel?.boards;
+    const remainingBoards = filterBoardsForWorkspaceMode(queryResult.data?.influencerModel?.boards ?? [], mode);
 
     if (!remainingBoards?.length) {
       return;
@@ -217,9 +379,11 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
     label?: string;
     prompt?: string;
     poseMultiplier?: number;
+    posePromptTemplates?: string[] | null;
     faceSwap?: boolean;
     reference?: ReferenceSelection;
     clearReference?: boolean;
+    clearPosePromptTemplates?: boolean;
   }) {
     if (!board) {
       return;
@@ -232,9 +396,11 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
           label: input.label,
           prompt: input.prompt,
           poseMultiplier: input.poseMultiplier,
+          posePromptTemplates: input.posePromptTemplates,
           faceSwap: input.faceSwap,
           reference: input.reference,
           clearReference: input.clearReference,
+          clearPosePromptTemplates: input.clearPosePromptTemplates,
         },
       },
     });
@@ -252,6 +418,7 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
         input: {
           generationModel: nextSettings.generationModel,
           resolution: nextSettings.resolution,
+          quality: nextSettings.quality,
           aspectRatio: nextSettings.aspectRatio,
           quantity: nextSettings.quantity,
           poseMultiplierEnabled: nextSettings.poseMultiplierEnabled,
@@ -261,6 +428,7 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
           autoPromptImage: nextSettings.autoPromptImage,
           posePromptMode: nextSettings.posePromptMode,
           posePromptTemplate: nextSettings.posePromptTemplate,
+          posePromptTemplates: nextSettings.posePromptTemplates,
           globalReferences: nextSettings.globalReferences.map((reference) => ({
             id: reference.id,
             slotIndex: reference.slotIndex,
@@ -335,17 +503,22 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
   const completedRows = board?.rows.filter((row) => row.status === "SUCCEEDED").length ?? 0;
 
   return (
-    <div className="space-y-4">
+    <div className="generation-workspace space-y-4">
       <section className={theme.cardStrong + " overflow-hidden border-white/10 bg-[#171717]/92 shadow-[0_28px_80px_rgba(0,0,0,0.35)]"}>
         <div className="border-b border-white/8 bg-[#1f1f1f] px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Generation workspace</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <h1 className="font-display text-2xl text-white sm:text-3xl">{model.name}</h1>
-                <span className="rounded-full border border-white/10 bg-[#2b2b2b] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
-                  {board?.name ?? "Workspace"}
-                </span>
+            <div className="flex min-w-0 items-center gap-4">
+              <InfluencerAvatar model={model} size="lg" />
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Generation workspace</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <h1 className="font-display text-2xl text-white sm:text-3xl">{model.name}</h1>
+                  <ModeTabs activeMode={mode} onSelectMode={onSelectMode} />
+                  <span className="rounded-full border border-white/10 bg-[#2b2b2b] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                    {mode === "playground" ? "Playground" : activeBoardLabel}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/38">{model.handle}</p>
               </div>
             </div>
 
@@ -357,7 +530,7 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
                 {completedRows} complete
               </span>
               <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
-                8-slot batch
+                {mode === "sfw" ? "SFW" : mode === "nsfw" ? "NSFW" : "Playground"}
               </span>
             </div>
           </div>
@@ -366,8 +539,13 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
         <div className="border-b border-white/8 bg-[#222222] px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-3xl text-sm leading-6 text-white/58">
-              {model.description} Shared references live in the left rail, each row maps to one worker job, and outputs return directly into the matching record.
+              {mode === "playground"
+                ? `${model.description} Playground mode gives you a visual wall, a bottom prompt composer, and quick settings without folder rails.`
+                : mode === "nsfw"
+                  ? `${model.description} NSFW mode keeps the workspace structure familiar while separating this run surface from the SFW workflow.`
+                  : `${model.description} Shared references live in the left rail, each row maps to one worker job, and outputs return directly into the matching record.`}
             </p>
+            {mode === "playground" ? null : (
             <div className="flex flex-wrap gap-2">
               <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
                 Clear table
@@ -376,9 +554,13 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
                 {running ? "Running..." : "Run workflow"}
               </button>
             </div>
+            )}
           </div>
         </div>
 
+        {mode === "playground" ? (
+          <PlaygroundSurface assets={assets} board={board} model={model} />
+        ) : (
         <div className="grid min-h-[68vh] gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
           {boardLoading && !board ? (
             <div className="xl:col-span-2 h-[50vh] animate-pulse bg-white/[0.03]" />
@@ -389,9 +571,7 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
                   allowedGenerationModels={model.allowedGenerationModels}
                   onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex })}
                   onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
-                  onToggle={() => setSettingsOpen((current) => !current)}
                   onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
-                  open={settingsOpen}
                   promptPrefix={model.defaults.promptPrefix}
                   settings={board.settings}
                 />
@@ -399,7 +579,7 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
 
               <div className="min-w-0 bg-[#171717]">
                 <BoardTabs
-                  boards={model.boards}
+                  boards={positionedBoards}
                   activeBoardId={activeBoardId}
                   onCreate={() => void handleCreateBoard()}
                   onDelete={(nextBoardId) => void handleDeleteBoard(nextBoardId)}
@@ -424,9 +604,16 @@ export function ModelWorkspacePage({ slug, boardId, onSelectBoard }: ModelWorksp
             </>
           ) : null}
         </div>
+        )}
       </section>
 
-      <ImagePickerModal assets={assets} onClose={() => setPickerState(null)} onSelect={(asset) => void handleSelectAsset(asset)} open={Boolean(pickerState)} />
+      <ImagePickerModal
+        assets={assets}
+        onClose={() => setPickerState(null)}
+        onSelect={(asset) => void handleSelectAsset(asset)}
+        open={Boolean(pickerState)}
+        slug={slug}
+      />
     </div>
   );
 }

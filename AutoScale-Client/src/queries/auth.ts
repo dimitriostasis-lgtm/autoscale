@@ -18,6 +18,7 @@ export const ME_QUERY = gql`
         canDeleteUsers
         canResetPasswords
         canManageAssignments
+        canManageCredits
       }
       accessScope
       assignedModelIds
@@ -47,6 +48,7 @@ export const LOGIN_MUTATION = gql`
           canDeleteUsers
           canResetPasswords
           canManageAssignments
+          canManageCredits
         }
         accessScope
         assignedModelIds

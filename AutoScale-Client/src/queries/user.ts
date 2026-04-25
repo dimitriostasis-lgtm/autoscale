@@ -17,6 +17,7 @@ export const USER_FIELDS = gql`
       canDeleteUsers
       canResetPasswords
       canManageAssignments
+      canManageCredits
     }
     accessScope
     assignedModelIds
@@ -50,6 +51,7 @@ export const CREATE_AGENCY_MUTATION = gql`
       createdAt
       memberCount
       adminCount
+      managerCount
       userCount
       activeCount
     }
@@ -65,6 +67,7 @@ export const RENAME_AGENCY_MUTATION = gql`
       createdAt
       memberCount
       adminCount
+      managerCount
       userCount
       activeCount
     }

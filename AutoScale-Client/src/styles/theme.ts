@@ -20,6 +20,8 @@ export const workerModelLabels: Record<string, string> = {
   nb2: "NB 2",
   sd_4_5: "SD 4.5",
   kling_o1: "Kling O1",
+  gpt_2: "GPT-2",
+  sdxl: "SDXL",
 };
 
 export const resolutionLabels: Record<string, string> = {
@@ -28,6 +30,61 @@ export const resolutionLabels: Record<string, string> = {
   "4k": "4K",
 };
 
-export const generationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1"] as const;
+export const qualityLabels: Record<string, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+};
+
+export const generationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
 export const resolutionOptions = ["1k", "2k", "4k"] as const;
+export const qualityOptions = ["low", "medium", "high"] as const;
 export const aspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
+
+export function getMaxQuantityForGenerationModel(generationModel: string): number {
+  return generationModel === "sdxl" ? 20 : 4;
+}
+
+export function getResolutionOptionsForGenerationModel(generationModel: string): readonly (typeof resolutionOptions)[number][] {
+  if (generationModel === "sd_4_5") {
+    return ["2k", "4k"];
+  }
+
+  if (generationModel === "kling_o1") {
+    return ["1k", "2k"];
+  }
+
+  return resolutionOptions;
+}
+
+export function normalizeResolutionForGenerationModel(generationModel: string, resolution: string): (typeof resolutionOptions)[number] {
+  const allowedResolutions = getResolutionOptionsForGenerationModel(generationModel);
+
+  if (allowedResolutions.includes(resolution as (typeof resolutionOptions)[number])) {
+    return resolution as (typeof resolutionOptions)[number];
+  }
+
+  const requestedIndex = resolutionOptions.indexOf(resolution as (typeof resolutionOptions)[number]);
+  if (requestedIndex !== -1) {
+    const upgradedResolution = allowedResolutions.find((option) => resolutionOptions.indexOf(option) >= requestedIndex);
+    if (upgradedResolution) {
+      return upgradedResolution;
+    }
+  }
+
+  return allowedResolutions[allowedResolutions.length - 1] || resolutionOptions[0];
+}
+
+export function getQualityOptionsForGenerationModel(generationModel: string): readonly (typeof qualityOptions)[number][] {
+  return generationModel === "gpt_2" ? qualityOptions : ["medium"];
+}
+
+export function normalizeQualityForGenerationModel(generationModel: string, quality: string): (typeof qualityOptions)[number] {
+  const allowedQualities = getQualityOptionsForGenerationModel(generationModel);
+
+  if (allowedQualities.includes(quality as (typeof qualityOptions)[number])) {
+    return quality as (typeof qualityOptions)[number];
+  }
+
+  return allowedQualities[0] || "medium";
+}

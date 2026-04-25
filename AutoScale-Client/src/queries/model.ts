@@ -24,9 +24,13 @@ export const INFLUENCER_MODEL_FIELDS = gql`
     assignedAgencyIds
     assignedAgencyNames
     agencyAccessCount
+    defaultPlatformWorkflowName
+    platformWorkflowCount
+    customWorkflowCount
     canAccess
     boardCount
     galleryCount
+    outputCount
     defaults {
       generationModel
       resolution
@@ -37,6 +41,20 @@ export const INFLUENCER_MODEL_FIELDS = gql`
     allowedGenerationModels
     boards {
       ...BoardTabFields
+      ownerId
+      rows {
+        id
+        outputAssets {
+          id
+          influencerModelId
+          createdById
+          generationModel
+          resolution
+          quantity
+          isSyntheticFailure
+          createdAt
+        }
+      }
     }
   }
   ${BOARD_TAB_FIELDS}
@@ -69,18 +87,18 @@ export const CREATE_INFLUENCER_MODEL_MUTATION = gql`
   ${INFLUENCER_MODEL_FIELDS}
 `;
 
-export const SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION = gql`
-  mutation SetInfluencerModelAgencyAccess($influencerModelId: ID!, $agencyIds: [ID!]!) {
-    setInfluencerModelAgencyAccess(influencerModelId: $influencerModelId, agencyIds: $agencyIds) {
+export const UPDATE_INFLUENCER_MODEL_PROFILE_MUTATION = gql`
+  mutation UpdateInfluencerModelProfile($influencerModelId: ID!, $input: UpdateInfluencerModelProfileInput!) {
+    updateInfluencerModelProfile(influencerModelId: $influencerModelId, input: $input) {
       ...InfluencerModelFields
     }
   }
   ${INFLUENCER_MODEL_FIELDS}
 `;
 
-export const SET_INFLUENCER_MODEL_ACTIVE_MUTATION = gql`
-  mutation SetInfluencerModelActive($influencerModelId: ID!, $isActive: Boolean!) {
-    setInfluencerModelActive(influencerModelId: $influencerModelId, isActive: $isActive) {
+export const SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION = gql`
+  mutation SetInfluencerModelAgencyAccess($influencerModelId: ID!, $agencyIds: [ID!]!) {
+    setInfluencerModelAgencyAccess(influencerModelId: $influencerModelId, agencyIds: $agencyIds) {
       ...InfluencerModelFields
     }
   }

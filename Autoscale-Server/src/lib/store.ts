@@ -3,7 +3,16 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { env } from "../config/env.js";
-import { DEFAULT_MANAGER_PERMISSIONS } from "../types/domain.js";
+import {
+  DEFAULT_POSE_PROMPT_TEMPLATE,
+  DEFAULT_MANAGER_PERMISSIONS,
+  SUPPORTED_WORKER_GENERATION_MODELS,
+  getMaxBoardQuantityForGenerationModel,
+  normalizeOptionalPosePromptTemplates,
+  normalizePosePromptTemplates,
+  normalizeQualityForGenerationModel,
+  normalizeResolutionForGenerationModel,
+} from "../types/domain.js";
 import { hashPassword } from "./auth.js";
 import type {
   Agency,
@@ -13,6 +22,7 @@ import type {
   ManagerPermissions,
   StoreData,
   StoredUser,
+  WorkerGenerationModel,
   WorkspaceBoard,
   WorkspaceRow,
 } from "../types/domain.js";
@@ -31,6 +41,7 @@ function normalizeManagerPermissions(value: Partial<ManagerPermissions> | null |
     canDeleteUsers: value?.canDeleteUsers ?? DEFAULT_MANAGER_PERMISSIONS.canDeleteUsers,
     canResetPasswords: value?.canResetPasswords ?? DEFAULT_MANAGER_PERMISSIONS.canResetPasswords,
     canManageAssignments: value?.canManageAssignments ?? DEFAULT_MANAGER_PERMISSIONS.canManageAssignments,
+    canManageCredits: value?.canManageCredits ?? DEFAULT_MANAGER_PERMISSIONS.canManageCredits,
   };
 }
 
@@ -57,15 +68,18 @@ function normalizeInfluencerAgencyIds(
   defaultAgencyIds: string[],
 ): string[] {
   if (!Array.isArray(value)) {
-    return [...defaultAgencyIds];
+    return defaultAgencyIds.slice(0, 1);
   }
 
   const validAgencyIds = new Set(agencies.map((agency) => agency.id));
-  return Array.from(new Set(value.filter((agencyId): agencyId is string => typeof agencyId === "string" && validAgencyIds.has(agencyId))));
+  return Array.from(new Set(value.filter((agencyId): agencyId is string => typeof agencyId === "string" && validAgencyIds.has(agencyId)))).slice(0, 1);
+}
+
+function normalizeWorkflowCount(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback;
 }
 
 function normalizeManagedAgencyIds(
-  value: unknown,
   agencies: Agency[],
   primaryAgencyId: string | null,
   role: string,
@@ -75,15 +89,32 @@ function normalizeManagedAgencyIds(
   }
 
   const validAgencyIds = new Set(agencies.map((agency) => agency.id));
-  const normalized = Array.isArray(value)
-    ? value.filter((agencyId): agencyId is string => typeof agencyId === "string" && validAgencyIds.has(agencyId))
-    : [];
+  return primaryAgencyId && validAgencyIds.has(primaryAgencyId) ? [primaryAgencyId] : [];
+}
 
-  if (primaryAgencyId && validAgencyIds.has(primaryAgencyId)) {
-    normalized.unshift(primaryAgencyId);
+function isSupportedWorkerGenerationModel(value: unknown): value is WorkerGenerationModel {
+  return typeof value === "string" && SUPPORTED_WORKER_GENERATION_MODELS.includes(value as WorkerGenerationModel);
+}
+
+function normalizeWorkerGenerationModel(value: unknown): WorkerGenerationModel {
+  return isSupportedWorkerGenerationModel(value) ? value : SUPPORTED_WORKER_GENERATION_MODELS[0];
+}
+
+function normalizeAllowedGenerationModels(value: unknown): WorkerGenerationModel[] {
+  const normalized = Array.isArray(value) ? Array.from(new Set(value.filter(isSupportedWorkerGenerationModel))) : [];
+
+  for (const generationModel of SUPPORTED_WORKER_GENERATION_MODELS) {
+    if (!normalized.includes(generationModel)) {
+      normalized.push(generationModel);
+    }
   }
 
-  return Array.from(new Set(normalized));
+  return normalized;
+}
+
+function normalizeBoardQuantity(generationModel: WorkerGenerationModel | string, value: unknown): number {
+  const quantity = typeof value === "number" ? value : 1;
+  return Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(generationModel), quantity));
 }
 
 function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
@@ -109,7 +140,6 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
       role: normalizedRole,
       agencyId: normalizedAgencyId,
       managedAgencyIds: normalizeManagedAgencyIds(
-        (user as { managedAgencyIds?: unknown }).managedAgencyIds,
         agencies,
         normalizedAgencyId,
         normalizedRole,
@@ -124,61 +154,97 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
   return {
     agencies,
     users,
-    influencerModels: (rawStore.influencerModels || []).map((model) => ({
-      ...model,
-      avatarImageUrl: model.avatarImageUrl || null,
-      isActive: model.isActive ?? true,
-      agencyIds: normalizeInfluencerAgencyIds(
-        (model as { agencyIds?: unknown }).agencyIds,
-        agencies,
-        agencies.map((agency) => agency.id),
-      ),
-      createdAt: model.createdAt || timestamp,
-    })),
+    influencerModels: (rawStore.influencerModels || []).map((model) => {
+      const generationModel = normalizeWorkerGenerationModel(model.defaults.generationModel);
+
+      return {
+        ...model,
+        avatarImageUrl: model.avatarImageUrl || null,
+        isActive: model.isActive ?? true,
+        defaults: {
+          ...model.defaults,
+          generationModel,
+          resolution: normalizeResolutionForGenerationModel(generationModel, model.defaults.resolution),
+        },
+        allowedGenerationModels: normalizeAllowedGenerationModels((model as { allowedGenerationModels?: unknown }).allowedGenerationModels),
+        agencyIds: normalizeInfluencerAgencyIds(
+          (model as { agencyIds?: unknown }).agencyIds,
+          agencies,
+          defaultDeliveryAgencyId ? [defaultDeliveryAgencyId] : [],
+        ),
+        defaultPlatformWorkflowName:
+          typeof (model as { defaultPlatformWorkflowName?: unknown }).defaultPlatformWorkflowName === "string" &&
+          (model as { defaultPlatformWorkflowName: string }).defaultPlatformWorkflowName.trim()
+            ? (model as { defaultPlatformWorkflowName: string }).defaultPlatformWorkflowName.trim()
+            : "Default platform workflow",
+        platformWorkflowCount: normalizeWorkflowCount((model as { platformWorkflowCount?: unknown }).platformWorkflowCount, 3),
+        customWorkflowCount: normalizeWorkflowCount((model as { customWorkflowCount?: unknown }).customWorkflowCount, 0),
+        createdAt: model.createdAt || timestamp,
+      };
+    }),
     modelAccess: rawStore.modelAccess || [],
-    boards: (rawStore.boards || []).map((board) => ({
-      ...board,
-      settings: {
-        ...board.settings,
-        poseMultiplierEnabled:
-          typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
-            ? board.settings.poseMultiplierEnabled
-            : false,
-        poseMultiplier: typeof (board.settings as { poseMultiplier?: unknown }).poseMultiplier === "number" ? board.settings.poseMultiplier : 1,
-        faceSwap: typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
-        autoPromptGen: typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
-        autoPromptImage: typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
-        posePromptMode: (board.settings as { posePromptMode?: unknown }).posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
-        posePromptTemplate:
-          typeof (board.settings as { posePromptTemplate?: unknown }).posePromptTemplate === "string"
-            ? board.settings.posePromptTemplate
-            : "Keep the same framing and styling while varying the body pose for each multiplied shot.",
-      },
-      rows: (board.rows || []).map((row, index) => ({
-        ...row,
-        orderIndex: typeof row.orderIndex === "number" ? row.orderIndex : index,
-        label: row.label || `${index + 1}`,
-        poseMultiplier: typeof (row as { poseMultiplier?: unknown }).poseMultiplier === "number" ? row.poseMultiplier : 1,
-        faceSwap: typeof (row as { faceSwap?: unknown }).faceSwap === "boolean" ? row.faceSwap : false,
-      })),
-    })),
+    boards: (rawStore.boards || []).map((board) => {
+      const generationModel = normalizeWorkerGenerationModel(board.settings.generationModel);
+      const quantity = normalizeBoardQuantity(generationModel, board.settings.quantity);
+      const posePromptTemplates = normalizePosePromptTemplates(
+        (board.settings as { posePromptTemplates?: unknown }).posePromptTemplates,
+        (board.settings as { posePromptTemplate?: unknown }).posePromptTemplate,
+      );
+
+      return {
+        ...board,
+        settings: {
+          ...board.settings,
+          generationModel,
+          resolution: normalizeResolutionForGenerationModel(generationModel, board.settings.resolution),
+          quality: normalizeQualityForGenerationModel(generationModel, (board.settings as { quality?: unknown }).quality as string),
+          quantity,
+          poseMultiplierEnabled:
+            quantity === 1 && typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
+              ? board.settings.poseMultiplierEnabled
+              : false,
+          poseMultiplier: typeof (board.settings as { poseMultiplier?: unknown }).poseMultiplier === "number" ? board.settings.poseMultiplier : 1,
+          faceSwap: typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
+          autoPromptGen: typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
+          autoPromptImage: typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
+          posePromptMode: (board.settings as { posePromptMode?: unknown }).posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
+          posePromptTemplate: posePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
+          posePromptTemplates,
+        },
+        rows: (board.rows || []).map((row, index) => ({
+          ...row,
+          orderIndex: typeof row.orderIndex === "number" ? row.orderIndex : index,
+          label: row.label || `${index + 1}`,
+          poseMultiplier: typeof (row as { poseMultiplier?: unknown }).poseMultiplier === "number" ? row.poseMultiplier : 1,
+          posePromptTemplates: normalizeOptionalPosePromptTemplates(
+            (row as { posePromptTemplates?: unknown }).posePromptTemplates,
+            posePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
+          ),
+          faceSwap: typeof (row as { faceSwap?: unknown }).faceSwap === "boolean" ? row.faceSwap : false,
+        })),
+      };
+    }),
     assets: rawStore.assets || [],
   };
 }
 
 function defaultBoardSettings(model: InfluencerModel): BoardSettings {
+  const posePromptTemplates = normalizePosePromptTemplates(undefined, DEFAULT_POSE_PROMPT_TEMPLATE);
+
   return {
     generationModel: model.defaults.generationModel,
     resolution: model.defaults.resolution,
+    quality: normalizeQualityForGenerationModel(model.defaults.generationModel, "medium"),
     aspectRatio: model.defaults.aspectRatio,
-    quantity: model.defaults.quantity,
+    quantity: normalizeBoardQuantity(model.defaults.generationModel, model.defaults.quantity),
     poseMultiplierEnabled: false,
     poseMultiplier: 1,
     faceSwap: false,
     autoPromptGen: false,
     autoPromptImage: false,
     posePromptMode: "AUTO",
-    posePromptTemplate: "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+    posePromptTemplate: posePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
+    posePromptTemplates,
     globalReferences: Array.from({ length: 4 }, (_, index) => ({
       id: randomUUID(),
       slotIndex: index,
@@ -199,6 +265,7 @@ export function createDefaultRows(count = 4, defaults?: Pick<BoardSettings, "pos
     label: `${index + 1}`,
     prompt: "",
     poseMultiplier: defaults?.poseMultiplier ?? 1,
+    posePromptTemplates: null,
     faceSwap: defaults?.faceSwap ?? false,
     reference: null,
     status: "IDLE",
@@ -367,7 +434,10 @@ async function createSeedData(): Promise<StoreData> {
       accentTo: "to-emerald-400",
       avatarLabel: "AS",
       isActive: true,
-      agencyIds: [northstarAgency.id, latticeAgency.id],
+      agencyIds: [northstarAgency.id],
+      defaultPlatformWorkflowName: "Default platform workflow",
+      platformWorkflowCount: 3,
+      customWorkflowCount: 0,
       defaults: {
         generationModel: "nb_pro",
         resolution: "2k",
@@ -375,7 +445,7 @@ async function createSeedData(): Promise<StoreData> {
         quantity: 4,
         promptPrefix: "Luxury editorial framing, grounded realism, premium wardrobe direction.",
       },
-      allowedGenerationModels: ["nb_pro", "nb2", "sd_4_5"],
+      allowedGenerationModels: [...SUPPORTED_WORKER_GENERATION_MODELS],
       createdAt: timestamp,
     },
     {
@@ -391,6 +461,9 @@ async function createSeedData(): Promise<StoreData> {
       avatarLabel: "SV",
       isActive: true,
       agencyIds: [northstarAgency.id],
+      defaultPlatformWorkflowName: "Default platform workflow",
+      platformWorkflowCount: 3,
+      customWorkflowCount: 0,
       defaults: {
         generationModel: "nb2",
         resolution: "1k",
@@ -398,7 +471,7 @@ async function createSeedData(): Promise<StoreData> {
         quantity: 4,
         promptPrefix: "Modern movement, social-first crop, tactile city atmosphere.",
       },
-      allowedGenerationModels: ["nb2", "nb_pro", "kling_o1"],
+      allowedGenerationModels: [...SUPPORTED_WORKER_GENERATION_MODELS],
       createdAt: timestamp,
     },
     {
@@ -413,7 +486,10 @@ async function createSeedData(): Promise<StoreData> {
       accentTo: "to-orange-400",
       avatarLabel: "LN",
       isActive: true,
-      agencyIds: [northstarAgency.id, latticeAgency.id],
+      agencyIds: [latticeAgency.id],
+      defaultPlatformWorkflowName: "Default platform workflow",
+      platformWorkflowCount: 3,
+      customWorkflowCount: 0,
       defaults: {
         generationModel: "sd_4_5",
         resolution: "2k",
@@ -421,7 +497,7 @@ async function createSeedData(): Promise<StoreData> {
         quantity: 4,
         promptPrefix: "Precision beauty styling, clean skin detail, premium campaign finish.",
       },
-      allowedGenerationModels: ["sd_4_5", "nb_pro"],
+      allowedGenerationModels: [...SUPPORTED_WORKER_GENERATION_MODELS],
       createdAt: timestamp,
     },
     {
@@ -437,6 +513,9 @@ async function createSeedData(): Promise<StoreData> {
       avatarLabel: "MQ",
       isActive: true,
       agencyIds: [latticeAgency.id],
+      defaultPlatformWorkflowName: "Default platform workflow",
+      platformWorkflowCount: 3,
+      customWorkflowCount: 0,
       defaults: {
         generationModel: "kling_o1",
         resolution: "1k",
@@ -444,13 +523,13 @@ async function createSeedData(): Promise<StoreData> {
         quantity: 4,
         promptPrefix: "Night-time premium mood, cinematic highlights, tactile depth.",
       },
-      allowedGenerationModels: ["kling_o1", "nb2"],
+      allowedGenerationModels: [...SUPPORTED_WORKER_GENERATION_MODELS],
       createdAt: timestamp,
     },
   ];
 
   const modelAccess: ModelAccessAssignment[] = [
-    ...influencerModels.slice(0, 3).map((model) => ({
+    ...influencerModels.slice(0, 2).map((model) => ({
       id: randomUUID(),
       userId: northstarManager?.id || users[2].id,
       influencerModelId: model.id,
@@ -495,7 +574,7 @@ async function createSeedData(): Promise<StoreData> {
     {
       id: randomUUID(),
       userId: thirdEmployee?.id || users[7].id,
-      influencerModelId: influencerModels[0].id,
+      influencerModelId: influencerModels[3].id,
       grantedById: latticeAgencyAdmin?.id || users[4].id,
       createdAt: timestamp,
     },

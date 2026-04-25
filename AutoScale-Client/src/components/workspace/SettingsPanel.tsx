@@ -1,55 +1,74 @@
 import type { BoardSettings } from "../../types";
-import { aspectRatioOptions, generationModelOptions, resolutionLabels, resolutionOptions, theme, workerModelLabels } from "../../styles/theme";
+import {
+  aspectRatioOptions,
+  generationModelOptions,
+  getMaxQuantityForGenerationModel,
+  getQualityOptionsForGenerationModel,
+  getResolutionOptionsForGenerationModel,
+  normalizeQualityForGenerationModel,
+  normalizeResolutionForGenerationModel,
+  qualityLabels,
+  resolutionLabels,
+  theme,
+  workerModelLabels,
+} from "../../styles/theme";
 
 interface SettingsPanelProps {
-  open: boolean;
   settings: BoardSettings;
   allowedGenerationModels: string[];
   promptPrefix: string;
-  onToggle: () => void;
   onSettingsChange: (nextSettings: BoardSettings) => void;
   onUploadReference: (slotIndex: number, file: File) => Promise<void> | void;
   onPickReference: (slotIndex: number) => void;
 }
 
 export function SettingsPanel({
-  open,
   settings,
   allowedGenerationModels,
   promptPrefix,
-  onToggle,
   onSettingsChange,
   onUploadReference,
   onPickReference,
 }: SettingsPanelProps) {
-  const poseMultiplierEnabled = settings.poseMultiplierEnabled;
+  const posePromptTemplates = Array.from({ length: 4 }, (_, index) => settings.posePromptTemplates[index] ?? settings.posePromptTemplate);
+  const visiblePosePromptCount = Math.max(1, Math.min(4, settings.poseMultiplier));
+  const poseMultiplierAllowed = settings.quantity === 1;
+  const poseMultiplierEnabled = poseMultiplierAllowed && settings.poseMultiplierEnabled;
+  const maxQuantity = getMaxQuantityForGenerationModel(settings.generationModel);
+  const allowedResolutionOptions = getResolutionOptionsForGenerationModel(settings.generationModel);
+  const allowedQualityOptions = getQualityOptionsForGenerationModel(settings.generationModel);
+  const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
 
   return (
     <section className="h-full bg-[#202020] text-white">
-      <button className="flex w-full items-center justify-between border-b border-white/8 px-5 py-4 text-left" onClick={onToggle} type="button">
+      <div className="border-b border-white/8 px-5 py-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Workspace rail</p>
           <h3 className="font-display mt-2 text-xl text-white">Shared controls</h3>
         </div>
-        <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-4 py-2 text-xs font-semibold text-white/64">
-          {open ? "Collapse" : "Expand"}
-        </span>
-      </button>
+      </div>
 
-      {open ? (
-        <div className="space-y-5 px-5 py-5">
+      <div className="space-y-5 px-5 py-5">
           <div className="grid gap-4">
             <label className="space-y-2">
               <span className="text-sm font-semibold text-white/76">Worker model</span>
               <select
                 className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
                 value={settings.generationModel}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextGenerationModel = event.target.value;
+                  const nextQuantity = Math.min(settings.quantity, getMaxQuantityForGenerationModel(nextGenerationModel));
+                  const nextResolution = normalizeResolutionForGenerationModel(nextGenerationModel, settings.resolution);
+                  const nextQuality = normalizeQualityForGenerationModel(nextGenerationModel, settings.quality);
                   onSettingsChange({
                     ...settings,
-                    generationModel: event.target.value,
-                  })
-                }
+                    generationModel: nextGenerationModel,
+                    resolution: nextResolution,
+                    quality: nextQuality,
+                    quantity: nextQuantity,
+                    poseMultiplierEnabled: nextQuantity === 1 ? settings.poseMultiplierEnabled : false,
+                  });
+                }}
               >
                 {generationModelOptions
                   .filter((option) => allowedGenerationModels.includes(option))
@@ -68,13 +87,30 @@ export function SettingsPanel({
                 value={settings.resolution}
                 onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
               >
-                {resolutionOptions.map((option) => (
+                {allowedResolutionOptions.map((option) => (
                   <option key={option} value={option}>
                     {resolutionLabels[option]}
                   </option>
                 ))}
               </select>
             </label>
+
+            {settings.generationModel === "gpt_2" ? (
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Quality</span>
+                <select
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  value={settings.quality}
+                  onChange={(event) => onSettingsChange({ ...settings, quality: event.target.value })}
+                >
+                  {allowedQualityOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {qualityLabels[option]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
             <label className="space-y-2">
               <span className="text-sm font-semibold text-white/76">Aspect ratio</span>
@@ -96,9 +132,16 @@ export function SettingsPanel({
               <select
                 className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
                 value={settings.quantity}
-                onChange={(event) => onSettingsChange({ ...settings, quantity: Number(event.target.value) })}
+                onChange={(event) => {
+                  const nextQuantity = Number(event.target.value);
+                  onSettingsChange({
+                    ...settings,
+                    quantity: nextQuantity,
+                    poseMultiplierEnabled: nextQuantity === 1 ? settings.poseMultiplierEnabled : false,
+                  });
+                }}
               >
-                {[1, 2, 3, 4].map((option) => (
+                {quantityOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -147,23 +190,38 @@ export function SettingsPanel({
 
             <div className="space-y-2">
               <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
-              <button
-                className={
-                  poseMultiplierEnabled
-                    ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                    : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
-                }
-                onClick={() =>
-                  onSettingsChange({
-                    ...settings,
-                    poseMultiplierEnabled: !poseMultiplierEnabled,
-                  })
-                }
-                type="button"
-              >
-                <span>{poseMultiplierEnabled ? "Pose Multiplier On" : "Pose Multiplier Off"}</span>
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
-              </button>
+              <div className="group/pose relative">
+                <button
+                  className={
+                    poseMultiplierEnabled
+                      ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                      : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131] disabled:cursor-not-allowed disabled:opacity-45"
+                  }
+                  disabled={!poseMultiplierAllowed}
+                  onClick={() =>
+                    onSettingsChange({
+                      ...settings,
+                      poseMultiplierEnabled: !poseMultiplierEnabled,
+                    })
+                  }
+                  type="button"
+                >
+                  <span>{poseMultiplierEnabled ? "Pose Multiplier On" : "Pose Multiplier Off"}</span>
+                  <span className="flex items-center gap-2">
+                    {!poseMultiplierAllowed ? (
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/12 text-[11px] font-semibold text-white/58 opacity-0 transition group-hover/pose:opacity-100">
+                        i
+                      </span>
+                    ) : null}
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
+                  </span>
+                </button>
+                {!poseMultiplierAllowed ? (
+                  <div className="pointer-events-none absolute right-0 top-full z-10 mt-2 max-w-56 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs leading-5 text-white/62 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/pose:translate-y-0 group-hover/pose:opacity-100 group-hover/pose:delay-75">
+                    You can only turn on pose multiplier when quantity is set to 1.
+                  </div>
+                ) : null}
+              </div>
               <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#262626] p-2">
                 <button
                   className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/8 bg-[#202020] text-lg font-semibold text-white/78 transition hover:bg-[#2c2c2c] disabled:cursor-not-allowed disabled:opacity-35"
@@ -218,12 +276,29 @@ export function SettingsPanel({
                   Backend default pose-expansion prompt will be used automatically for the selected multiplier.
                 </div>
               ) : (
-                <textarea
-                  className={theme.input + " min-h-[112px] rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 text-sm leading-6"}
-                  value={settings.posePromptTemplate}
-                  onChange={(event) => onSettingsChange({ ...settings, posePromptTemplate: event.target.value })}
-                  placeholder="Describe how multiplied pose variations should differ from the base shot"
-                />
+                <div className="space-y-3">
+                  <p className="text-sm leading-6 text-white/54">Each prompt maps to one generated image in the multiplied output set.</p>
+                  {posePromptTemplates.slice(0, visiblePosePromptCount).map((template, index) => (
+                    <label key={index} className="block space-y-2">
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Generated image {index + 1}</span>
+                      <textarea
+                        className={theme.input + " min-h-[96px] rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 text-sm leading-6"}
+                        value={template}
+                        onChange={(event) => {
+                          const nextPosePromptTemplates = posePromptTemplates.map((currentTemplate, templateIndex) =>
+                            templateIndex === index ? event.target.value : currentTemplate,
+                          );
+                          onSettingsChange({
+                            ...settings,
+                            posePromptTemplate: nextPosePromptTemplates[0] || settings.posePromptTemplate,
+                            posePromptTemplates: nextPosePromptTemplates,
+                          });
+                        }}
+                        placeholder={`Describe the pose direction for generated image ${index + 1}`}
+                      />
+                    </label>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -295,8 +370,7 @@ export function SettingsPanel({
               })}
             </div>
           </div>
-        </div>
-      ) : null}
+      </div>
     </section>
   );
 }

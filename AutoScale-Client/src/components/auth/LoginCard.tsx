@@ -97,8 +97,10 @@ export function LoginCard({ onSubmit }: LoginCardProps) {
         </form>
 
         <div className="mt-8 rounded-3xl border border-white/8 bg-white/[0.03] p-5">
-          <p className="text-sm font-semibold text-white">Fresh-store seed accounts</p>
-          <p className="mt-2 text-sm text-white/52">If your local data store predates this role update, create a manager account from Admin Access instead.</p>
+          <p className="text-sm font-semibold text-white">Current local accounts</p>
+          <p className="mt-2 text-sm text-white/52">
+            These match the current local store. Older admin and manager examples may be stale; use the platform admin account below to reset any custom passwords from Admin Access.
+          </p>
           <div className="mt-3 grid gap-3 text-sm text-white/65">
             <div>
               <p className="font-medium text-white/85">Platform Admin</p>
@@ -106,15 +108,19 @@ export function LoginCard({ onSubmit }: LoginCardProps) {
             </div>
             <div>
               <p className="font-medium text-white/85">Agency Admin</p>
-              <p>agencyadmin@autoscale.internal / AgencyAdmin!123</p>
+              <p>manager2@autoscale.internal / Manager2!123</p>
             </div>
             <div>
               <p className="font-medium text-white/85">Agency Manager</p>
-              <p>manager@autoscale.internal / Manager!123</p>
+              <p>user2@autoscale.internal / User2!123</p>
             </div>
             <div>
               <p className="font-medium text-white/85">User</p>
               <p>user@autoscale.internal / User!123</p>
+            </div>
+            <div>
+              <p className="font-medium text-white/85">Additional Users</p>
+              <p>user3@autoscale.internal / User3!123</p>
             </div>
           </div>
         </div>

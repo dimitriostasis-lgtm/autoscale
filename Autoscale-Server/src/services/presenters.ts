@@ -76,15 +76,22 @@ export function presentInfluencerModel(modelIdOrSlug: string, store: StoreData, 
   const boards = filterBoardsForUser(store, viewer, store.boards.filter((board) => board.influencerModelId === model.id));
   const assets = filterAssetsForUser(store, viewer, store.assets.filter((asset) => asset.influencerModelId === model.id));
   const visibleAssignedAgencies = getVisibleAssignedAgencies(model, store, viewer);
+  const defaultPlatformWorkflowName = model.defaultPlatformWorkflowName?.trim() || "Default platform workflow";
+  const platformWorkflowCount = typeof model.platformWorkflowCount === "number" ? Math.max(0, Math.floor(model.platformWorkflowCount)) : 3;
+  const customWorkflowCount = typeof model.customWorkflowCount === "number" ? Math.max(0, Math.floor(model.customWorkflowCount)) : 0;
 
   return {
     ...model,
+    defaultPlatformWorkflowName,
+    platformWorkflowCount,
+    customWorkflowCount,
     canAccess: accessibleIds.has(model.id),
     assignedAgencyIds: visibleAssignedAgencies.map((agency) => agency.id),
     assignedAgencyNames: visibleAssignedAgencies.map((agency) => agency.name),
     agencyAccessCount: visibleAssignedAgencies.length,
     boardCount: boards.length,
     galleryCount: assets.length,
+    outputCount: assets.length,
     boards: boards.map((board) => presentBoard(board, store)),
   };
 }
@@ -92,10 +99,7 @@ export function presentInfluencerModel(modelIdOrSlug: string, store: StoreData, 
 export function presentUser(user: StoredUser, store: StoreData) {
   const agency = store.agencies.find((entry) => entry.id === user.agencyId) || null;
   const scopedAgencyIds = getUserAgencyIds(user);
-  const managedAgencies =
-    user.role === "AGENCY_MANAGER"
-      ? store.agencies.filter((entry) => user.managedAgencyIds.includes(entry.id))
-      : [];
+  const managedAgencies = user.role === "AGENCY_MANAGER" && agency ? [agency] : [];
   const assignedModelIds = store.modelAccess
     .filter((assignment) => assignment.userId === user.id)
     .map((assignment) => assignment.influencerModelId)

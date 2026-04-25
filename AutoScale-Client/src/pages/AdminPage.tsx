@@ -5,8 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import {
   CREATE_INFLUENCER_MODEL_MUTATION,
   INFLUENCER_MODELS_QUERY,
-  SET_INFLUENCER_MODEL_ACTIVE_MUTATION,
   SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION,
+  UPDATE_INFLUENCER_MODEL_PROFILE_MUTATION,
 } from "../queries/model";
 import {
   AGENCIES_QUERY,
@@ -48,8 +48,8 @@ export function AdminPage({ currentUser }: AdminPageProps) {
   const [createUserMutation] = useMutation(CREATE_USER_MUTATION);
   const [renameUserMutation] = useMutation(RENAME_USER_MUTATION);
   const [createInfluencerModelMutation] = useMutation(CREATE_INFLUENCER_MODEL_MUTATION);
+  const [updateInfluencerModelProfileMutation] = useMutation(UPDATE_INFLUENCER_MODEL_PROFILE_MUTATION);
   const [setInfluencerModelAgencyAccessMutation] = useMutation(SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION);
-  const [setInfluencerModelActiveMutation] = useMutation(SET_INFLUENCER_MODEL_ACTIVE_MUTATION);
   const [renameAgencyMutation] = useMutation(RENAME_AGENCY_MUTATION);
   const [deleteAgencyMutation] = useMutation(DELETE_AGENCY_MUTATION);
   const [updateUserRoleMutation] = useMutation(UPDATE_USER_ROLE_MUTATION);
@@ -92,8 +92,8 @@ export function AdminPage({ currentUser }: AdminPageProps) {
         await createInfluencerModelMutation({ variables: { input } });
         await refreshAll();
       }}
-      onSetInfluencerModelActive={async (influencerModelId, isActive) => {
-        await setInfluencerModelActiveMutation({ variables: { influencerModelId, isActive } });
+      onUpdateInfluencerModelProfile={async (influencerModelId, input) => {
+        await updateInfluencerModelProfileMutation({ variables: { influencerModelId, input } });
         await refreshAll();
       }}
       onSetInfluencerModelAgencyAccess={async (influencerModelId, agencyIds) => {

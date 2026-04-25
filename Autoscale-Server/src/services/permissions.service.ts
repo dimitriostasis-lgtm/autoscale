@@ -69,6 +69,7 @@ function getManagerPermissions(user: Pick<AuthUser, "role" | "managerPermissions
     canDeleteUsers: user.managerPermissions?.canDeleteUsers ?? DEFAULT_MANAGER_PERMISSIONS.canDeleteUsers,
     canResetPasswords: user.managerPermissions?.canResetPasswords ?? DEFAULT_MANAGER_PERMISSIONS.canResetPasswords,
     canManageAssignments: user.managerPermissions?.canManageAssignments ?? DEFAULT_MANAGER_PERMISSIONS.canManageAssignments,
+    canManageCredits: user.managerPermissions?.canManageCredits ?? DEFAULT_MANAGER_PERMISSIONS.canManageCredits,
   };
 }
 
@@ -77,16 +78,12 @@ function resolveViewerPermissions(store: StoreData, viewer: AuthUser): ManagerPe
   return getManagerPermissions(storedViewer || viewer);
 }
 
-export function getUserAgencyIds(user: Pick<AuthUser, "role" | "agencyId" | "managedAgencyIds">): string[] {
-  const agencyIds = [user.agencyId, ...(isAgencyManager(user) ? user.managedAgencyIds : [])].filter(
-    (agencyId): agencyId is string => typeof agencyId === "string" && agencyId.length > 0,
-  );
-
-  return Array.from(new Set(agencyIds));
+export function getUserAgencyIds(user: Pick<AuthUser, "agencyId">): string[] {
+  return user.agencyId ? [user.agencyId] : [];
 }
 
 function isWithinViewerAgencyScope(
-  viewer: Pick<AuthUser, "role" | "agencyId" | "managedAgencyIds">,
+  viewer: Pick<AuthUser, "agencyId">,
   targetUser: Pick<StoredUser, "agencyId">,
 ): boolean {
   return Boolean(targetUser.agencyId && getUserAgencyIds(viewer).includes(targetUser.agencyId));

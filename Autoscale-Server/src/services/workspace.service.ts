@@ -1,4 +1,12 @@
 import { createBoardSeed, createDefaultRows, readStore, updateStore } from "../lib/store.js";
+import {
+  DEFAULT_POSE_PROMPT_TEMPLATE,
+  getMaxBoardQuantityForGenerationModel,
+  normalizeOptionalPosePromptTemplates,
+  normalizePosePromptTemplates,
+  normalizeQualityForGenerationModel,
+  normalizeResolutionForGenerationModel,
+} from "../types/domain.js";
 import type { AuthUser, ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../types/domain.js";
 
 import { publishBoardUpdate } from "./notifications.service.js";
@@ -176,9 +184,11 @@ export async function updateBoardRow(
     label?: string | null;
     prompt?: string | null;
     poseMultiplier?: number | null;
+    posePromptTemplates?: string[] | null;
     faceSwap?: boolean | null;
     reference?: ReferenceSelection | null;
     clearReference?: boolean | null;
+    clearPosePromptTemplates?: boolean | null;
   },
 ) {
   const viewer = requireAuthenticatedUser(currentUser);
@@ -197,6 +207,14 @@ export async function updateBoardRow(
     }
     if (typeof input.poseMultiplier === "number") {
       row.poseMultiplier = Math.max(1, Math.min(4, input.poseMultiplier));
+    }
+    if (input.clearPosePromptTemplates) {
+      row.posePromptTemplates = null;
+    } else if (Array.isArray(input.posePromptTemplates)) {
+      row.posePromptTemplates = normalizeOptionalPosePromptTemplates(
+        input.posePromptTemplates,
+        board.settings.posePromptTemplates[0] || board.settings.posePromptTemplate || DEFAULT_POSE_PROMPT_TEMPLATE,
+      );
     }
     if (typeof input.faceSwap === "boolean") {
       row.faceSwap = input.faceSwap;
@@ -226,6 +244,7 @@ export async function updateBoardSettings(
   input: {
     generationModel: string;
     resolution: string;
+    quality: string;
     aspectRatio: string;
     quantity: number;
     poseMultiplierEnabled: boolean;
@@ -235,24 +254,32 @@ export async function updateBoardSettings(
     autoPromptImage: boolean;
     posePromptMode: string;
     posePromptTemplate: string;
+    posePromptTemplates: string[];
     globalReferences: ReferenceSelection[];
   },
 ) {
   const viewer = requireAuthenticatedUser(currentUser);
   const store = await updateStore((current) => {
     const board = assertBoardEdit(current, viewer, boardId);
+    const normalizedGenerationModel = input.generationModel as WorkspaceBoard["settings"]["generationModel"];
+    const normalizedResolution = normalizeResolutionForGenerationModel(normalizedGenerationModel, input.resolution);
+    const normalizedQuality = normalizeQualityForGenerationModel(normalizedGenerationModel, input.quality);
+    const normalizedQuantity = Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
+    const normalizedPosePromptTemplates = normalizePosePromptTemplates(input.posePromptTemplates, input.posePromptTemplate);
     board.settings = {
-      generationModel: input.generationModel as WorkspaceBoard["settings"]["generationModel"],
-      resolution: input.resolution as WorkspaceBoard["settings"]["resolution"],
+      generationModel: normalizedGenerationModel,
+      resolution: normalizedResolution,
+      quality: normalizedQuality,
       aspectRatio: input.aspectRatio as WorkspaceBoard["settings"]["aspectRatio"],
-      quantity: Math.max(1, Math.min(4, input.quantity)),
-      poseMultiplierEnabled: input.poseMultiplierEnabled,
+      quantity: normalizedQuantity,
+      poseMultiplierEnabled: normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
       poseMultiplier: Math.max(1, Math.min(4, input.poseMultiplier)),
       faceSwap: input.faceSwap,
       autoPromptGen: input.autoPromptGen,
       autoPromptImage: input.autoPromptImage,
       posePromptMode: input.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
-      posePromptTemplate: input.posePromptTemplate.trim() || "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+      posePromptTemplate: normalizedPosePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
+      posePromptTemplates: normalizedPosePromptTemplates,
       globalReferences: input.globalReferences.map((selection) => normalizeReference(selection)),
     };
     board.rows = board.rows.map((row) => ({

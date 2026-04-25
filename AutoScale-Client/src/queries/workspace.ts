@@ -21,6 +21,7 @@ export const BOARD_DETAIL_QUERY = gql`
       settings {
         generationModel
         resolution
+        quality
         aspectRatio
         quantity
         poseMultiplierEnabled
@@ -30,6 +31,7 @@ export const BOARD_DETAIL_QUERY = gql`
         autoPromptImage
         posePromptMode
         posePromptTemplate
+        posePromptTemplates
         globalReferences {
           id
           slotIndex
@@ -56,6 +58,7 @@ export const BOARD_DETAIL_QUERY = gql`
         label
         prompt
         poseMultiplier
+        posePromptTemplates
         faceSwap
         status
         errorMessage
@@ -196,6 +199,7 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
       settings {
         generationModel
         resolution
+        quality
         aspectRatio
         quantity
         poseMultiplierEnabled
@@ -205,6 +209,7 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         autoPromptImage
         posePromptMode
         posePromptTemplate
+        posePromptTemplates
         globalReferences {
           id
           slotIndex
@@ -231,6 +236,7 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         label
         prompt
         poseMultiplier
+        posePromptTemplates
         faceSwap
         status
         errorMessage

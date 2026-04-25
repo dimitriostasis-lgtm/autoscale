@@ -23,6 +23,12 @@
       "slug": "valera",
       "name": "Valera",
       "createdAt": "2026-04-21T15:10:23.646Z"
+    },
+    {
+      "id": "bd79d664-4217-478f-ba1c-970d550671be",
+      "slug": "fanvella",
+      "name": "Fanvella",
+      "createdAt": "2026-04-22T11:43:32.861Z"
     }
   ],
   "users": [
@@ -86,15 +92,23 @@
       "id": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
       "email": "user2@autoscale.internal",
       "name": "Jordan Vale",
-      "role": "USER",
+      "role": "AGENCY_MANAGER",
       "agencyId": "30008f4b-5af7-4181-a4c3-f99285d60434",
       "managedById": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
       "passwordHash": "$2a$10$JzIJIhRLf1.hrO2EPIaoBuvkiX2faQbZe0SbufGgpMP5Z5aroQI9i",
       "isActive": true,
       "createdAt": "2026-04-21T10:01:08.196Z",
       "lastPasswordResetAt": null,
-      "managerPermissions": null,
-      "managedAgencyIds": []
+      "managerPermissions": {
+        "canSuspendUsers": true,
+        "canDeleteUsers": false,
+        "canResetPasswords": false,
+        "canManageAssignments": false,
+        "canManageCredits": true
+      },
+      "managedAgencyIds": [
+        "30008f4b-5af7-4181-a4c3-f99285d60434"
+      ]
     },
     {
       "id": "9cfd406c-47eb-401c-ade1-8e8271caa882",
@@ -114,35 +128,62 @@
       "id": "7f62d007-6a93-418a-b047-fbef8eb5969f",
       "email": "dimtirioostasdasd@gmail.com",
       "name": "Niki Tasi",
-      "role": "AGENCY_MANAGER",
+      "role": "AGENCY_ADMIN",
       "agencyId": "360b69c5-37e1-4cbc-9e54-f8fe0269533b",
-      "managerPermissions": {
-        "canSuspendUsers": true,
-        "canDeleteUsers": false,
-        "canResetPasswords": false,
-        "canManageAssignments": false
-      },
+      "managerPermissions": null,
       "passwordHash": "$2a$10$OsWLcw0Z1TkNGp2flmabJ..cs.MpDDZ31l2.hM8E5W3EJcdmGZspm",
       "isActive": true,
       "createdAt": "2026-04-21T11:59:29.275Z",
       "lastPasswordResetAt": "2026-04-21T12:01:42.969Z",
+      "managedAgencyIds": []
+    },
+    {
+      "id": "d8ed63ce-c48c-42fc-ab90-b99043a4ec87",
+      "email": "giannistasis@gmail.com",
+      "name": "Giannis",
+      "role": "AGENCY_ADMIN",
+      "agencyId": "bd79d664-4217-478f-ba1c-970d550671be",
+      "managedAgencyIds": [],
+      "managerPermissions": null,
+      "passwordHash": "$2a$10$qatEysMYy8gFI6.oA/B/oOj4KZydMiQe588sseZ9szR9iW2rgFLe2",
+      "isActive": true,
+      "createdAt": "2026-04-22T11:44:13.937Z",
+      "lastPasswordResetAt": null
+    },
+    {
+      "id": "c5f8b1a9-0bfe-4145-97a9-4ad8aaa60322",
+      "email": "fasdfuasdm!@gmail.com",
+      "name": "Dimitris",
+      "role": "AGENCY_MANAGER",
+      "agencyId": "bd79d664-4217-478f-ba1c-970d550671be",
       "managedAgencyIds": [
-        "360b69c5-37e1-4cbc-9e54-f8fe0269533b"
-      ]
+        "bd79d664-4217-478f-ba1c-970d550671be"
+      ],
+      "managerPermissions": {
+        "canSuspendUsers": true,
+        "canDeleteUsers": false,
+        "canResetPasswords": false,
+        "canManageAssignments": false,
+        "canManageCredits": false
+      },
+      "passwordHash": "$2a$10$HipchZ5HgYM1jkt9KCJz5OehhaS98s8CvMURY/CgGPWy5N5UQ3Dwa",
+      "isActive": true,
+      "createdAt": "2026-04-22T11:44:34.642Z",
+      "lastPasswordResetAt": null
     }
   ],
   "influencerModels": [
     {
       "id": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
       "slug": "ava-sterling",
-      "name": "Ava Sterling",
-      "handle": "@ava.sterling",
+      "name": "Emily Rhodes",
+      "handle": "@iamemilyrhodes",
       "archetype": "Luxury editorial",
-      "description": "Polished fashion-led outputs tuned for premium lifestyle sets and controlled campaign styling.",
-      "avatarImageUrl": null,
+      "description": "60 years young",
+      "avatarImageUrl": "/files/uploads/2025-09-2317350221602688_00143_-profile-1a9c10c3-6ec4-490c-99c8-8fc38f370e7b.png",
       "accentFrom": "from-lime-300",
       "accentTo": "to-emerald-400",
-      "avatarLabel": "AS",
+      "avatarLabel": "ER",
       "isActive": true,
       "defaults": {
         "generationModel": "nb_pro",
@@ -154,13 +195,18 @@
       "allowedGenerationModels": [
         "nb_pro",
         "nb2",
-        "sd_4_5"
+        "sd_4_5",
+        "kling_o1",
+        "gpt_2",
+        "sdxl"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
-        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
-        "30008f4b-5af7-4181-a4c3-f99285d60434"
-      ]
+        "360b69c5-37e1-4cbc-9e54-f8fe0269533b"
+      ],
+      "defaultPlatformWorkflowName": "Default platform workflow",
+      "platformWorkflowCount": 3,
+      "customWorkflowCount": 0
     },
     {
       "id": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
@@ -184,13 +230,18 @@
       "allowedGenerationModels": [
         "nb2",
         "nb_pro",
-        "kling_o1"
+        "kling_o1",
+        "sd_4_5",
+        "gpt_2",
+        "sdxl"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
-        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
-        "30008f4b-5af7-4181-a4c3-f99285d60434"
-      ]
+        "c2674896-733a-480a-946c-36a02dd254a6"
+      ],
+      "defaultPlatformWorkflowName": "Default platform workflow",
+      "platformWorkflowCount": 3,
+      "customWorkflowCount": 0
     },
     {
       "id": "4b86429e-a601-428c-b801-2c3fa5772df5",
@@ -213,13 +264,19 @@
       },
       "allowedGenerationModels": [
         "sd_4_5",
-        "nb_pro"
+        "nb_pro",
+        "nb2",
+        "kling_o1",
+        "gpt_2",
+        "sdxl"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
-        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
-        "30008f4b-5af7-4181-a4c3-f99285d60434"
-      ]
+        "360b69c5-37e1-4cbc-9e54-f8fe0269533b"
+      ],
+      "defaultPlatformWorkflowName": "Default platform workflow",
+      "platformWorkflowCount": 3,
+      "customWorkflowCount": 0
     },
     {
       "id": "e7c5da9f-b380-479b-9303-b49f29f77d56",
@@ -242,389 +299,58 @@
       },
       "allowedGenerationModels": [
         "kling_o1",
-        "nb2"
+        "nb2",
+        "nb_pro",
+        "sd_4_5",
+        "gpt_2",
+        "sdxl"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
-        "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
         "30008f4b-5af7-4181-a4c3-f99285d60434"
-      ]
-    }
-  ],
-  "modelAccess": [
-    {
-      "id": "a823aebe-5d65-4afb-aa65-50430e27b27c",
-      "userId": "9cfd406c-47eb-401c-ade1-8e8271caa882",
-      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
-      "grantedById": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
-      "createdAt": "2026-04-21T10:01:08.196Z"
+      ],
+      "defaultPlatformWorkflowName": "Default platform workflow",
+      "platformWorkflowCount": 3,
+      "customWorkflowCount": 0
     },
     {
-      "id": "6e96cab7-d4d1-41dd-bf8f-6d1c249ba8f6",
-      "userId": "9cfd406c-47eb-401c-ade1-8e8271caa882",
-      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
-      "grantedById": "17e998bc-bb15-4607-b2d7-fcffcc0aa294",
-      "createdAt": "2026-04-21T10:01:08.196Z"
-    },
-    {
-      "id": "07fb8864-d31f-486c-946d-419fce672410",
-      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
-      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T10:20:05.154Z"
-    },
-    {
-      "id": "c3d9e35e-31ac-4e8c-baf8-6617f078c1de",
-      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
-      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T10:20:05.154Z"
-    },
-    {
-      "id": "c4abf2be-c7a6-4cec-accd-cd3294ddbf5a",
-      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
-      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T10:20:05.154Z"
-    },
-    {
-      "id": "69a3d732-aada-4fbc-9976-23fb60a3d761",
-      "userId": "981d2e34-d81d-43d0-9a1a-2849e0267a41",
-      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T10:20:05.154Z"
-    },
-    {
-      "id": "86e60711-f7e7-45d6-9af3-98879ee203e0",
-      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
-      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:52:26.137Z"
-    },
-    {
-      "id": "d178b1a1-ebb8-4262-a56e-264b630e67af",
-      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
-      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:52:26.138Z"
-    },
-    {
-      "id": "e47418fa-4098-4ad4-908a-7f50f0d167f1",
-      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
-      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:52:26.138Z"
-    },
-    {
-      "id": "b3674295-bcc2-42ca-853d-687ddd3946bf",
-      "userId": "2dbd248e-c513-41e9-ac0b-63706a1b53d7",
-      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:52:26.138Z"
-    },
-    {
-      "id": "7d4ef06e-04d0-4dfc-ba18-1c7badca60aa",
-      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
-      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:59:43.752Z"
-    },
-    {
-      "id": "118ba61c-ec4b-4dd2-8670-8ff1f9c9d6de",
-      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
-      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:59:43.752Z"
-    },
-    {
-      "id": "5c43638b-ea8f-4681-8d31-82359464c234",
-      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
-      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:59:43.752Z"
-    },
-    {
-      "id": "396f6644-23b3-4f24-a855-0a54fdaa6378",
-      "userId": "7f62d007-6a93-418a-b047-fbef8eb5969f",
-      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
-      "grantedById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "createdAt": "2026-04-21T11:59:43.752Z"
-    }
-  ],
-  "boards": [
-    {
-      "id": "e6dcf316-1433-428b-8c38-771e61c33378",
-      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
-      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "name": "Table 1",
-      "createdAt": "2026-04-21T11:09:11.122Z",
-      "updatedAt": "2026-04-21T12:44:54.537Z",
-      "settings": {
-        "generationModel": "nb2",
-        "resolution": "1k",
-        "aspectRatio": "4:5",
-        "quantity": 4,
-        "globalReferences": [
-          {
-            "id": "98bb178d-8ed8-41c3-a716-2cb29dca171e",
-            "slotIndex": 0,
-            "label": "Global 1",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "7fa89b67-ee2f-46d9-a453-7efc529da754",
-            "slotIndex": 1,
-            "label": "Global 2",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "65e5a870-2068-4e4c-a8c3-3334bfb6a79a",
-            "slotIndex": 2,
-            "label": "Global 3",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "d928a221-2374-4240-a25b-8dfe7585d2f2",
-            "slotIndex": 3,
-            "label": "Global 4",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          }
-        ]
-      },
-      "rows": [
-        {
-          "id": "5a393f37-14be-4cdb-b894-d460edaee9ae",
-          "orderIndex": 0,
-          "label": "1",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        }
-      ]
-    },
-    {
-      "id": "7e620add-490b-46d0-85e5-f61e7e6640c0",
-      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
-      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "name": "Table 1",
-      "createdAt": "2026-04-21T11:27:20.570Z",
-      "updatedAt": "2026-04-21T11:27:20.570Z",
-      "settings": {
+      "id": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "slug": "emily-rhodes",
+      "name": "Laura Lanes",
+      "handle": "@lauralanes",
+      "archetype": "",
+      "description": "Beautiful busty 60 years old",
+      "avatarImageUrl": "/files/uploads/2026-04-1119580016162016_00004_-profile-cf164634-9645-4667-8415-36b892b91fd7.png",
+      "accentFrom": "from-violet-300",
+      "accentTo": "to-indigo-400",
+      "avatarLabel": "LL",
+      "isActive": true,
+      "agencyIds": [
+        "360b69c5-37e1-4cbc-9e54-f8fe0269533b"
+      ],
+      "defaultPlatformWorkflowName": "Default platform workflow",
+      "platformWorkflowCount": 3,
+      "customWorkflowCount": 0,
+      "defaults": {
         "generationModel": "nb_pro",
-        "resolution": "2k",
-        "aspectRatio": "3:4",
+        "resolution": "1k",
+        "aspectRatio": "auto",
         "quantity": 4,
-        "globalReferences": [
-          {
-            "id": "701364ae-a078-4b5e-af16-813207f957a6",
-            "slotIndex": 0,
-            "label": "Global 1",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "e2c261cf-2e62-47b5-86c4-8d344a74a4f4",
-            "slotIndex": 1,
-            "label": "Global 2",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "bea7373e-d648-405b-bdc9-aead11c494d6",
-            "slotIndex": 2,
-            "label": "Global 3",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "b118b721-8051-4367-9f4f-4feded6332ea",
-            "slotIndex": 3,
-            "label": "Global 4",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          }
-        ]
+        "promptPrefix": ""
       },
-      "rows": [
-        {
-          "id": "8bb8be47-b227-4b86-9b57-5fe8a7d16a5c",
-          "orderIndex": 0,
-          "label": "1",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "6fca9114-4b8d-4e5d-9df9-a168b90cb2ea",
-          "orderIndex": 1,
-          "label": "2",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "aaed09bd-c270-411c-8719-150bdc164523",
-          "orderIndex": 2,
-          "label": "3",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "d84d9315-d1c1-458b-9013-f17a78b669b0",
-          "orderIndex": 3,
-          "label": "4",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        }
-      ]
-    },
-    {
-      "id": "e19b86d2-36f3-4b4b-bb3a-9f58d0472664",
-      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
-      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "name": "Table 1",
-      "createdAt": "2026-04-21T12:03:14.576Z",
-      "updatedAt": "2026-04-21T12:03:14.576Z",
-      "settings": {
-        "generationModel": "sd_4_5",
-        "resolution": "2k",
-        "aspectRatio": "1:1",
-        "quantity": 4,
-        "globalReferences": [
-          {
-            "id": "a2684d09-ebcd-41ae-a964-72140eb300d9",
-            "slotIndex": 0,
-            "label": "Global 1",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "2026bfbc-25cb-4c46-a8c9-796c0240ec9f",
-            "slotIndex": 1,
-            "label": "Global 2",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "4fc0f5c3-3eea-4121-8e71-35f1edf30896",
-            "slotIndex": 2,
-            "label": "Global 3",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "47a9a2fc-5450-4d1c-8285-46eec8b603bd",
-            "slotIndex": 3,
-            "label": "Global 4",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          }
-        ]
-      },
-      "rows": [
-        {
-          "id": "73fb15c8-dfa2-47d2-b526-c7eab16e1f84",
-          "orderIndex": 0,
-          "label": "1",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "baa56486-0263-4091-a3d3-6e402afde301",
-          "orderIndex": 1,
-          "label": "2",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "702d9f04-62a6-4faa-a58d-b10247a4e5df",
-          "orderIndex": 2,
-          "label": "3",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "dbc09a3f-ec91-4cc5-a301-154c03c46b23",
-          "orderIndex": 3,
-          "label": "4",
-          "prompt": "",
-          "reference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        }
-      ]
-    },
+      "allowedGenerationModels": [
+        "nb_pro",
+        "nb2",
+        "sd_4_5",
+        "kling_o1",
+        "gpt_2",
+        "sdxl"
+      ],
+      "createdAt": "2026-04-25T17:54:51.040Z"
+    }
+  ],
+  "modelAccess": [],
+  "boards": [
     {
       "id": "9d061594-e27b-4a82-b675-02fd5139a34d",
       "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
@@ -678,6 +404,20 @@
             "uploadPath": null,
             "uploadUrl": null
           }
+        ],
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "poseMultiplierEnabled": false,
+        "quality": "medium",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
         ]
       },
       "rows": [
@@ -690,7 +430,10 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
         },
         {
           "id": "a733466f-fb8d-4802-8e5a-fabecae9edc8",
@@ -701,7 +444,10 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
         },
         {
           "id": "15688a21-b485-4921-8d4a-063a653fad30",
@@ -712,13 +458,1513 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
         },
         {
           "id": "2d443819-4f65-4eca-84c0-6d1200ea0407",
           "orderIndex": 3,
           "label": "4",
           "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
+        }
+      ]
+    },
+    {
+      "id": "d2579551-1447-43e3-aeb2-01ba04f61046",
+      "influencerModelId": "175dbb9e-69d9-4e78-bf62-2aecdef55ecc",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 4",
+      "createdAt": "2026-04-22T11:50:58.834Z",
+      "updatedAt": "2026-04-24T02:56:44.186Z",
+      "settings": {
+        "generationModel": "sd_4_5",
+        "resolution": "2k",
+        "aspectRatio": "4:5",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 4,
+        "faceSwap": true,
+        "autoPromptGen": true,
+        "autoPromptImage": true,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "globalReferences": [
+          {
+            "id": "8aa47aea-a7e6-4cff-b00d-690d25bff348",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "2de3225b-e552-4773-af53-a675ef33f8d4",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "87710b55-4c21-44f1-a411-e9e2e8fa4fb1",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "ab8c8753-6d06-4494-aca2-ee57b1920e7b",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ],
+        "quality": "medium",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ]
+      },
+      "rows": [
+        {
+          "id": "18d04c43-6431-440a-9138-1e81843f5378",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null,
+          "poseMultiplier": 4,
+          "faceSwap": true,
+          "posePromptTemplates": null
+        }
+      ]
+    },
+    {
+      "id": "8697b60c-1bf1-4a96-92fe-57da4ee41339",
+      "influencerModelId": "4b86429e-a601-428c-b801-2c3fa5772df5",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 2",
+      "createdAt": "2026-04-23T01:19:30.616Z",
+      "updatedAt": "2026-04-23T19:42:38.662Z",
+      "settings": {
+        "generationModel": "sd_4_5",
+        "resolution": "2k",
+        "aspectRatio": "1:1",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "CUSTOM",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "globalReferences": [
+          {
+            "id": "4196488e-84bf-4797-9b16-cef7a0c27f53",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "5e1b160a-7860-4448-b536-1aa45bcd80f7",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "6aa88d75-5f7c-4c71-9c26-191fae0f5c3b",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "eac11b71-e8b2-4816-b685-251ba161b615",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ],
+        "quality": "medium",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ]
+      },
+      "rows": [
+        {
+          "id": "3e2c0a43-882d-41d6-a735-a2838f7643b4",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
+        },
+        {
+          "id": "ab7e3c17-008e-4d76-b7b8-fe3393d18ee9",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
+        },
+        {
+          "id": "9a3cee66-2aaa-482a-9394-7b3c367cb9e0",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
+        },
+        {
+          "id": "53103554-66e1-41c0-ae81-74b2e9ae3baa",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null,
+          "poseMultiplier": 1,
+          "faceSwap": false,
+          "posePromptTemplates": null
+        }
+      ]
+    },
+    {
+      "id": "32a54772-3fb7-4a32-8122-3254e6842f81",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 5",
+      "createdAt": "2026-04-25T19:59:49.599Z",
+      "updatedAt": "2026-04-25T20:38:54.707Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "2k",
+        "quality": "medium",
+        "aspectRatio": "3:4",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "0a9486e9-7722-4013-b7fe-d91d89865ac8",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "e90176c6-e3ae-46fa-9986-a160cac34461",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "15d9649b-4eef-45db-95a3-3962f1c31fee",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "04799c7f-5d22-4862-a593-871f4b62ced4",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "a23acab8-b53e-4ae8-9a12-6b6ec628af3e",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "2a2ea2ed-e519-4477-b4e3-03fa7dac631c",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "58ee671a-0e18-4c6d-a957-699d40ade95e",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "57b4a951-652a-4a1c-9291-ed96c2ab28ab",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "4f2a4898-5c73-4eee-83c9-3d4b34a67fac",
+      "influencerModelId": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 4",
+      "createdAt": "2026-04-25T20:02:36.313Z",
+      "updatedAt": "2026-04-25T20:02:36.313Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "1k",
+        "quality": "medium",
+        "aspectRatio": "auto",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "4e920c12-52b6-4281-8156-c4ae9356579d",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "ae387845-5890-49bc-9236-d026b8eb7f25",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "aad3bbe1-0432-4801-8bee-ea1bf4fc4147",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "ad685097-faba-4a93-aedc-6dd512a9698c",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "7d1af9bd-4783-4a52-9c4e-36ff2613b784",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "f529372c-e40e-4cf7-b059-ffcaa22998c9",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "5d8753d2-f7a1-4c44-b0f3-0b2d8aa6d391",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "f5a8b59a-d17d-4814-b3c0-8dd6aca17610",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "2c7a1f22-9caf-4d35-97f4-3628215a4602",
+      "influencerModelId": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 2",
+      "createdAt": "2026-04-25T20:29:49.052Z",
+      "updatedAt": "2026-04-25T20:29:49.052Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "1k",
+        "quality": "medium",
+        "aspectRatio": "auto",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "280f1c86-1be4-4a2b-b26f-8b5b9e75d1c6",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "21b82d44-81c3-47b0-afa6-68c03bea17d5",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "bb1794da-0a57-48ca-851d-532a92dfeeae",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "3af198f0-bb04-4acf-9f12-bb1144460560",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "dc7668b7-d3c8-426b-a721-6b67cbd72606",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "fe34f052-fc0a-4ac1-935c-b768ac82464e",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "6391f393-371d-480d-b2b6-78d173f64a99",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "2d0a9cb6-48bc-4b07-99b5-fde1737ee9a2",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "9fb7f7a7-5ac3-4f4e-a2c4-339a1814a9c4",
+      "influencerModelId": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 3",
+      "createdAt": "2026-04-25T20:29:49.972Z",
+      "updatedAt": "2026-04-25T20:29:49.972Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "1k",
+        "quality": "medium",
+        "aspectRatio": "auto",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "41256459-384f-481a-851b-4502bab268f3",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "03a7f135-2ade-4cf9-8a8d-68c0621362a1",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "43764385-c2b4-40dc-b269-66f7a93e2118",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "be211de3-b1f3-49c4-bba5-cbb9fc1523df",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "8263a072-81aa-4cd7-b88c-9a18bf82447e",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "2a1ac536-640b-4e58-98dd-dd7537585c86",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "979a1303-c17c-4c00-b172-a992caefd165",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "40d7fbdb-fcb0-4ac6-8a87-419a79cfd98e",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "67b3e73f-418e-48a4-8006-1d74bce39aa8",
+      "influencerModelId": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "__autoscale_workspace_nsfw__:Table 1",
+      "createdAt": "2026-04-25T20:33:44.977Z",
+      "updatedAt": "2026-04-25T20:33:44.977Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "1k",
+        "quality": "medium",
+        "aspectRatio": "auto",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "c7fe28ce-65f0-4589-b571-7578901e1af2",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "78cffa70-be28-4caa-9148-17a535ddf1a8",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "38b09c59-5ac4-4c6b-a1af-67ca04b13390",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "81540853-5dfa-4066-b5b2-356dc620e8f3",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "d4227b9e-54b8-46f4-af75-3bf84778eab9",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "90162930-a247-4052-810b-9e3ec05bb666",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "6fa0b1c9-4f1e-4e1b-95cf-309e9479e2ae",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "e7424944-1d42-48ed-8f7d-4cd8cf13df88",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "f41ee200-57f0-4ec1-a4b8-944d652173dd",
+      "influencerModelId": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "__autoscale_workspace_playground__:Table 1",
+      "createdAt": "2026-04-25T20:33:50.330Z",
+      "updatedAt": "2026-04-25T20:33:50.330Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "1k",
+        "quality": "medium",
+        "aspectRatio": "auto",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "3a7a2d17-4c3e-411c-9621-0fbc8e9aebd1",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "4e920855-be29-4a47-af47-9d1b495aa734",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "5445ec7a-da84-4b92-a441-bb836b5bc953",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "eb165bfe-dde1-455b-b15a-76b8f38ab6e3",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "13b643fe-e872-4fd9-a73b-5c2eb88d0a1c",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "1de19f91-e7fc-443b-b98b-c7da847e84fa",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "50a9d473-79fe-4540-9e75-73478b13db38",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "5ae1ad02-0bfd-4b10-bc3e-153a67b11111",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "d66171d1-cff4-4b8e-b356-92a7991ef064",
+      "influencerModelId": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "__autoscale_workspace_playground__:Table 1",
+      "createdAt": "2026-04-25T20:33:50.335Z",
+      "updatedAt": "2026-04-25T20:33:50.335Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "1k",
+        "quality": "medium",
+        "aspectRatio": "auto",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "35578773-7749-4895-9598-f2ee1efc43c0",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "fe4766f2-08ef-460c-9aac-d3a7b2429cc3",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "fa2efe40-4586-4143-b084-ca5406e2ea05",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "80260829-abb4-4e6a-96a0-695c18cde2c8",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "2a841145-5c15-45f7-b145-be26e7d379f6",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "b1724827-503a-4e6c-a657-5658efefdd52",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "cedf77f4-812c-4d14-b0a1-98e77dd568e5",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "ec6ea003-8240-49af-8a0c-e249d20b074b",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "9658d5f7-2537-4b0d-902e-09c171a4df73",
+      "influencerModelId": "dc38b0d0-244b-4de7-b869-af2b9c3aa2c6",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "__autoscale_workspace_nsfw__:Table 2",
+      "createdAt": "2026-04-25T20:36:16.660Z",
+      "updatedAt": "2026-04-25T20:36:16.660Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "1k",
+        "quality": "medium",
+        "aspectRatio": "auto",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "de7c2025-6dcf-4d12-82db-797e584e77dc",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "018db28b-5b6b-47f2-82a4-9bb6925ae6b8",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "d0066f7d-02fe-43c2-a00b-5a9c9b730bdb",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "c1fba79c-2059-4a5a-a546-e4769edba0e6",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "f7a69466-bb06-442a-9c73-824c213a537b",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "0d4755d3-14a3-4d3e-89cd-24a2733755f1",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "2a7f2b43-4c77-48c7-956c-1054279d5422",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "28b7271e-cd1b-43a9-bdca-c9d62a1bb112",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "fd561c17-bfea-4534-8777-603497de4b31",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "__autoscale_workspace_nsfw__:Table 1",
+      "createdAt": "2026-04-25T20:44:04.759Z",
+      "updatedAt": "2026-04-25T20:44:04.759Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "2k",
+        "quality": "medium",
+        "aspectRatio": "3:4",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "f4ddbeb4-7a75-4893-9b3c-4de2e8317e6f",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "12f90e6e-aae3-4da4-8811-9c6e8312900b",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "30eaad1b-0764-4af3-ae94-93ce6be5d528",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "54d02d95-25ef-45ef-b6d4-290a8ee7f1db",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "6661ad2e-cb20-4433-8fbb-16a115db8996",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "22f71c4d-abaf-49d7-bf24-e563dc44a53b",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "391c4752-6de3-482b-b0da-80d056d9c05c",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "c5fed67a-c891-4c1e-9ad5-6ea1b078c957",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "a14b72a5-5617-4482-8c69-eb432f7f8102",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "__autoscale_workspace_playground__:Table 1",
+      "createdAt": "2026-04-25T20:44:05.344Z",
+      "updatedAt": "2026-04-25T20:44:05.344Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "2k",
+        "quality": "medium",
+        "aspectRatio": "3:4",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "faceSwap": false,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "c2c4dd58-d888-4146-abbf-b0b3a3950b34",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "32ff2382-e5a1-466e-89fd-23a8146187d6",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "ffc865d3-5cd5-42ab-a8b5-fcbe90808298",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "1b56ff51-34be-4a2a-b3f6-ab3688783b20",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "e83700d1-e54e-4c95-bf5e-a8a5eb4bfd96",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "d1cfc507-6ed7-4ffe-93b8-711bf4e473cd",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "38c3d0d5-e9e2-46bd-a824-d320e9813f26",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "da071928-bba3-4aca-ab09-45f9d1cd72c0",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
           "reference": null,
           "status": "IDLE",
           "errorMessage": null,

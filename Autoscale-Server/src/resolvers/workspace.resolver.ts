@@ -50,9 +50,11 @@ export const workspaceResolvers = {
           label?: string | null;
           prompt?: string | null;
           poseMultiplier?: number | null;
+          posePromptTemplates?: string[] | null;
           faceSwap?: boolean | null;
           reference?: ReferenceSelection | null;
           clearReference?: boolean | null;
+          clearPosePromptTemplates?: boolean | null;
         };
       },
       context: GraphQLContext,
@@ -64,6 +66,7 @@ export const workspaceResolvers = {
         input: {
           generationModel: string;
           resolution: string;
+          quality: string;
           aspectRatio: string;
           quantity: number;
           poseMultiplierEnabled: boolean;
@@ -73,6 +76,7 @@ export const workspaceResolvers = {
           autoPromptImage: boolean;
           posePromptMode: string;
           posePromptTemplate: string;
+          posePromptTemplates: string[];
           globalReferences: ReferenceSelection[];
         };
       },

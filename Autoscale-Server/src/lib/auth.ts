@@ -24,7 +24,7 @@ export async function signAuthToken(user: AuthUser): Promise<string> {
     name: user.name,
     role: user.role,
     agencyId: user.agencyId,
-    managedAgencyIds: user.managedAgencyIds,
+    managedAgencyIds: user.role === "AGENCY_MANAGER" && user.agencyId ? [user.agencyId] : [],
     managerPermissions: user.managerPermissions,
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -47,20 +47,13 @@ export async function verifyAuthToken(token: string): Promise<AuthUser | null> {
       name: payload.name,
       role: (payload.role as AuthUser["role"]) || "USER",
       agencyId: typeof payload.agencyId === "string" ? payload.agencyId : null,
-      managedAgencyIds: normalizeManagedAgencyIds(payload.managedAgencyIds),
+      managedAgencyIds:
+        payload.role === "AGENCY_MANAGER" && typeof payload.agencyId === "string" ? [payload.agencyId] : [],
       managerPermissions: normalizeManagerPermissions(payload.managerPermissions),
     };
   } catch {
     return null;
   }
-}
-
-function normalizeManagedAgencyIds(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return Array.from(new Set(value.filter((entry): entry is string => typeof entry === "string")));
 }
 
 function normalizeManagerPermissions(value: unknown): ManagerPermissions | null {
@@ -74,6 +67,7 @@ function normalizeManagerPermissions(value: unknown): ManagerPermissions | null 
     canDeleteUsers: candidate.canDeleteUsers ?? DEFAULT_MANAGER_PERMISSIONS.canDeleteUsers,
     canResetPasswords: candidate.canResetPasswords ?? DEFAULT_MANAGER_PERMISSIONS.canResetPasswords,
     canManageAssignments: candidate.canManageAssignments ?? DEFAULT_MANAGER_PERMISSIONS.canManageAssignments,
+    canManageCredits: candidate.canManageCredits ?? DEFAULT_MANAGER_PERMISSIONS.canManageCredits,
   };
 }
 
@@ -84,7 +78,7 @@ export function toAuthUser(user: StoredUser): AuthUser {
     name: user.name,
     role: user.role,
     agencyId: user.agencyId,
-    managedAgencyIds: user.role === "AGENCY_MANAGER" ? user.managedAgencyIds : [],
+    managedAgencyIds: user.role === "AGENCY_MANAGER" && user.agencyId ? [user.agencyId] : [],
     managerPermissions: user.role === "AGENCY_MANAGER" ? user.managerPermissions || DEFAULT_MANAGER_PERMISSIONS : null,
   };
 }
