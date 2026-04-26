@@ -18,17 +18,30 @@ export interface GalleryFolderGroup {
   items: GalleryFolderItem[];
 }
 
+export interface StoredCustomGalleryGroup {
+  id: string;
+  label: string;
+  createdAt: string;
+}
+
 export interface StoredCustomGalleryFolder {
   id: string;
+  groupId: string;
   label: string;
   assetIds: string[];
   createdAt: string;
 }
 
 export const customFolderGroupId = "custom-folders";
+export const customFolderGroupLabel = "Custom folders";
+export const allMediaFolderId = "all";
 export const defaultGalleryFolderId = "images";
+export const faceSwapFolderId = "face-swaps";
+export const inpaintFolderId = "inpaint";
+export const multiPoseFolderId = "multi-pose";
 
 const galleryFolderStorageKeyPrefix = "autoscale-gallery-custom-folders";
+const galleryFolderGroupStorageKeyPrefix = "autoscale-gallery-custom-folder-groups";
 const videoAssetPattern = /(?:^|[^a-z0-9])videos?(?:$|[^a-z0-9])/i;
 const voiceAssetPattern = /(?:^|[^a-z0-9])(?:voices?|audio)(?:$|[^a-z0-9])/i;
 
@@ -44,16 +57,27 @@ function matchesVoiceAsset(asset: GeneratedAsset): boolean {
   return voiceAssetPattern.test(buildAssetSearchText(asset));
 }
 
+function matchesImageAsset(asset: GeneratedAsset): boolean {
+  return !matchesVideoAsset(asset) && !matchesVoiceAsset(asset);
+}
+
 export const galleryFolderGroups: GalleryFolderGroup[] = [
   {
-    id: "smart-folders",
-    label: "Smart folders",
+    id: "media-folders",
+    label: "Media folders",
     items: [
+      {
+        id: allMediaFolderId,
+        label: "All",
+        description: "All generated media for this model.",
+        matcher: () => true,
+        source: "smart",
+      },
       {
         id: defaultGalleryFolderId,
         label: "Images",
         description: "Generated image outputs for this model.",
-        matcher: (asset) => !matchesVideoAsset(asset) && !matchesVoiceAsset(asset),
+        matcher: matchesImageAsset,
         source: "smart",
       },
       {
@@ -65,8 +89,8 @@ export const galleryFolderGroups: GalleryFolderGroup[] = [
       },
       {
         id: "voices",
-        label: "Voices",
-        description: "Voice generation assets matched from prompt or filename metadata.",
+        label: "Voice Notes",
+        description: "Voice-note generation assets matched from prompt or filename metadata.",
         matcher: matchesVoiceAsset,
         source: "smart",
       },
@@ -76,6 +100,53 @@ export const galleryFolderGroups: GalleryFolderGroup[] = [
 
 export function resolveGalleryFolderStorageKey(slug: string): string {
   return `${galleryFolderStorageKeyPrefix}:${slug}`;
+}
+
+export function resolveGalleryFolderGroupStorageKey(slug: string): string {
+  return `${galleryFolderGroupStorageKeyPrefix}:${slug}`;
+}
+
+export function readStoredCustomFolderGroups(slug: string): StoredCustomGalleryGroup[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(resolveGalleryFolderGroupStorageKey(slug));
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.flatMap((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return [];
+      }
+
+      const candidate = entry as Partial<StoredCustomGalleryGroup>;
+      if (typeof candidate.id !== "string" || typeof candidate.label !== "string") {
+        return [];
+      }
+
+      if (candidate.id === customFolderGroupId) {
+        return [];
+      }
+
+      return [
+        {
+          id: candidate.id,
+          label: candidate.label,
+          createdAt: typeof candidate.createdAt === "string" ? candidate.createdAt : new Date(0).toISOString(),
+        },
+      ];
+    });
+  } catch {
+    return [];
+  }
 }
 
 export function readStoredCustomFolders(slug: string): StoredCustomGalleryFolder[] {
@@ -109,6 +180,7 @@ export function readStoredCustomFolders(slug: string): StoredCustomGalleryFolder
       return [
         {
           id: candidate.id,
+          groupId: typeof candidate.groupId === "string" ? candidate.groupId : customFolderGroupId,
           label: candidate.label,
           assetIds: Array.from(new Set(assetIds)),
           createdAt: typeof candidate.createdAt === "string" ? candidate.createdAt : new Date(0).toISOString(),
@@ -122,12 +194,18 @@ export function readStoredCustomFolders(slug: string): StoredCustomGalleryFolder
 
 export function resolveInitialExpandedGroupIds(slug: string): string[] {
   const baseGroupIds = galleryFolderGroups.map((group) => group.id);
+  const customGroupIds = readStoredCustomFolderGroups(slug).map((group) => group.id);
+  const customFolders = readStoredCustomFolders(slug);
 
-  return readStoredCustomFolders(slug).length > 0 ? [...baseGroupIds, customFolderGroupId] : baseGroupIds;
+  return customFolders.length > 0 || customGroupIds.length > 0 ? [...baseGroupIds, customFolderGroupId, ...customGroupIds] : baseGroupIds;
 }
 
 export function createCustomFolderId(): string {
   return `custom-folder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function createCustomFolderGroupId(): string {
+  return `custom-folder-group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function buildCustomFolderItems(customFolders: StoredCustomGalleryFolder[]): GalleryFolderItem[] {
@@ -157,10 +235,17 @@ export function findFolder(folderId: string, folderGroups: GalleryFolderGroup[])
   return folderGroups.flatMap((group) => group.items).find((item) => item.id === folderId) ?? null;
 }
 
-export function buildGalleryFolderGroups(customFolders: StoredCustomGalleryFolder[]): GalleryFolderGroup[] {
-  const customFolderItems = buildCustomFolderItems(customFolders);
+export function buildGalleryFolderGroups(customFolders: StoredCustomGalleryFolder[], customGroups: StoredCustomGalleryGroup[] = []): GalleryFolderGroup[] {
+  const customFolderGroups = [
+    { id: customFolderGroupId, label: customFolderGroupLabel, createdAt: new Date(0).toISOString() },
+    ...customGroups,
+  ].flatMap((group) => {
+    const customFolderItems = buildCustomFolderItems(customFolders.filter((folder) => folder.groupId === group.id));
 
-  return customFolderItems.length > 0
-    ? [...galleryFolderGroups, { id: customFolderGroupId, label: "Custom folders", items: customFolderItems }]
-    : galleryFolderGroups;
+    return customFolderItems.length > 0 || customGroups.some((customGroup) => customGroup.id === group.id)
+      ? [{ id: group.id, label: group.label, items: customFolderItems }]
+      : [];
+  });
+
+  return customFolderGroups.length > 0 ? [...galleryFolderGroups, ...customFolderGroups] : galleryFolderGroups;
 }

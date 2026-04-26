@@ -34,22 +34,22 @@ export function LoginCard({ onSubmit }: LoginCardProps) {
         <div className="relative flex h-full flex-col justify-between gap-10">
           <div className="space-y-6">
             <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/6 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/70">
-              Private Operations Layer
+              Private Creator Operations
             </span>
             <div className="space-y-4">
               <h1 className="font-display max-w-3xl text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
-                Structured internal generation around a real Higgsfield worker bridge.
+                Agency-ready AI influencer workspaces for every team.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-white/66 sm:text-lg">
-                AutoScale gives your team gated access to influencer-specific workspaces, controlled permissions, Airtable-style job batching, and model-isolated galleries without exposing the raw automation layer.
+                AutoScale keeps creator builds, generation boards, galleries, billing allowances, and account permissions in one controlled internal platform.
               </p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {[
-              ["Role isolation", "Platform admin, agency admin, agency manager, and user access stays explicit and enforceable."],
-              ["Board control", "Each board keeps its own rows, settings, outputs, and history siloed."],
-              ["Worker routing", "Every row maps back to the correct worker output or failure state."],
+              ["Agency ownership", "Admins can track plan allowance, create agency-owned influencers, and keep each model tied to the right team."],
+              ["Isolated workspaces", "Playground, image, video, and voice boards keep prompts, references, settings, outputs, and history separated by model."],
+              ["Production galleries", "Outputs flow into model galleries with folders, safety views, and handoff controls for day-to-day production."],
             ].map(([title, description]) => (
               <div key={title} className="rounded-3xl border border-white/8 bg-black/18 p-4 backdrop-blur-xl">
                 <p className="text-sm font-semibold text-white">{title}</p>

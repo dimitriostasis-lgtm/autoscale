@@ -2,7 +2,9 @@ import { createBoardSeed, createDefaultRows, readStore, updateStore } from "../l
 import {
   DEFAULT_POSE_PROMPT_TEMPLATE,
   getMaxBoardQuantityForGenerationModel,
+  normalizeAspectRatioForGenerationModel,
   normalizeOptionalPosePromptTemplates,
+  normalizePoseMultiplierGenerationModel,
   normalizePosePromptTemplates,
   normalizeQualityForGenerationModel,
   normalizeResolutionForGenerationModel,
@@ -249,6 +251,7 @@ export async function updateBoardSettings(
     quantity: number;
     poseMultiplierEnabled: boolean;
     poseMultiplier: number;
+    poseMultiplierGenerationModel: string;
     faceSwap: boolean;
     autoPromptGen: boolean;
     autoPromptImage: boolean;
@@ -264,23 +267,30 @@ export async function updateBoardSettings(
     const normalizedGenerationModel = input.generationModel as WorkspaceBoard["settings"]["generationModel"];
     const normalizedResolution = normalizeResolutionForGenerationModel(normalizedGenerationModel, input.resolution);
     const normalizedQuality = normalizeQualityForGenerationModel(normalizedGenerationModel, input.quality);
+    const normalizedAspectRatio = normalizeAspectRatioForGenerationModel(normalizedGenerationModel, input.aspectRatio);
     const normalizedQuantity = Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
+    const normalizedPoseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(
+      input.poseMultiplierGenerationModel,
+      normalizedGenerationModel,
+    );
     const normalizedPosePromptTemplates = normalizePosePromptTemplates(input.posePromptTemplates, input.posePromptTemplate);
+    const normalizedGlobalReferences = input.globalReferences.map((selection) => normalizeReference(selection));
     board.settings = {
       generationModel: normalizedGenerationModel,
       resolution: normalizedResolution,
       quality: normalizedQuality,
-      aspectRatio: input.aspectRatio as WorkspaceBoard["settings"]["aspectRatio"],
+      aspectRatio: normalizedAspectRatio,
       quantity: normalizedQuantity,
       poseMultiplierEnabled: normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
       poseMultiplier: Math.max(1, Math.min(4, input.poseMultiplier)),
+      poseMultiplierGenerationModel: normalizedPoseMultiplierGenerationModel,
       faceSwap: input.faceSwap,
       autoPromptGen: input.autoPromptGen,
       autoPromptImage: input.autoPromptImage,
       posePromptMode: input.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
       posePromptTemplate: normalizedPosePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
       posePromptTemplates: normalizedPosePromptTemplates,
-      globalReferences: input.globalReferences.map((selection) => normalizeReference(selection)),
+      globalReferences: normalizedGlobalReferences,
     };
     board.rows = board.rows.map((row) => ({
       ...row,

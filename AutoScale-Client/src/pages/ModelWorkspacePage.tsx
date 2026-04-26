@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApolloClient, useMutation, useQuery, useSubscription } from "@apollo/client/react";
 
 import { InfluencerAvatar } from "../components/model/InfluencerAvatar";
@@ -22,7 +22,14 @@ import {
   UPDATE_ROW_MUTATION,
   UPDATE_SETTINGS_MUTATION,
 } from "../queries/workspace";
-import { theme } from "../styles/theme";
+import {
+  getMaxQuantityForGenerationModel,
+  normalizeAspectRatioForGenerationModel,
+  normalizeQualityForGenerationModel,
+  normalizePoseMultiplierGenerationModel,
+  normalizeResolutionForGenerationModel,
+  theme,
+} from "../styles/theme";
 import type { BoardSettings, GeneratedAsset, InfluencerModel, ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../types";
 
 interface ModelWorkspacePageProps {
@@ -52,36 +59,39 @@ interface WorkspaceModeMeta {
   mode: WorkspaceTableMode;
   kind: WorkspaceGenerationKind;
   menuLabel: string;
+  dropdownLabel: string;
   safetyLabel: "SFW" | "NSFW";
 }
 
 const workspaceModeMenus: Array<{
   kind: WorkspaceGenerationKind;
   label: string;
+  hasSafetyMenu?: boolean;
   modes: WorkspaceModeMeta[];
 }> = [
   {
     kind: "image",
     label: "Image Gen",
     modes: [
-      { mode: "image-sfw", kind: "image", menuLabel: "Image Gen", safetyLabel: "SFW" },
-      { mode: "image-nsfw", kind: "image", menuLabel: "Image Gen", safetyLabel: "NSFW" },
+      { mode: "image-sfw", kind: "image", menuLabel: "Image Gen", dropdownLabel: "SFW IMAGES", safetyLabel: "SFW" },
+      { mode: "image-nsfw", kind: "image", menuLabel: "Image Gen", dropdownLabel: "NSFW IMAGES", safetyLabel: "NSFW" },
     ],
   },
   {
     kind: "video",
     label: "Video Gen",
     modes: [
-      { mode: "video-sfw", kind: "video", menuLabel: "Video Gen", safetyLabel: "SFW" },
-      { mode: "video-nsfw", kind: "video", menuLabel: "Video Gen", safetyLabel: "NSFW" },
+      { mode: "video-sfw", kind: "video", menuLabel: "Video Gen", dropdownLabel: "SFW VIDEOS", safetyLabel: "SFW" },
+      { mode: "video-nsfw", kind: "video", menuLabel: "Video Gen", dropdownLabel: "NSFW VIDEOS", safetyLabel: "NSFW" },
     ],
   },
   {
     kind: "voice",
     label: "Voice Gen",
+    hasSafetyMenu: false,
     modes: [
-      { mode: "voice-sfw", kind: "voice", menuLabel: "Voice Gen", safetyLabel: "SFW" },
-      { mode: "voice-nsfw", kind: "voice", menuLabel: "Voice Gen", safetyLabel: "NSFW" },
+      { mode: "voice-sfw", kind: "voice", menuLabel: "Voice Gen", dropdownLabel: "Voice Gen", safetyLabel: "SFW" },
+      { mode: "voice-nsfw", kind: "voice", menuLabel: "Voice Gen", dropdownLabel: "Voice Gen", safetyLabel: "NSFW" },
     ],
   },
 ];
@@ -95,6 +105,34 @@ const workspaceModeDefaultByKind: Record<WorkspaceGenerationKind, WorkspaceTable
 const workspaceModeMetaByMode = Object.fromEntries(
   workspaceModeMenus.flatMap((menu) => menu.modes.map((mode) => [mode.mode, mode])),
 ) as Record<WorkspaceTableMode, WorkspaceModeMeta>;
+
+const workspaceModeGenerationModelOptions: Partial<Record<WorkspaceMode, string[]>> = {
+  "image-nsfw": ["sd_4_5", "sdxl"],
+};
+
+function resolveWorkspaceGenerationModels(mode: WorkspaceMode, modelGenerationModels: string[]): string[] {
+  const modeGenerationModels = workspaceModeGenerationModelOptions[mode];
+  if (!modeGenerationModels) {
+    return modelGenerationModels;
+  }
+
+  return modeGenerationModels.filter((generationModel) => modelGenerationModels.includes(generationModel));
+}
+
+function normalizeSettingsForGenerationModel(settings: BoardSettings, generationModel: string): BoardSettings {
+  const quantity = Math.min(settings.quantity, getMaxQuantityForGenerationModel(generationModel));
+
+  return {
+    ...settings,
+    generationModel,
+    resolution: normalizeResolutionForGenerationModel(generationModel, settings.resolution),
+    quality: normalizeQualityForGenerationModel(generationModel, settings.quality),
+    aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, settings.aspectRatio),
+    quantity,
+    poseMultiplierEnabled: quantity === 1 ? settings.poseMultiplierEnabled : false,
+    poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, generationModel),
+  };
+}
 
 type PickerState =
   | { kind: "row"; row: WorkspaceRow }
@@ -172,7 +210,8 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
     <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-[#262626] p-1">
       {workspaceModeMenus.map((menu) => {
         const activeMenu = activeMeta?.kind === menu.kind;
-        const isOpen = openKind === menu.kind;
+        const hasSafetyMenu = menu.hasSafetyMenu !== false && menu.modes.length > 1;
+        const isOpen = hasSafetyMenu && openKind === menu.kind;
         const defaultMode = workspaceModeDefaultByKind[menu.kind];
 
         return (
@@ -184,25 +223,37 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
                 setOpenKind(null);
               }
             }}
-            onFocus={() => setOpenKind(menu.kind)}
-            onMouseEnter={() => setOpenKind(menu.kind)}
+            onFocus={() => {
+              if (hasSafetyMenu) {
+                setOpenKind(menu.kind);
+              }
+            }}
+            onMouseEnter={() => {
+              if (hasSafetyMenu) {
+                setOpenKind(menu.kind);
+              }
+            }}
             onMouseLeave={() => setOpenKind((current) => (current === menu.kind ? null : current))}
           >
             <button
-              aria-expanded={isOpen}
+              aria-expanded={hasSafetyMenu ? isOpen : undefined}
+              aria-haspopup={hasSafetyMenu ? "menu" : undefined}
               className={cx(
                 "inline-flex min-w-24 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition",
                 activeMenu ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
               )}
               onClick={() => {
+                setOpenKind(null);
                 onSelectMode(defaultMode);
               }}
               type="button"
             >
               {menu.label}
-              <span aria-hidden="true" className="text-[10px] opacity-70">
-                v
-              </span>
+              {hasSafetyMenu ? (
+                <span aria-hidden="true" className="text-[10px] opacity-70">
+                  v
+                </span>
+              ) : null}
             </button>
 
             {isOpen ? (
@@ -223,7 +274,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
                       }}
                       type="button"
                     >
-                      {item.safetyLabel}
+                      {item.dropdownLabel}
                     </button>
                   );
                 })}
@@ -280,7 +331,7 @@ function PlaygroundSurface({
             <div>
               <p className="font-display text-2xl text-white">Playground is ready</p>
               <p className="mt-3 max-w-xl text-sm leading-7 text-white/56">
-                Generated images for {model.name} will appear here as a Higgsfield-style working wall.
+                Generated images for {model.name} will appear here as a visual working wall.
               </p>
             </div>
           </div>
@@ -398,6 +449,10 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const board = boardData?.workspaceBoard ?? null;
   const positionedBoards = buildPositionNamedBoards(modeBoards);
   const activeBoardLabel = positionedBoards.find((entry) => entry.id === activeBoardId)?.name ?? board?.name ?? "Workspace";
+  const activeGenerationModelOptions = useMemo(
+    () => resolveWorkspaceGenerationModels(mode, model?.allowedGenerationModels ?? []),
+    [mode, model?.allowedGenerationModels],
+  );
 
   const { data: assetData, refetch: refetchAssets } = useQuery<{ modelAssets: GeneratedAsset[] }>(MODEL_ASSETS_QUERY, {
     skip: !model?.id,
@@ -517,7 +572,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     await refetchBoard();
   }
 
-  async function handleSettingsChange(nextSettings: BoardSettings) {
+  const handleSettingsChange = useCallback(async (nextSettings: BoardSettings) => {
     if (!board) {
       return;
     }
@@ -533,6 +588,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
           quantity: nextSettings.quantity,
           poseMultiplierEnabled: nextSettings.poseMultiplierEnabled,
           poseMultiplier: nextSettings.poseMultiplier,
+          poseMultiplierGenerationModel: nextSettings.poseMultiplierGenerationModel,
           faceSwap: nextSettings.faceSwap,
           autoPromptGen: nextSettings.autoPromptGen,
           autoPromptImage: nextSettings.autoPromptImage,
@@ -553,7 +609,32 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
       },
     });
     await refetchBoard();
-  }
+  }, [board, refetchBoard, updateSettingsMutation]);
+
+  useEffect(() => {
+    if (!board || activeGenerationModelOptions.length === 0) {
+      return;
+    }
+
+    const normalizedGenerationModel = activeGenerationModelOptions.includes(board.settings.generationModel)
+      ? board.settings.generationModel
+      : activeGenerationModelOptions[0];
+    const normalizedSettings = normalizeSettingsForGenerationModel(board.settings, normalizedGenerationModel);
+    const alreadyNormalized =
+      normalizedSettings.generationModel === board.settings.generationModel &&
+      normalizedSettings.resolution === board.settings.resolution &&
+      normalizedSettings.quality === board.settings.quality &&
+      normalizedSettings.aspectRatio === board.settings.aspectRatio &&
+      normalizedSettings.quantity === board.settings.quantity &&
+      normalizedSettings.poseMultiplierEnabled === board.settings.poseMultiplierEnabled &&
+      normalizedSettings.poseMultiplierGenerationModel === board.settings.poseMultiplierGenerationModel;
+
+    if (alreadyNormalized) {
+      return;
+    }
+
+    void handleSettingsChange(normalizedSettings);
+  }, [activeGenerationModelOptions, board, handleSettingsChange]);
 
   async function handleUploadRowReference(row: WorkspaceRow, file: File) {
     const upload = await uploadReferenceFile(file);
@@ -612,7 +693,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
 
   const completedRows = board?.rows.filter((row) => row.status === "SUCCEEDED").length ?? 0;
   const activeModeMeta = mode === "playground" ? null : workspaceModeMetaByMode[mode];
-  const activeModeLabel = activeModeMeta ? `${activeModeMeta.menuLabel} / ${activeModeMeta.safetyLabel}` : "Playground";
+  const activeModeLabel = activeModeMeta ? (activeModeMeta.kind === "voice" ? activeModeMeta.menuLabel : `${activeModeMeta.menuLabel} / ${activeModeMeta.safetyLabel}`) : "Playground";
 
   return (
     <div className="generation-workspace space-y-4">
@@ -646,27 +727,17 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                   {activeModeLabel}
                 </span>
               )}
+              {mode === "playground" ? null : (
+                <div className="flex flex-wrap gap-2">
+                  <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
+                    Clear table
+                  </button>
+                  <button className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"} disabled={!board || running} onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())} type="button">
+                    {running ? "Running..." : "Run workflow"}
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-
-        <div className="border-b border-white/8 bg-[#222222] px-4 py-3 sm:px-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="max-w-3xl text-sm leading-6 text-white/58">
-              {activeModeMeta
-                ? `${model.description} ${activeModeMeta.menuLabel} ${activeModeMeta.safetyLabel} keeps its own tables, settings, rows, and outputs.`
-                : `${model.description} Playground mode gives you a visual wall, a bottom prompt composer, and quick settings without folder rails.`}
-            </p>
-            {mode === "playground" ? null : (
-            <div className="flex flex-wrap gap-2">
-              <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
-                Clear table
-              </button>
-              <button className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"} disabled={!board || running} onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())} type="button">
-                {running ? "Running..." : "Run workflow"}
-              </button>
-            </div>
-            )}
           </div>
         </div>
 
@@ -680,10 +751,11 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
             <>
               <div className="border-b border-white/8 bg-[#202020] xl:border-r xl:border-b-0">
                 <SettingsPanel
-                  allowedGenerationModels={model.allowedGenerationModels}
+                  allowedGenerationModels={activeGenerationModelOptions}
                   onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex })}
                   onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
                   onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
+                  poseWorkerModelLocked={mode === "image-nsfw"}
                   promptPrefix={model.defaults.promptPrefix}
                   settings={board.settings}
                 />

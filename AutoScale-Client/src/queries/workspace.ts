@@ -26,6 +26,7 @@ export const BOARD_DETAIL_QUERY = gql`
         quantity
         poseMultiplierEnabled
         poseMultiplier
+        poseMultiplierGenerationModel
         faceSwap
         autoPromptGen
         autoPromptImage
@@ -204,6 +205,7 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         quantity
         poseMultiplierEnabled
         poseMultiplier
+        poseMultiplierGenerationModel
         faceSwap
         autoPromptGen
         autoPromptImage

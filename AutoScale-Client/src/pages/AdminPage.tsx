@@ -4,6 +4,7 @@ import { AccessControlPanel } from "../components/admin/AccessControlPanel";
 import { useAuth } from "../context/AuthContext";
 import {
   CREATE_INFLUENCER_MODEL_MUTATION,
+  DELETE_INFLUENCER_MODEL_MUTATION,
   INFLUENCER_MODELS_QUERY,
   SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION,
   UPDATE_INFLUENCER_MODEL_PROFILE_MUTATION,
@@ -29,9 +30,10 @@ import { theme } from "../styles/theme";
 
 interface AdminPageProps {
   currentUser: UserRecord;
+  onOpenAgencyInfluencerBuilder: () => void;
 }
 
-export function AdminPage({ currentUser }: AdminPageProps) {
+export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminPageProps) {
   const { refresh: refreshSession } = useAuth();
   const { data: usersData, refetch: refetchUsers } = useQuery<{ users: UserRecord[] }>(USERS_QUERY, {
     fetchPolicy: "cache-and-network",
@@ -49,6 +51,7 @@ export function AdminPage({ currentUser }: AdminPageProps) {
   const [renameUserMutation] = useMutation(RENAME_USER_MUTATION);
   const [createInfluencerModelMutation] = useMutation(CREATE_INFLUENCER_MODEL_MUTATION);
   const [updateInfluencerModelProfileMutation] = useMutation(UPDATE_INFLUENCER_MODEL_PROFILE_MUTATION);
+  const [deleteInfluencerModelMutation] = useMutation(DELETE_INFLUENCER_MODEL_MUTATION);
   const [setInfluencerModelAgencyAccessMutation] = useMutation(SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION);
   const [renameAgencyMutation] = useMutation(RENAME_AGENCY_MUTATION);
   const [deleteAgencyMutation] = useMutation(DELETE_AGENCY_MUTATION);
@@ -92,8 +95,13 @@ export function AdminPage({ currentUser }: AdminPageProps) {
         await createInfluencerModelMutation({ variables: { input } });
         await refreshAll();
       }}
+      onOpenAgencyInfluencerBuilder={onOpenAgencyInfluencerBuilder}
       onUpdateInfluencerModelProfile={async (influencerModelId, input) => {
         await updateInfluencerModelProfileMutation({ variables: { influencerModelId, input } });
+        await refreshAll();
+      }}
+      onDeleteInfluencerModel={async (influencerModelId) => {
+        await deleteInfluencerModelMutation({ variables: { influencerModelId } });
         await refreshAll();
       }}
       onSetInfluencerModelAgencyAccess={async (influencerModelId, agencyIds) => {

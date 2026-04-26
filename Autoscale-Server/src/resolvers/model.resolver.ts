@@ -2,6 +2,7 @@ import type { GraphQLContext } from "../types/context.js";
 
 import {
   createInfluencerModel,
+  deleteInfluencerModel,
   getInfluencerModel,
   listInfluencerModels,
   listModelAssets,
@@ -31,7 +32,7 @@ export const modelResolvers = {
         input: {
           name: string;
           handle: string;
-          description: string;
+          description?: string | null;
           avatarImageUrl?: string | null;
           allowedGenerationModels: string[];
           defaults: {
@@ -52,12 +53,17 @@ export const modelResolvers = {
         input: {
           name: string;
           handle: string;
-          description: string;
+          description?: string | null;
           avatarImageUrl?: string | null;
         };
       },
       context: GraphQLContext,
     ) => updateInfluencerModelProfile(context.currentUser, args.influencerModelId, args.input),
+    deleteInfluencerModel: async (
+      _parent: unknown,
+      args: { influencerModelId: string },
+      context: GraphQLContext,
+    ) => deleteInfluencerModel(context.currentUser, args.influencerModelId),
     setInfluencerModelAgencyAccess: async (
       _parent: unknown,
       args: { influencerModelId: string; agencyIds: string[] },

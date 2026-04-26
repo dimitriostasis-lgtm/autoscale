@@ -85,6 +85,7 @@ interface AppFrameProps extends PropsWithChildren {
 export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, onToggleThemeMode, children }: AppFrameProps) {
   const modelSlug = route.name === "workspace" || route.name === "gallery" ? route.slug : null;
   const accessLabel = accessTabLabel(currentUser.role);
+  const accessRouteActive = route.name === "admin" || route.name === "agencyInfluencerBuilder";
   const nextThemeLabel = themeMode === "dark" ? "light" : "dark";
   const isAgencyAdmin = currentUser.role === "AGENCY_ADMIN";
   const accessOptions = accessJumpOptions(currentUser);
@@ -192,7 +193,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
                       aria-expanded={isAccessMenuOpen}
                       className={cx(
                         "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition",
-                        route.name === "admin"
+                        accessRouteActive
                           ? "bg-[color:var(--accent-main)] text-[color:var(--accent-foreground)]"
                           : "border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-main)] hover:bg-[color:var(--surface-soft-hover)]",
                       )}

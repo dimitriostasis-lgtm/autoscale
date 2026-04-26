@@ -1,12 +1,15 @@
 import type { BoardSettings } from "../../types";
 import {
-  aspectRatioOptions,
   generationModelOptions,
+  getAspectRatioOptionsForGenerationModel,
   getMaxQuantityForGenerationModel,
   getQualityOptionsForGenerationModel,
   getResolutionOptionsForGenerationModel,
+  normalizeAspectRatioForGenerationModel,
   normalizeQualityForGenerationModel,
+  normalizePoseMultiplierGenerationModel,
   normalizeResolutionForGenerationModel,
+  poseMultiplierGenerationModelOptions,
   qualityLabels,
   resolutionLabels,
   theme,
@@ -16,6 +19,7 @@ import {
 interface SettingsPanelProps {
   settings: BoardSettings;
   allowedGenerationModels: string[];
+  poseWorkerModelLocked?: boolean;
   promptPrefix: string;
   onSettingsChange: (nextSettings: BoardSettings) => void;
   onUploadReference: (slotIndex: number, file: File) => Promise<void> | void;
@@ -25,6 +29,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   settings,
   allowedGenerationModels,
+  poseWorkerModelLocked = false,
   promptPrefix,
   onSettingsChange,
   onUploadReference,
@@ -34,7 +39,9 @@ export function SettingsPanel({
   const visiblePosePromptCount = Math.max(1, Math.min(4, settings.poseMultiplier));
   const poseMultiplierAllowed = settings.quantity === 1;
   const poseMultiplierEnabled = poseMultiplierAllowed && settings.poseMultiplierEnabled;
+  const poseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
   const maxQuantity = getMaxQuantityForGenerationModel(settings.generationModel);
+  const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(settings.generationModel);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(settings.generationModel);
   const allowedQualityOptions = getQualityOptionsForGenerationModel(settings.generationModel);
   const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
@@ -65,8 +72,10 @@ export function SettingsPanel({
                     generationModel: nextGenerationModel,
                     resolution: nextResolution,
                     quality: nextQuality,
+                    aspectRatio: normalizeAspectRatioForGenerationModel(nextGenerationModel, settings.aspectRatio),
                     quantity: nextQuantity,
                     poseMultiplierEnabled: nextQuantity === 1 ? settings.poseMultiplierEnabled : false,
+                    poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
                   });
                 }}
               >
@@ -116,10 +125,10 @@ export function SettingsPanel({
               <span className="text-sm font-semibold text-white/76">Aspect ratio</span>
               <select
                 className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                value={settings.aspectRatio}
+                value={normalizeAspectRatioForGenerationModel(settings.generationModel, settings.aspectRatio)}
                 onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
               >
-                {aspectRatioOptions.map((option) => (
+                {allowedAspectRatioOptions.map((option) => (
                   <option key={option} value={option}>
                     {option.toUpperCase()}
                   </option>
@@ -154,13 +163,14 @@ export function SettingsPanel({
               <button
                 className={
                   settings.autoPromptGen
-                    ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                    : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                    ? "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                    : "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
                 }
                 onClick={() => onSettingsChange({ ...settings, autoPromptGen: !settings.autoPromptGen })}
                 type="button"
               >
-                <span>{settings.autoPromptGen ? "Auto Prompt On" : "Auto Prompt Off"}</span>
+                <span aria-hidden="true" />
+                <span className="text-center">{settings.autoPromptGen ? "Auto Prompt On" : "Auto Prompt Off"}</span>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
               </button>
             </div>
@@ -170,8 +180,8 @@ export function SettingsPanel({
               <button
                 className={
                   settings.autoPromptImage
-                    ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                    : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                    ? "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                    : "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
                 }
                 onClick={() => {
                   const nextAutoPromptImage = !settings.autoPromptImage;
@@ -183,7 +193,8 @@ export function SettingsPanel({
                 }}
                 type="button"
               >
-                <span>{settings.autoPromptImage ? "Auto Image On" : "Auto Image Off"}</span>
+                <span aria-hidden="true" />
+                <span className="text-center">{settings.autoPromptImage ? "Auto Image On" : "Auto Image Off"}</span>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
               </button>
             </div>
@@ -243,6 +254,25 @@ export function SettingsPanel({
                   +
                 </button>
               </div>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-white/76">Pose worker model</span>
+                <select
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  disabled={poseWorkerModelLocked || !poseMultiplierAllowed}
+                  value={poseWorkerModelLocked ? "automatic" : poseMultiplierGenerationModel}
+                  onChange={(event) => onSettingsChange({ ...settings, poseMultiplierGenerationModel: event.target.value })}
+                >
+                  {poseWorkerModelLocked ? (
+                    <option value="automatic">Automatic</option>
+                  ) : (
+                    poseMultiplierGenerationModelOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {workerModelLabels[option]}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </label>
             </div>
 
             <div className="space-y-2">

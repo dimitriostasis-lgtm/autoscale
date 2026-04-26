@@ -44,6 +44,8 @@ export const INFLUENCER_MODEL_FIELDS = gql`
       ownerId
       rows {
         id
+        faceSwap
+        poseMultiplier
         outputAssets {
           id
           influencerModelId
@@ -94,6 +96,12 @@ export const UPDATE_INFLUENCER_MODEL_PROFILE_MUTATION = gql`
     }
   }
   ${INFLUENCER_MODEL_FIELDS}
+`;
+
+export const DELETE_INFLUENCER_MODEL_MUTATION = gql`
+  mutation DeleteInfluencerModel($influencerModelId: ID!) {
+    deleteInfluencerModel(influencerModelId: $influencerModelId)
+  }
 `;
 
 export const SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION = gql`

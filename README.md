@@ -1,6 +1,6 @@
 # AutoScale
 
-AutoScale is a private internal web platform scaffolded around the existing Higgsfield worker bridge in `/Users/dimitriostasis/Downloads/higgsfield_node`.
+AutoScale is a private internal platform for managing agency-owned AI influencer creation, generation workspaces, account permissions, and model-isolated output galleries.
 
 The current scaffold implements the core product shape requested in the brief:
 
@@ -12,7 +12,7 @@ The current scaffold implements the core product shape requested in the brief:
 - Row-level prompt/reference editing with upload or gallery selection
 - A separate visual gallery view for generated content
 - A manager/admin access-management surface
-- Server-side orchestration against the Higgsfield FastAPI worker API
+- Server-side orchestration against the generation worker API
 
 ## Workspace structure
 
@@ -24,9 +24,9 @@ AutoScale/
 
 ## Important implementation notes
 
-### 1. Higgsfield bridge contract
+### 1. Worker bridge contract
 
-The app wraps the FastAPI worker contract rather than trying to automate Higgsfield directly from the browser.
+The app wraps the worker contract server-side so browser clients only interact with AutoScale permissions, boards, uploads, and gallery data.
 
 - Worker endpoint: `POST /api/v1/jobs`
 - Result endpoint: `GET /api/v1/jobs/:jobId`
@@ -60,8 +60,6 @@ Key values:
 - `PORT`
 - `CLIENT_URL`
 - `JWT_SECRET`
-- `HIGGSFIELD_WORKER_URL`
-- `HIGGSFIELD_WORKER_API_KEY`
 - `STORAGE_ROOT`
 - `DATA_STORE_PATH`
 
@@ -71,7 +69,7 @@ See `AutoScale-Client/.env.example`.
 
 ## Local setup
 
-This machine currently does not have `node` or `npm` installed, so the scaffold could not be dependency-installed or built here. Once Node.js is available:
+Run the server and client packages separately during local development.
 
 ### Server
 
@@ -95,4 +93,4 @@ npm run dev
 
 1. Install Node.js and run both packages to surface any dependency-level type issues that cannot be checked without `node_modules`.
 2. Swap the JSON-backed persistence layer to the included Prisma/PostgreSQL schema once the database environment is ready.
-3. Point `HIGGSFIELD_WORKER_URL` and `HIGGSFIELD_WORKER_API_KEY` at the live worker instance and test a full end-to-end board run.
+3. Point the worker URL and API key values in `Autoscale-Server/.env` at the live worker instance and test a full end-to-end board run.

@@ -93,6 +93,7 @@ type BoardSettings {
   quantity: Int!
   poseMultiplierEnabled: Boolean!
   poseMultiplier: Float!
+  poseMultiplierGenerationModel: String!
   faceSwap: Boolean!
   autoPromptGen: Boolean!
   autoPromptImage: Boolean!
@@ -219,6 +220,7 @@ input BoardSettingsInput {
   quantity: Int!
   poseMultiplierEnabled: Boolean!
   poseMultiplier: Float!
+  poseMultiplierGenerationModel: String!
   faceSwap: Boolean!
   autoPromptGen: Boolean!
   autoPromptImage: Boolean!
@@ -259,7 +261,7 @@ input InfluencerDefaultsInput {
 input CreateInfluencerModelInput {
   name: String!
   handle: String!
-  description: String!
+  description: String
   avatarImageUrl: String
   allowedGenerationModels: [String!]!
   defaults: InfluencerDefaultsInput!
@@ -268,7 +270,7 @@ input CreateInfluencerModelInput {
 input UpdateInfluencerModelProfileInput {
   name: String!
   handle: String!
-  description: String!
+  description: String
   avatarImageUrl: String
 }
 
@@ -299,6 +301,7 @@ type Mutation {
   setUserModelAccess(userId: ID!, influencerModelIds: [ID!]!): User!
   createInfluencerModel(input: CreateInfluencerModelInput!): InfluencerModel!
   updateInfluencerModelProfile(influencerModelId: ID!, input: UpdateInfluencerModelProfileInput!): InfluencerModel!
+  deleteInfluencerModel(influencerModelId: ID!): Boolean!
   setInfluencerModelAgencyAccess(influencerModelId: ID!, agencyIds: [ID!]!): InfluencerModel!
   ensureBoard(influencerModelId: ID!): WorkspaceBoard!
   createBoard(influencerModelId: ID!, name: String): WorkspaceBoard!

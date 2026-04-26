@@ -3,7 +3,7 @@ import type { InfluencerModel } from "../../types";
 
 interface InfluencerAvatarProps {
   model: Pick<InfluencerModel, "accentFrom" | "accentTo" | "avatarImageUrl" | "avatarLabel" | "name">;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
   className?: string;
 }
 
@@ -13,6 +13,7 @@ const sizeClasses = {
   lg: "h-20 w-20 text-2xl",
   xl: "h-32 w-32 text-4xl",
   "2xl": "h-40 w-40 text-5xl",
+  "3xl": "h-44 w-44 text-6xl",
 };
 
 export function InfluencerAvatar({ model, size = "md", className }: InfluencerAvatarProps) {

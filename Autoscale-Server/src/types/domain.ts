@@ -33,6 +33,24 @@ export const SUPPORTED_WORKER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "k
 
 export type WorkerGenerationModel = (typeof SUPPORTED_WORKER_GENERATION_MODELS)[number];
 
+export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = SUPPORTED_WORKER_GENERATION_MODELS.filter(
+  (generationModel): generationModel is Exclude<WorkerGenerationModel, "sdxl"> => generationModel !== "sdxl",
+);
+
+export type PoseMultiplierGenerationModel = (typeof SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS)[number];
+
+export function normalizePoseMultiplierGenerationModel(value: unknown, fallbackValue?: unknown): PoseMultiplierGenerationModel {
+  if (SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS.includes(value as PoseMultiplierGenerationModel)) {
+    return value as PoseMultiplierGenerationModel;
+  }
+
+  if (SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS.includes(fallbackValue as PoseMultiplierGenerationModel)) {
+    return fallbackValue as PoseMultiplierGenerationModel;
+  }
+
+  return SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS[0];
+}
+
 export function getMaxBoardQuantityForGenerationModel(generationModel: WorkerGenerationModel | string): number {
   return generationModel === "sdxl" ? 20 : 4;
 }
@@ -42,6 +60,10 @@ export const SUPPORTED_WORKER_RESOLUTIONS = ["1k", "2k", "4k"] as const;
 export type WorkerResolution = (typeof SUPPORTED_WORKER_RESOLUTIONS)[number];
 
 export function getAllowedResolutionsForGenerationModel(generationModel: WorkerGenerationModel | string): WorkerResolution[] {
+  if (generationModel === "sdxl") {
+    return ["1k", "2k"];
+  }
+
   if (generationModel === "sd_4_5") {
     return ["2k", "4k"];
   }
@@ -121,18 +143,26 @@ export function normalizeOptionalPosePromptTemplates(templates: unknown, fallbac
   return normalizePosePromptTemplates(templates, fallbackTemplate);
 }
 
-export type WorkerAspectRatio =
-  | "auto"
-  | "1:1"
-  | "16:9"
-  | "9:16"
-  | "3:4"
-  | "4:3"
-  | "2:3"
-  | "3:2"
-  | "5:4"
-  | "4:5"
-  | "21:9";
+export const SUPPORTED_WORKER_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
+
+export type WorkerAspectRatio = (typeof SUPPORTED_WORKER_ASPECT_RATIOS)[number];
+
+export function getAllowedAspectRatiosForGenerationModel(generationModel: WorkerGenerationModel | string): WorkerAspectRatio[] {
+  return generationModel === "sdxl" ? SUPPORTED_WORKER_ASPECT_RATIOS.filter((option) => option !== "auto") : [...SUPPORTED_WORKER_ASPECT_RATIOS];
+}
+
+export function normalizeAspectRatioForGenerationModel(
+  generationModel: WorkerGenerationModel | string,
+  aspectRatio: WorkerAspectRatio | string,
+): WorkerAspectRatio {
+  const allowedAspectRatios = getAllowedAspectRatiosForGenerationModel(generationModel);
+
+  if (allowedAspectRatios.includes(aspectRatio as WorkerAspectRatio)) {
+    return aspectRatio as WorkerAspectRatio;
+  }
+
+  return allowedAspectRatios[0] || "1:1";
+}
 
 export interface AuthUser {
   id: string;
@@ -214,6 +244,7 @@ export interface BoardSettings {
   quantity: number;
   poseMultiplierEnabled: boolean;
   poseMultiplier: number;
+  poseMultiplierGenerationModel: PoseMultiplierGenerationModel;
   faceSwap: boolean;
   autoPromptGen: boolean;
   autoPromptImage: boolean;

@@ -166,22 +166,22 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
                       board.settings.autoPromptGen ? autoSurfaceClass : "border-white/8 bg-[#202020]",
                     )}
                   >
-                    <textarea
-                      className={cx(
-                        "workspace-row-prompt-input h-full min-h-[210px] w-full resize-none rounded-lg border px-3 py-2 text-sm leading-6 outline-none transition",
-                        board.settings.autoPromptGen
-                          ? "border-[#5f8628] bg-[#2f4513] text-[#dcf6a0] placeholder:text-[#b4d37a]"
-                          : "border-white/8 bg-[#222222] text-white placeholder:text-white/34 focus:border-white/14 focus:bg-[#262626]",
-                      )}
-                      defaultValue={row.prompt}
-                      onBlur={(event) => {
-                        if (event.target.value !== row.prompt) {
-                          void onCommitRow({ rowId: row.id, prompt: event.target.value });
-                        }
-                      }}
-                      placeholder={board.settings.autoPromptGen ? "Auto prompt enabled" : "Describe the job prompt for this influencer row"}
-                      readOnly={board.settings.autoPromptGen}
-                    />
+                    {board.settings.autoPromptGen ? (
+                      <div className="workspace-row-prompt-input flex h-full min-h-[210px] w-full items-center justify-center rounded-lg border border-[#5f8628] bg-[#2f4513] px-4 py-4 text-center text-sm font-semibold leading-6 text-[#dcf6a0]">
+                        <span className="line-clamp-6">{row.prompt.trim() || "Auto prompt enabled"}</span>
+                      </div>
+                    ) : (
+                      <textarea
+                        className="workspace-row-prompt-input h-full min-h-[210px] w-full resize-none rounded-lg border border-white/8 bg-[#222222] px-3 py-2 text-sm leading-6 text-white outline-none transition placeholder:text-white/34 focus:border-white/14 focus:bg-[#262626]"
+                        defaultValue={row.prompt}
+                        onBlur={(event) => {
+                          if (event.target.value !== row.prompt) {
+                            void onCommitRow({ rowId: row.id, prompt: event.target.value });
+                          }
+                        }}
+                        placeholder="Describe the job prompt for this influencer row"
+                      />
+                    )}
                   </div>
                 </div>
 

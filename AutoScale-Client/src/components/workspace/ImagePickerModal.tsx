@@ -1,7 +1,14 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { cx } from "../../lib/cx";
-import { buildFolderCounts, buildGalleryFolderGroups, defaultGalleryFolderId, findFolder, readStoredCustomFolders } from "../../lib/galleryFolders";
+import {
+  buildFolderCounts,
+  buildGalleryFolderGroups,
+  defaultGalleryFolderId,
+  findFolder,
+  readStoredCustomFolderGroups,
+  readStoredCustomFolders,
+} from "../../lib/galleryFolders";
 import type { GeneratedAsset } from "../../types";
 import { theme } from "../../styles/theme";
 
@@ -16,9 +23,10 @@ interface ImagePickerModalProps {
 export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: ImagePickerModalProps) {
   const [query, setQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState(defaultGalleryFolderId);
+  const [customFolderGroups, setCustomFolderGroups] = useState(() => readStoredCustomFolderGroups(slug));
   const [customFolders, setCustomFolders] = useState(() => readStoredCustomFolders(slug));
   const deferredQuery = useDeferredValue(query);
-  const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders), [customFolders]);
+  const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups), [customFolderGroups, customFolders]);
   const selectedFolder = useMemo(
     () => findFolder(selectedFolderId, folderGroups) ?? findFolder(defaultGalleryFolderId, folderGroups),
     [folderGroups, selectedFolderId],
@@ -30,6 +38,7 @@ export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: Imag
       return;
     }
 
+  setCustomFolderGroups(readStoredCustomFolderGroups(slug));
     setCustomFolders(readStoredCustomFolders(slug));
     setSelectedFolderId(defaultGalleryFolderId);
     setQuery("");
@@ -74,30 +83,36 @@ export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: Imag
             {folderGroups.map((group) => (
               <div key={group.id} className="space-y-2">
                 <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">{group.label}</p>
-                {group.items.map((item) => {
-                  const active = item.id === selectedFolder?.id;
+                {group.items.length > 0 ? (
+                  group.items.map((item) => {
+                    const active = item.id === selectedFolder?.id;
 
-                  return (
-                    <button
-                      key={item.id}
-                      className={cx(
-                        "w-full rounded-xl border px-3 py-2.5 text-left transition-colors",
-                        active
-                          ? "border-lime-300/20 bg-lime-300/10 text-lime-100"
-                          : "border-white/8 bg-[#262626] text-white/70 hover:bg-[#2e2e2e]",
-                      )}
-                      onClick={() => setSelectedFolderId(item.id)}
-                      type="button"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="truncate text-sm font-semibold text-white">{item.label}</span>
-                        <span className="shrink-0 rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] font-semibold text-white/54">
-                          {folderCounts.get(item.id) ?? 0}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={item.id}
+                        className={cx(
+                          "w-full rounded-xl border px-3 py-2.5 text-left transition-colors",
+                          active
+                            ? "border-lime-300/20 bg-lime-300/10 text-lime-100"
+                            : "border-white/8 bg-[#262626] text-white/70 hover:bg-[#2e2e2e]",
+                        )}
+                        onClick={() => setSelectedFolderId(item.id)}
+                        type="button"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="truncate text-sm font-semibold text-white">{item.label}</span>
+                          <span className="shrink-0 rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] font-semibold text-white/54">
+                            {folderCounts.get(item.id) ?? 0}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl border border-dashed border-white/10 bg-black/10 px-3 py-3 text-xs leading-5 text-white/44">
+                    No folders in this group yet.
+                  </div>
+                )}
               </div>
             ))}
           </aside>

@@ -8,7 +8,9 @@ import {
   DEFAULT_MANAGER_PERMISSIONS,
   SUPPORTED_WORKER_GENERATION_MODELS,
   getMaxBoardQuantityForGenerationModel,
+  normalizeAspectRatioForGenerationModel,
   normalizeOptionalPosePromptTemplates,
+  normalizePoseMultiplierGenerationModel,
   normalizePosePromptTemplates,
   normalizeQualityForGenerationModel,
   normalizeResolutionForGenerationModel,
@@ -165,6 +167,7 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           ...model.defaults,
           generationModel,
           resolution: normalizeResolutionForGenerationModel(generationModel, model.defaults.resolution),
+          aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, model.defaults.aspectRatio),
         },
         allowedGenerationModels: normalizeAllowedGenerationModels((model as { allowedGenerationModels?: unknown }).allowedGenerationModels),
         agencyIds: normalizeInfluencerAgencyIds(
@@ -198,12 +201,17 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           generationModel,
           resolution: normalizeResolutionForGenerationModel(generationModel, board.settings.resolution),
           quality: normalizeQualityForGenerationModel(generationModel, (board.settings as { quality?: unknown }).quality as string),
+          aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, board.settings.aspectRatio),
           quantity,
           poseMultiplierEnabled:
             quantity === 1 && typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
               ? board.settings.poseMultiplierEnabled
               : false,
           poseMultiplier: typeof (board.settings as { poseMultiplier?: unknown }).poseMultiplier === "number" ? board.settings.poseMultiplier : 1,
+          poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(
+            (board.settings as { poseMultiplierGenerationModel?: unknown }).poseMultiplierGenerationModel,
+            generationModel,
+          ),
           faceSwap: typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
           autoPromptGen: typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
           autoPromptImage: typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
@@ -235,10 +243,11 @@ function defaultBoardSettings(model: InfluencerModel): BoardSettings {
     generationModel: model.defaults.generationModel,
     resolution: model.defaults.resolution,
     quality: normalizeQualityForGenerationModel(model.defaults.generationModel, "medium"),
-    aspectRatio: model.defaults.aspectRatio,
+    aspectRatio: normalizeAspectRatioForGenerationModel(model.defaults.generationModel, model.defaults.aspectRatio),
     quantity: normalizeBoardQuantity(model.defaults.generationModel, model.defaults.quantity),
     poseMultiplierEnabled: false,
     poseMultiplier: 1,
+    poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(model.defaults.generationModel),
     faceSwap: false,
     autoPromptGen: false,
     autoPromptImage: false,

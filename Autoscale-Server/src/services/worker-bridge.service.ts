@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "../config/env.js";
 import { readStore, updateStore } from "../lib/store.js";
 import { saveGeneratedFile, toAbsoluteStoragePath } from "../lib/storage.js";
+import { normalizeResolutionForGenerationModel } from "../types/domain.js";
 import type { AuthUser, GeneratedAsset, GenerationStatus, ReferenceSelection, StoreData } from "../types/domain.js";
 
 import { publishAssetCreated, publishBoardUpdate } from "./notifications.service.js";
@@ -46,6 +47,10 @@ interface RowJobLink {
   rowId: string;
   jobId: string;
   prompt: string;
+  generationModel: GeneratedAsset["generationModel"];
+  resolution: GeneratedAsset["resolution"];
+  aspectRatio: GeneratedAsset["aspectRatio"];
+  quantity: number;
 }
 
 function nowIso(): string {
@@ -267,21 +272,25 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
       }
 
       const rowReference = await readSelectionFile(row.reference, initialStore);
+      const poseMultiplierActive = board.settings.poseMultiplierEnabled && row.poseMultiplier > 1;
+      const generationModel = poseMultiplierActive ? board.settings.poseMultiplierGenerationModel : board.settings.generationModel;
+      const resolution = normalizeResolutionForGenerationModel(generationModel, board.settings.resolution);
+      const quantity = poseMultiplierActive ? Math.max(1, Math.min(4, row.poseMultiplier)) : board.settings.quantity;
       const jobId = await createWorkerJob({
         prompt: row.prompt,
-        generationModel: board.settings.generationModel,
-        resolution: board.settings.resolution,
+        generationModel,
+        resolution,
         aspectRatio: board.settings.aspectRatio,
-        quantity: board.settings.quantity,
+        quantity,
         globalReferences,
         rowReference,
         isFirst: index === 0,
         isLast: index === activeRows.length - 1,
       });
 
-      rowJobs.push({ rowId: row.id, jobId, prompt: row.prompt });
+      rowJobs.push({ rowId: row.id, jobId, prompt: row.prompt, generationModel, resolution, aspectRatio: board.settings.aspectRatio, quantity });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to submit this row to the Higgsfield worker";
+      const message = error instanceof Error ? error.message : "Failed to submit this row to the generation worker";
       const remainingIds = activeRows.slice(index).map((entry) => entry.id);
       await failRows(boardId, remainingIds, message);
       return;
@@ -303,6 +312,10 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
     rowJobs.map(async (entry) => ({
       rowId: entry.rowId,
       prompt: entry.prompt,
+      generationModel: entry.generationModel,
+      resolution: entry.resolution,
+      aspectRatio: entry.aspectRatio,
+      quantity: entry.quantity,
       job: await getWorkerJob(entry.jobId),
     })),
   );
@@ -325,10 +338,10 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
           filePath: fileRecord.filePath,
           url: fileRecord.url,
           promptSnapshot: result.prompt,
-          generationModel: board.settings.generationModel,
-          resolution: board.settings.resolution,
-          aspectRatio: board.settings.aspectRatio,
-          quantity: board.settings.quantity,
+          generationModel: result.generationModel,
+          resolution: result.resolution,
+          aspectRatio: result.aspectRatio,
+          quantity: result.quantity,
           width: artifact.width ?? null,
           height: artifact.height ?? null,
           isSyntheticFailure: Boolean(artifact.synthetic_failure || artifact.syntheticFailure),

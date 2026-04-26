@@ -37,15 +37,34 @@ export const qualityLabels: Record<string, string> = {
 };
 
 export const generationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
+export const poseMultiplierGenerationModelOptions = generationModelOptions.filter((option) => option !== "sdxl");
 export const resolutionOptions = ["1k", "2k", "4k"] as const;
 export const qualityOptions = ["low", "medium", "high"] as const;
 export const aspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
+
+export function getAspectRatioOptionsForGenerationModel(generationModel: string): readonly (typeof aspectRatioOptions)[number][] {
+  return generationModel === "sdxl" ? aspectRatioOptions.filter((option) => option !== "auto") : aspectRatioOptions;
+}
+
+export function normalizeAspectRatioForGenerationModel(generationModel: string, aspectRatio: string): (typeof aspectRatioOptions)[number] {
+  const allowedAspectRatios = getAspectRatioOptionsForGenerationModel(generationModel);
+
+  if (allowedAspectRatios.includes(aspectRatio as (typeof aspectRatioOptions)[number])) {
+    return aspectRatio as (typeof aspectRatioOptions)[number];
+  }
+
+  return allowedAspectRatios[0] || "1:1";
+}
 
 export function getMaxQuantityForGenerationModel(generationModel: string): number {
   return generationModel === "sdxl" ? 20 : 4;
 }
 
 export function getResolutionOptionsForGenerationModel(generationModel: string): readonly (typeof resolutionOptions)[number][] {
+  if (generationModel === "sdxl") {
+    return ["1k", "2k"];
+  }
+
   if (generationModel === "sd_4_5") {
     return ["2k", "4k"];
   }
@@ -87,4 +106,18 @@ export function normalizeQualityForGenerationModel(generationModel: string, qual
   }
 
   return allowedQualities[0] || "medium";
+}
+
+export function normalizePoseMultiplierGenerationModel(generationModel: string | null | undefined, fallbackGenerationModel?: string): string {
+  const allowedModels = poseMultiplierGenerationModelOptions as readonly string[];
+
+  if (generationModel && allowedModels.includes(generationModel)) {
+    return generationModel;
+  }
+
+  if (fallbackGenerationModel && allowedModels.includes(fallbackGenerationModel)) {
+    return fallbackGenerationModel;
+  }
+
+  return poseMultiplierGenerationModelOptions[0] || generationModelOptions[0];
 }

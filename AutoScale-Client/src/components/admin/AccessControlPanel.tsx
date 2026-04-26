@@ -34,7 +34,6 @@ interface AccessControlPanelProps {
   onCreateInfluencerModel: (input: {
     name: string;
     handle: string;
-    description: string;
     avatarImageUrl?: string | null;
     allowedGenerationModels: string[];
     defaults: {
@@ -45,12 +44,13 @@ interface AccessControlPanelProps {
       promptPrefix: string;
     };
   }) => Promise<void>;
+  onOpenAgencyInfluencerBuilder: () => void;
   onUpdateInfluencerModelProfile: (influencerModelId: string, input: {
     name: string;
     handle: string;
-    description: string;
     avatarImageUrl?: string | null;
   }) => Promise<void>;
+  onDeleteInfluencerModel: (influencerModelId: string) => Promise<void>;
   onSetInfluencerModelAgencyAccess: (influencerModelId: string, agencyIds: string[]) => Promise<void>;
   onUpdateAssignments: (userId: string, influencerModelIds: string[]) => Promise<void>;
   onUpdateManagerPermissions: (userId: string, input: ManagerPermissions) => Promise<void>;
@@ -71,6 +71,7 @@ type NoticePlacement =
   | "deleteAccount"
   | "createInfluencer"
   | "influencerProfile"
+  | "deleteInfluencer"
   | "influencerOwnership";
 
 type Notice = {
@@ -89,7 +90,6 @@ type AccountDraft = {
 type ModelFormState = {
   name: string;
   handle: string;
-  description: string;
   avatarImageUrl: string;
   defaults: {
     generationModel: string;
@@ -100,7 +100,7 @@ type ModelFormState = {
   };
 };
 
-type ModelProfileDraft = Pick<ModelFormState, "avatarImageUrl" | "description" | "handle" | "name">;
+type ModelProfileDraft = Pick<ModelFormState, "avatarImageUrl" | "handle" | "name">;
 
 type AvatarCropTarget = "create" | "edit";
 
@@ -627,7 +627,9 @@ export function AccessControlPanel({
   onCreateUser,
   onRenameUser,
   onCreateInfluencerModel,
+  onOpenAgencyInfluencerBuilder,
   onUpdateInfluencerModelProfile,
+  onDeleteInfluencerModel,
   onSetInfluencerModelAgencyAccess,
   onUpdateRole,
   onUpdateAssignments,
@@ -668,14 +670,12 @@ export function AccessControlPanel({
   const [modelForm, setModelForm] = useState<ModelFormState>({
     name: "",
     handle: "",
-    description: "",
     avatarImageUrl: "",
     defaults: { ...influencerCreationDefaults },
   });
   const [modelProfileDraft, setModelProfileDraft] = useState<ModelProfileDraft>({
     name: "",
     handle: "",
-    description: "",
     avatarImageUrl: "",
   });
   const [pendingAvatarCrop, setPendingAvatarCrop] = useState<{ file: File; target: AvatarCropTarget } | null>(null);
@@ -683,6 +683,7 @@ export function AccessControlPanel({
   const [assignmentDraft, setAssignmentDraft] = useState<string[]>([]);
   const [managerPermissionDraft, setManagerPermissionDraft] = useState<ManagerPermissions>(defaultManagerPermissions);
   const [selectedInfluencerId, setSelectedInfluencerId] = useState<string | null>(models[0]?.id || null);
+  const [influencerPendingDeletionId, setInfluencerPendingDeletionId] = useState<string | null>(null);
   const [influencerLibrarySearch, setInfluencerLibrarySearch] = useState("");
   const [influencerAgencySearch, setInfluencerAgencySearch] = useState("");
   const [influencerAgencyDraft, setInfluencerAgencyDraft] = useState<string[]>([]);
@@ -848,11 +849,12 @@ export function AccessControlPanel({
   }, [models, selectedInfluencerId]);
 
   const selectedInfluencer = models.find((model) => model.id === selectedInfluencerId) || models[0] || null;
+  const influencerPendingDeletion = models.find((model) => model.id === influencerPendingDeletionId) || null;
 
   useEffect(() => {
     if (!selectedInfluencer) {
       setInfluencerAgencyDraft([]);
-      setModelProfileDraft({ name: "", handle: "", description: "", avatarImageUrl: "" });
+      setModelProfileDraft({ name: "", handle: "", avatarImageUrl: "" });
       return;
     }
 
@@ -860,7 +862,6 @@ export function AccessControlPanel({
     setModelProfileDraft({
       name: selectedInfluencer.name,
       handle: selectedInfluencer.handle,
-      description: selectedInfluencer.description,
       avatarImageUrl: selectedInfluencer.avatarImageUrl || "",
     });
   }, [selectedInfluencer]);
@@ -1005,6 +1006,8 @@ export function AccessControlPanel({
     [agencySummaryAgency, agencySummaryUsers],
   );
   const agencyAvailableModels = useMemo(() => models.filter((model) => model.isActive && model.canAccess), [models]);
+  const agencyInfluencerCapacity = parseInfluencerCapacity(agencyBillingPlan.currentPlan);
+  const agencyOpenInfluencerSlots = Math.max(0, agencyInfluencerCapacity - agencyAvailableModels.length);
   const agencyGalleryAssets = useMemo(
     () => agencyAvailableModels.reduce((sum, model) => sum + model.galleryCount, 0),
     [agencyAvailableModels],
@@ -1251,7 +1254,6 @@ export function AccessControlPanel({
     Boolean(selectedInfluencer) &&
     (normalizeText(modelProfileDraft.name) !== selectedInfluencer.name ||
       modelProfileDraft.handle.trim() !== selectedInfluencer.handle ||
-      modelProfileDraft.description.trim() !== selectedInfluencer.description ||
       (modelProfileDraft.avatarImageUrl || "") !== (selectedInfluencer.avatarImageUrl || ""));
 
   async function handleCreateAgency(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -1555,7 +1557,6 @@ export function AccessControlPanel({
         onCreateInfluencerModel({
           name: normalizeText(modelForm.name),
           handle: modelForm.handle.trim(),
-          description: modelForm.description.trim(),
           avatarImageUrl: modelForm.avatarImageUrl || null,
           allowedGenerationModels: [...generationModelOptions],
           defaults: { ...modelForm.defaults, promptPrefix: modelForm.defaults.promptPrefix.trim() },
@@ -1568,7 +1569,6 @@ export function AccessControlPanel({
       setModelForm({
         name: "",
         handle: "",
-        description: "",
         avatarImageUrl: "",
         defaults: { ...influencerCreationDefaults },
       });
@@ -1586,12 +1586,29 @@ export function AccessControlPanel({
         onUpdateInfluencerModelProfile(selectedInfluencer.id, {
           name: normalizeText(modelProfileDraft.name),
           handle: modelProfileDraft.handle.trim(),
-          description: modelProfileDraft.description.trim(),
           avatarImageUrl: modelProfileDraft.avatarImageUrl || null,
         }),
       `Updated ${normalizeText(modelProfileDraft.name)}.`,
       "influencerProfile",
     );
+  }
+
+  async function handleDeleteInfluencer(): Promise<void> {
+    if (!influencerPendingDeletion) {
+      return;
+    }
+
+    const deletedInfluencerName = influencerPendingDeletion.name;
+    const result = await executeAction(
+      () => onDeleteInfluencerModel(influencerPendingDeletion.id),
+      `Deleted ${deletedInfluencerName}.`,
+      "deleteInfluencer",
+    );
+
+    if (result.ok) {
+      setInfluencerPendingDeletionId(null);
+      setSelectedInfluencerId(null);
+    }
   }
 
   async function handleApplyInfluencerAvailability(): Promise<void> {
@@ -2428,6 +2445,32 @@ export function AccessControlPanel({
               </p>
             </div>
           </div>
+
+          {isAgencyAdmin ? (
+            <div className="border-t border-white/8 bg-[color:var(--surface-card)] px-6 py-5 sm:px-7">
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 sm:p-5">
+                <div className="min-w-0">
+                  <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencer allowance</p>
+                  <p className="mt-2 text-xl font-semibold text-white">
+                    {agencyAvailableModels.length} / {agencyInfluencerCapacity} influencers used
+                  </p>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/56">
+                    {agencyOpenInfluencerSlots > 0
+                      ? `${agencyOpenInfluencerSlots} influencer slot${agencyOpenInfluencerSlots === 1 ? "" : "s"} still available on ${agencyBillingPlan.currentPlan}.`
+                      : `${agencyBillingPlan.currentPlan} allowance is fully used. Upgrade the plan to add another influencer.`}
+                  </p>
+                </div>
+                <button
+                  className={theme.buttonPrimary}
+                  disabled={agencyOpenInfluencerSlots <= 0}
+                  onClick={onOpenAgencyInfluencerBuilder}
+                  type="button"
+                >
+                  Add influencer
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -3179,12 +3222,6 @@ export function AccessControlPanel({
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <input className={theme.input} placeholder="Influencer name" value={modelForm.name} onChange={(event) => setModelForm((current) => ({ ...current, name: event.target.value }))} />
                     <input className={theme.input} placeholder="@handle" value={modelForm.handle} onChange={(event) => setModelForm((current) => ({ ...current, handle: event.target.value }))} />
-                    <textarea
-                      className={theme.input + " min-h-32 resize-y sm:col-span-2"}
-                      placeholder="Short profile description"
-                      value={modelForm.description}
-                      onChange={(event) => setModelForm((current) => ({ ...current, description: event.target.value }))}
-                    />
                   </div>
 
                   <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -3210,7 +3247,6 @@ export function AccessControlPanel({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-white">{modelForm.name || "New influencer"}</p>
                       <p className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-white/46">{modelForm.handle || "@handle"}</p>
-                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-white/54">{modelForm.description || "Profile preview updates as you type."}</p>
                     </div>
                   </div>
 
@@ -3344,9 +3380,7 @@ export function AccessControlPanel({
                             />
                             <div className="min-w-0">
                               <p className="text-sm font-semibold text-white">{modelProfileDraft.name || selectedInfluencer.name}</p>
-                              <p className="mt-2 max-w-3xl text-sm leading-7 text-white/56">
-                                {modelProfileDraft.description || "No description provided yet."}
-                              </p>
+                              <p className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-white/46">{modelProfileDraft.handle || selectedInfluencer.handle}</p>
                             </div>
                           </div>
                           <div className="min-w-[180px] rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
@@ -3377,15 +3411,10 @@ export function AccessControlPanel({
                           <div className="mt-4 grid gap-3 sm:grid-cols-2">
                             <input className={theme.input} placeholder="Influencer name" value={modelProfileDraft.name} onChange={(event) => setModelProfileDraft((current) => ({ ...current, name: event.target.value }))} />
                             <input className={theme.input} placeholder="@handle" value={modelProfileDraft.handle} onChange={(event) => setModelProfileDraft((current) => ({ ...current, handle: event.target.value }))} />
-                            <textarea
-                              className={theme.input + " min-h-28 resize-y sm:col-span-2"}
-                              placeholder="Profile description"
-                              value={modelProfileDraft.description}
-                              onChange={(event) => setModelProfileDraft((current) => ({ ...current, description: event.target.value }))}
-                            />
                           </div>
 
                           {renderNotice("influencerProfile", "mt-4")}
+                          {renderNotice("deleteInfluencer", "mt-4")}
 
                           <div className="mt-4 flex flex-wrap items-center gap-3">
                             <button className={theme.buttonPrimary} disabled={!hasModelProfileChanges} type="submit">
@@ -3398,13 +3427,15 @@ export function AccessControlPanel({
                                 setModelProfileDraft({
                                   name: selectedInfluencer.name,
                                   handle: selectedInfluencer.handle,
-                                  description: selectedInfluencer.description,
                                   avatarImageUrl: selectedInfluencer.avatarImageUrl || "",
                                 })
                               }
                               type="button"
                             >
                               Reset
+                            </button>
+                            <button className={theme.buttonSecondary} onClick={() => setInfluencerPendingDeletionId(selectedInfluencer.id)} type="button">
+                              Delete influencer
                             </button>
                           </div>
                         </form>
@@ -3553,6 +3584,60 @@ export function AccessControlPanel({
             </div>
           </form>
         </section>
+      ) : null}
+
+      {influencerPendingDeletion ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-md">
+          <div className={cx(theme.cardStrong, "glass-panel w-full max-w-xl p-6 sm:p-7")}>
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 pb-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-rose-200/68">Confirm deletion</p>
+                <h3 className="font-display mt-2 text-3xl text-white">Delete AI influencer?</h3>
+                <p className="mt-3 max-w-lg text-sm leading-7 text-white/58">
+                  This will permanently remove <span className="font-semibold text-white">{influencerPendingDeletion.name}</span> from the model library.
+                </p>
+              </div>
+              <button className={theme.buttonSecondary} onClick={() => setInfluencerPendingDeletionId(null)} type="button">
+                Cancel
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-[28px] border border-rose-400/20 bg-rose-400/10 p-5">
+                <p className="text-sm font-semibold text-rose-100">This action cannot be undone.</p>
+                <p className="mt-2 text-sm leading-7 text-rose-100/76">
+                  Assigned access, workspace boards, and generated outputs connected to this influencer will also be removed.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Boards</p>
+                  <p className="mt-3 text-2xl font-semibold text-white">{influencerPendingDeletion.boardCount}</p>
+                </div>
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Outputs</p>
+                  <p className="mt-3 text-2xl font-semibold text-white">{influencerPendingDeletion.outputCount}</p>
+                </div>
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Owner</p>
+                  <p className="mt-3 truncate text-sm font-semibold text-white">{influencerPendingDeletion.assignedAgencyNames[0] || "Unassigned"}</p>
+                </div>
+              </div>
+
+              {renderNotice("deleteInfluencer")}
+
+              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-white/8 pt-5">
+                <button className={theme.buttonSecondary} onClick={() => setInfluencerPendingDeletionId(null)} type="button">
+                  Cancel
+                </button>
+                <button className={theme.buttonDanger} onClick={() => void handleDeleteInfluencer()} type="button">
+                  Delete influencer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       <ProfileImageCropModal

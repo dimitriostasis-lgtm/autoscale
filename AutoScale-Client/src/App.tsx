@@ -8,6 +8,7 @@ import { type Route, useRoute } from "./lib/router";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminPage } from "./pages/AdminPage";
 import { AgencyBillingPage } from "./pages/AgencyBillingPage";
+import { AgencyInfluencerBuilderPage } from "./pages/AgencyInfluencerBuilderPage";
 import { ModelGalleryPage } from "./pages/ModelGalleryPage";
 import { ModelSelectionPage } from "./pages/ModelSelectionPage";
 import { ModelWorkspacePage } from "./pages/ModelWorkspacePage";
@@ -53,6 +54,10 @@ function resolveRouteTitle(route: Route, user: UserRecord | null): string {
 
   if (route.name === "billing") {
     return "Billing | AutoScale";
+  }
+
+  if (route.name === "agencyInfluencerBuilder") {
+    return "Add Influencer | AutoScale";
   }
 
   return `${user ? resolveAccessPageTitle(user.role) : "Admin Access"} | AutoScale`;
@@ -140,9 +145,19 @@ function AppContent() {
   } else if (route.name === "gallery") {
     page = <ModelGalleryPage slug={route.slug} />;
   } else if (route.name === "admin") {
-    page = <AdminPage currentUser={user} />;
+    page = <AdminPage currentUser={user} onOpenAgencyInfluencerBuilder={() => navigate({ name: "agencyInfluencerBuilder" })} />;
   } else if (route.name === "billing") {
-    page = user.role === "AGENCY_ADMIN" ? <AgencyBillingPage currentUser={user} /> : <AdminPage currentUser={user} />;
+    page = user.role === "AGENCY_ADMIN" ? <AgencyBillingPage currentUser={user} /> : <AdminPage currentUser={user} onOpenAgencyInfluencerBuilder={() => navigate({ name: "agencyInfluencerBuilder" })} />;
+  } else if (route.name === "agencyInfluencerBuilder") {
+    page = user.role === "AGENCY_ADMIN" ? (
+      <AgencyInfluencerBuilderPage
+        currentUser={user}
+        onCancel={() => navigate({ name: "admin", sectionId: "access-agency-summary" })}
+        onCreated={(model: InfluencerModel) => navigate({ name: "workspace", slug: model.slug, mode: "playground" })}
+      />
+    ) : (
+      <AdminPage currentUser={user} onOpenAgencyInfluencerBuilder={() => navigate({ name: "agencyInfluencerBuilder" })} />
+    );
   }
 
   return (

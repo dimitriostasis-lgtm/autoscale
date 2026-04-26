@@ -24,24 +24,20 @@ export function ModelCard({ model, onSelect }: ModelCardProps) {
         }}
       />
 
-      <div className="relative z-10 space-y-5">
+      <div className="relative z-10 space-y-6">
         <div className="flex justify-end">
           <span className="rounded-full border border-white/10 bg-black/18 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/56">
             {model.assignedAgencyNames[0] || "Unassigned"}
           </span>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
-          <InfluencerAvatar model={model} size="2xl" />
+        <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-center">
+          <InfluencerAvatar model={model} size="3xl" />
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.22em] text-white/42">AI influencer</p>
             <p className="mt-3 font-display text-3xl text-white">{model.name}</p>
             <p className="mt-2 truncate text-sm uppercase tracking-[0.22em] text-white/48">{model.handle}</p>
           </div>
-        </div>
-
-        <div>
-          <p className="mt-4 line-clamp-3 text-sm leading-6 text-white/56">{model.description}</p>
         </div>
       </div>
 

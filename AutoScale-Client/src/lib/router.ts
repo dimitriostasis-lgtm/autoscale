@@ -8,6 +8,7 @@ export type Route =
   | { name: "workspace"; slug: string; boardId?: string | null; mode?: WorkspaceMode }
   | { name: "gallery"; slug: string }
   | { name: "billing" }
+  | { name: "agencyInfluencerBuilder" }
   | { name: "admin"; sectionId?: string | null };
 
 const workspaceModes = new Set<WorkspaceMode>(["image-sfw", "image-nsfw", "video-sfw", "video-nsfw", "voice-sfw", "voice-nsfw", "playground"]);
@@ -68,6 +69,10 @@ export function parseRoute(url = currentUrl()): Route {
     return { name: "billing" };
   }
 
+  if (segments[0] === "agency" && segments[1] === "influencer-builder") {
+    return { name: "agencyInfluencerBuilder" };
+  }
+
   return { name: "models" };
 }
 
@@ -91,6 +96,9 @@ export function toPath(route: Route): string {
   }
   if (route.name === "billing") {
     return "/billing";
+  }
+  if (route.name === "agencyInfluencerBuilder") {
+    return "/agency/influencer-builder";
   }
   const url = new URL("/admin", window.location.origin);
   if (route.sectionId) {

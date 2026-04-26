@@ -71,6 +71,7 @@ export const workspaceResolvers = {
           quantity: number;
           poseMultiplierEnabled: boolean;
           poseMultiplier: number;
+          poseMultiplierGenerationModel: string;
           faceSwap: boolean;
           autoPromptGen: boolean;
           autoPromptImage: boolean;

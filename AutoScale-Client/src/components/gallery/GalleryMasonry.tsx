@@ -9,7 +9,12 @@ interface GalleryMasonryProps {
   headerLabel?: string;
   headerDescription?: string;
   activeSafetySection: "SFW" | "NSFW";
+  activeImageFilterId: string;
+  imageFilterOptions: Array<{ id: string; label: string; count: number }>;
   safetySectionCounts: Record<"SFW" | "NSFW", number>;
+  showImageFilters: boolean;
+  showSafetyControls: boolean;
+  onSelectImageFilter: (filterId: string) => void;
   onSelectSafetySection: (section: "SFW" | "NSFW") => void;
   onToggle: (assetId: string) => void;
 }
@@ -21,36 +26,64 @@ export function GalleryMasonry({
   headerLabel,
   headerDescription,
   activeSafetySection,
+  activeImageFilterId,
+  imageFilterOptions,
   safetySectionCounts,
+  showImageFilters,
+  showSafetyControls,
+  onSelectImageFilter,
   onSelectSafetySection,
   onToggle,
 }: GalleryMasonryProps) {
+  const segmentContainerClass = "inline-flex rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-1";
+  const segmentButtonClass = "inline-flex h-7 items-center justify-center gap-1.5 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.14em] transition";
+  const activeSegmentClass = "bg-[color:var(--accent-main)] text-[color:var(--accent-foreground)] shadow-[var(--shadow-soft)]";
+  const inactiveSegmentClass = "text-[color:var(--text-muted)] hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-main)]";
+
   return (
     <div className="space-y-5">
       <div className={cx(theme.cardStrong, "flex flex-wrap items-center justify-between gap-4 px-5 py-4") + " glass-panel"}>
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-xs uppercase tracking-[0.24em] text-white/42">Visual gallery</p>
-            <div className="inline-flex rounded-full border border-white/10 bg-black/20 p-1">
-              {(["SFW", "NSFW"] as const).map((section) => {
-                const active = activeSafetySection === section;
+            {showSafetyControls ? (
+              <div className={segmentContainerClass}>
+                {(["SFW", "NSFW"] as const).map((section) => {
+                  const active = activeSafetySection === section;
 
-                return (
-                  <button
-                    className={cx(
-                      "inline-flex h-7 min-w-16 items-center justify-center gap-1.5 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-                      active ? "bg-lime-300 text-black" : "text-white/50 hover:bg-white/[0.06] hover:text-white/78",
-                    )}
-                    key={section}
-                    onClick={() => onSelectSafetySection(section)}
-                    type="button"
-                  >
-                    <span>{section}</span>
-                    <span className={cx("text-[10px]", active ? "text-black/58" : "text-white/36")}>{safetySectionCounts[section]}</span>
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      className={cx(segmentButtonClass, "min-w-16", active ? activeSegmentClass : inactiveSegmentClass)}
+                      key={section}
+                      onClick={() => onSelectSafetySection(section)}
+                      type="button"
+                    >
+                      <span>{section}</span>
+                      <span className={cx("text-[10px]", active ? "text-[color:var(--accent-foreground)] opacity-[0.65]" : "opacity-70")}>{safetySectionCounts[section]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            {showImageFilters ? (
+              <div className={segmentContainerClass}>
+                {imageFilterOptions.map((filter) => {
+                  const active = activeImageFilterId === filter.id;
+
+                  return (
+                    <button
+                      className={cx(segmentButtonClass, active ? activeSegmentClass : inactiveSegmentClass)}
+                      key={filter.id}
+                      onClick={() => onSelectImageFilter(filter.id)}
+                      type="button"
+                    >
+                      <span>{filter.label}</span>
+                      <span className={cx("text-[10px]", active ? "text-[color:var(--accent-foreground)] opacity-[0.65]" : "opacity-70")}>{filter.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
           <h2 className="font-display mt-2 text-2xl text-white">{headerLabel || "Tiled model output"}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/54">{headerDescription || "Browse generated outputs for this model."}</p>
