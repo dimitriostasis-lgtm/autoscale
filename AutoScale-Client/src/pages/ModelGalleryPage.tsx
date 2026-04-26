@@ -8,6 +8,7 @@ import {
   buildGalleryFolderGroups,
   createCustomFolderId,
   customFolderGroupId,
+  defaultGalleryFolderId,
   findFolder,
   readStoredCustomFolders,
   resolveGalleryFolderStorageKey,
@@ -18,13 +19,46 @@ import { theme } from "../styles/theme";
 import type { GeneratedAsset, InfluencerModel } from "../types";
 import type { StoredCustomGalleryFolder } from "../lib/galleryFolders";
 
+type GalleryMediaKind = "image" | "video" | "voice";
+type GallerySafetySection = "SFW" | "NSFW";
+
+interface GalleryAssetMode {
+  kind: GalleryMediaKind;
+  safety: GallerySafetySection;
+}
+
+const galleryFolderMediaKindById: Record<string, GalleryMediaKind> = {
+  [defaultGalleryFolderId]: "image",
+  videos: "video",
+  voices: "voice",
+};
+
+const galleryBoardPrefixes: Array<{ prefix: string; mode: GalleryAssetMode }> = [
+  { prefix: "__autoscale_workspace_nsfw__:", mode: { kind: "image", safety: "NSFW" } },
+  { prefix: "__autoscale_workspace_video_sfw__:", mode: { kind: "video", safety: "SFW" } },
+  { prefix: "__autoscale_workspace_video_nsfw__:", mode: { kind: "video", safety: "NSFW" } },
+  { prefix: "__autoscale_workspace_voice_sfw__:", mode: { kind: "voice", safety: "SFW" } },
+  { prefix: "__autoscale_workspace_voice_nsfw__:", mode: { kind: "voice", safety: "NSFW" } },
+];
+
+function resolveBoardGalleryMode(boardName: string): GalleryAssetMode {
+  const prefixedMode = galleryBoardPrefixes.find((entry) => boardName.startsWith(entry.prefix));
+
+  return prefixedMode?.mode ?? { kind: "image", safety: "SFW" };
+}
+
+function resolveAssetGalleryMode(asset: GeneratedAsset, assetModesByBoardId: Map<string, GalleryAssetMode>): GalleryAssetMode {
+  return assetModesByBoardId.get(asset.boardId) ?? { kind: "image", safety: "SFW" };
+}
+
 interface ModelGalleryPageProps {
   slug: string;
 }
 
 export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState("all-outputs");
+  const [selectedFolderId, setSelectedFolderId] = useState(defaultGalleryFolderId);
+  const [selectedSafetySection, setSelectedSafetySection] = useState<GallerySafetySection>("SFW");
   const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>(() => resolveInitialExpandedGroupIds(slug));
   const [customFolders, setCustomFolders] = useState<StoredCustomGalleryFolder[]>(() => readStoredCustomFolders(slug));
   const [pendingCustomFolderName, setPendingCustomFolderName] = useState("");
@@ -46,12 +80,42 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
   const assets = useMemo(() => assetsData?.modelAssets ?? [], [assetsData]);
   const availableAssetIds = useMemo(() => new Set(assets.map((asset) => asset.id)), [assets]);
   const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders), [customFolders]);
-  const folderCounts = useMemo(() => buildFolderCounts(assets, folderGroups), [assets, folderGroups]);
+  const assetModesByBoardId = useMemo(() => {
+    return new Map((model?.boards ?? []).map((board) => [board.id, resolveBoardGalleryMode(board.name)] as const));
+  }, [model?.boards]);
+  const folderCounts = useMemo(() => {
+    const counts = buildFolderCounts(assets, folderGroups);
+
+    for (const [folderId, mediaKind] of Object.entries(galleryFolderMediaKindById)) {
+      counts.set(folderId, assets.filter((asset) => resolveAssetGalleryMode(asset, assetModesByBoardId).kind === mediaKind).length);
+    }
+
+    return counts;
+  }, [assets, assetModesByBoardId, folderGroups]);
   const selectedFolder = useMemo(
-    () => findFolder(selectedFolderId, folderGroups) ?? findFolder("all-outputs", folderGroups),
+    () => findFolder(selectedFolderId, folderGroups) ?? findFolder(defaultGalleryFolderId, folderGroups),
     [folderGroups, selectedFolderId],
   );
-  const filteredAssets = useMemo(() => (selectedFolder ? assets.filter(selectedFolder.matcher) : assets), [assets, selectedFolder]);
+  const folderAssets = useMemo(() => {
+    const selectedMediaKind = galleryFolderMediaKindById[selectedFolderId];
+
+    if (selectedMediaKind) {
+      return assets.filter((asset) => resolveAssetGalleryMode(asset, assetModesByBoardId).kind === selectedMediaKind);
+    }
+
+    return selectedFolder ? assets.filter(selectedFolder.matcher) : assets;
+  }, [assets, assetModesByBoardId, selectedFolder, selectedFolderId]);
+  const safetySectionCounts = useMemo(
+    () => ({
+      SFW: folderAssets.filter((asset) => resolveAssetGalleryMode(asset, assetModesByBoardId).safety === "SFW").length,
+      NSFW: folderAssets.filter((asset) => resolveAssetGalleryMode(asset, assetModesByBoardId).safety === "NSFW").length,
+    }),
+    [assetModesByBoardId, folderAssets],
+  );
+  const filteredAssets = useMemo(
+    () => folderAssets.filter((asset) => resolveAssetGalleryMode(asset, assetModesByBoardId).safety === selectedSafetySection),
+    [assetModesByBoardId, folderAssets, selectedSafetySection],
+  );
   const trimmedCustomFolderName = pendingCustomFolderName.trim();
 
   const selectedCount = useMemo(
@@ -64,7 +128,8 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
     customFoldersLoadedForSlugRef.current = slug;
     setCustomFolders(nextCustomFolders);
     setSelectedIds([]);
-    setSelectedFolderId("all-outputs");
+    setSelectedFolderId(defaultGalleryFolderId);
+    setSelectedSafetySection("SFW");
     setExpandedGroupIds(resolveInitialExpandedGroupIds(slug));
     setPendingCustomFolderName("");
     setCustomFolderFeedback(null);
@@ -130,7 +195,7 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
               <h1 className="font-display text-4xl text-white">{model.name} gallery</h1>
               <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/40">{model.handle}</p>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
-                This visual surface is intentionally built to expand into masking, inpainting, multi-select workflows, and bulk actions later. The current implementation keeps selection state and tile-level metadata without blocking those future features.
+                This visual surface is intentionally built to expand into masking, multi-select workflows, and bulk actions later. The current implementation keeps selection state and tile-level metadata without blocking those future features.
               </p>
             </div>
           </div>
@@ -145,7 +210,7 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
           <div className="border-b border-white/8 px-5 py-4">
             <p className="text-xs uppercase tracking-[0.24em] text-white/42">Folders</p>
             <h2 className="font-display mt-2 text-2xl text-white">Gallery rail</h2>
-            <p className="mt-2 text-sm leading-6 text-white/54">Expand a group, then jump into a smart folder like face swaps or multi-image runs.</p>
+            <p className="mt-2 text-sm leading-6 text-white/54">Browse Images, Videos, Voices, and custom folders.</p>
           </div>
 
           <div className="space-y-3 px-4 py-4">
@@ -244,11 +309,14 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
 
         <GalleryMasonry
           assets={filteredAssets}
-          headerLabel={selectedFolder?.label ?? "All Outputs"}
-          headerDescription={selectedFolder?.description ?? "Every generated asset in this model gallery."}
+          activeSafetySection={selectedSafetySection}
+          headerLabel={selectedFolder?.label ?? "Images"}
+          headerDescription={selectedFolder?.description ?? "Generated image outputs for this model."}
+          onSelectSafetySection={setSelectedSafetySection}
           onToggle={(assetId) =>
             setSelectedIds((current) => (current.includes(assetId) ? current.filter((entry) => entry !== assetId) : [...current, assetId]))
           }
+          safetySectionCounts={safetySectionCounts}
           selectedIds={selectedIds}
           selectedVisibleCount={selectedCount}
         />

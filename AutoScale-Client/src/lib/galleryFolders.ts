@@ -26,8 +26,23 @@ export interface StoredCustomGalleryFolder {
 }
 
 export const customFolderGroupId = "custom-folders";
+export const defaultGalleryFolderId = "images";
 
 const galleryFolderStorageKeyPrefix = "autoscale-gallery-custom-folders";
+const videoAssetPattern = /(?:^|[^a-z0-9])videos?(?:$|[^a-z0-9])/i;
+const voiceAssetPattern = /(?:^|[^a-z0-9])(?:voices?|audio)(?:$|[^a-z0-9])/i;
+
+function buildAssetSearchText(asset: GeneratedAsset): string {
+  return `${asset.fileName} ${asset.promptSnapshot}`;
+}
+
+function matchesVideoAsset(asset: GeneratedAsset): boolean {
+  return videoAssetPattern.test(buildAssetSearchText(asset));
+}
+
+function matchesVoiceAsset(asset: GeneratedAsset): boolean {
+  return voiceAssetPattern.test(buildAssetSearchText(asset));
+}
 
 export const galleryFolderGroups: GalleryFolderGroup[] = [
   {
@@ -35,31 +50,24 @@ export const galleryFolderGroups: GalleryFolderGroup[] = [
     label: "Smart folders",
     items: [
       {
-        id: "all-outputs",
-        label: "All Outputs",
-        description: "Every generated asset in this model gallery.",
-        matcher: () => true,
+        id: defaultGalleryFolderId,
+        label: "Images",
+        description: "Generated image outputs for this model.",
+        matcher: (asset) => !matchesVideoAsset(asset) && !matchesVoiceAsset(asset),
         source: "smart",
       },
       {
-        id: "face-swaps",
-        label: "Face Swaps",
-        description: "Assets that look like face-swap runs based on prompt or filename metadata.",
-        matcher: (asset) => /face\s*swap|faceswap|swap/i.test(`${asset.fileName} ${asset.promptSnapshot}`),
+        id: "videos",
+        label: "Videos",
+        description: "Video generation assets matched from prompt or filename metadata.",
+        matcher: matchesVideoAsset,
         source: "smart",
       },
       {
-        id: "multi-images",
-        label: "Multi Images",
-        description: "Runs that requested more than one image per prompt.",
-        matcher: (asset) => asset.quantity > 1,
-        source: "smart",
-      },
-      {
-        id: "single-frames",
-        label: "Single Frames",
-        description: "One-image generations for cleaner browsing.",
-        matcher: (asset) => asset.quantity === 1,
+        id: "voices",
+        label: "Voices",
+        description: "Voice generation assets matched from prompt or filename metadata.",
+        matcher: matchesVoiceAsset,
         source: "smart",
       },
     ],

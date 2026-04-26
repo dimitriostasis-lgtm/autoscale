@@ -8,15 +8,50 @@ interface GalleryMasonryProps {
   selectedVisibleCount?: number;
   headerLabel?: string;
   headerDescription?: string;
+  activeSafetySection: "SFW" | "NSFW";
+  safetySectionCounts: Record<"SFW" | "NSFW", number>;
+  onSelectSafetySection: (section: "SFW" | "NSFW") => void;
   onToggle: (assetId: string) => void;
 }
 
-export function GalleryMasonry({ assets, selectedIds, selectedVisibleCount, headerLabel, headerDescription, onToggle }: GalleryMasonryProps) {
+export function GalleryMasonry({
+  assets,
+  selectedIds,
+  selectedVisibleCount,
+  headerLabel,
+  headerDescription,
+  activeSafetySection,
+  safetySectionCounts,
+  onSelectSafetySection,
+  onToggle,
+}: GalleryMasonryProps) {
   return (
     <div className="space-y-5">
       <div className={cx(theme.cardStrong, "flex flex-wrap items-center justify-between gap-4 px-5 py-4") + " glass-panel"}>
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-white/42">Visual gallery</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-white/42">Visual gallery</p>
+            <div className="inline-flex rounded-full border border-white/10 bg-black/20 p-1">
+              {(["SFW", "NSFW"] as const).map((section) => {
+                const active = activeSafetySection === section;
+
+                return (
+                  <button
+                    className={cx(
+                      "inline-flex h-7 min-w-16 items-center justify-center gap-1.5 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+                      active ? "bg-lime-300 text-black" : "text-white/50 hover:bg-white/[0.06] hover:text-white/78",
+                    )}
+                    key={section}
+                    onClick={() => onSelectSafetySection(section)}
+                    type="button"
+                  >
+                    <span>{section}</span>
+                    <span className={cx("text-[10px]", active ? "text-black/58" : "text-white/36")}>{safetySectionCounts[section]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <h2 className="font-display mt-2 text-2xl text-white">{headerLabel || "Tiled model output"}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/54">{headerDescription || "Browse generated outputs for this model."}</p>
         </div>

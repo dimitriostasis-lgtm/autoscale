@@ -1,5 +1,6 @@
 import { type PropsWithChildren, useRef, useState } from "react";
 
+import autoscaleGroupLogo from "../../assets/autoscale-group-logo.svg";
 import { agencyBillingPlan } from "../../lib/billing";
 import { cx } from "../../lib/cx";
 import type { Route } from "../../lib/router";
@@ -132,12 +133,13 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 flex-col gap-4 md:flex-1 md:flex-row md:items-center md:gap-6">
               <button
+                aria-label="AutoScale Group home"
                 className="inline-flex shrink-0 items-center gap-3 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-2 text-left transition hover:bg-[color:var(--surface-soft-hover)]"
                 onClick={() => onNavigate({ name: "models" })}
                 type="button"
               >
-                <span className="font-display inline-flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--accent-main)] font-bold text-[color:var(--accent-foreground)]">
-                  A
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)]">
+                  <img alt="" aria-hidden="true" className="h-11 w-11 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.28)]" src={autoscaleGroupLogo} />
                 </span>
                 <span>
                   <span className="font-display block text-lg text-[color:var(--text-strong)]">AutoScale Group</span>

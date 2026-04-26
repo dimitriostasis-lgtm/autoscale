@@ -46,7 +46,7 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
   const [posePromptSettingsRowId, setPosePromptSettingsRowId] = useState<string | null>(null);
   const autoSurfaceClass = "border-[#4e6b22] bg-[#314513]";
   const autoMessageClass = "text-[#dcf6a0]";
-  const gridColumns = "grid-cols-[56px_repeat(7,minmax(0,1fr))]";
+  const gridColumns = "grid-cols-[56px_repeat(6,minmax(0,1fr))_96px]";
   const cellClass = "border-r border-white/8 px-3 py-3";
   const panelClass = "h-full rounded-xl border border-white/8 bg-[#202020] p-3";
   const stackedControlPanelClass = cx(panelClass, "flex flex-col gap-2");

@@ -1,7 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { cx } from "../../lib/cx";
-import { buildFolderCounts, buildGalleryFolderGroups, findFolder, readStoredCustomFolders } from "../../lib/galleryFolders";
+import { buildFolderCounts, buildGalleryFolderGroups, defaultGalleryFolderId, findFolder, readStoredCustomFolders } from "../../lib/galleryFolders";
 import type { GeneratedAsset } from "../../types";
 import { theme } from "../../styles/theme";
 
@@ -15,12 +15,12 @@ interface ImagePickerModalProps {
 
 export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: ImagePickerModalProps) {
   const [query, setQuery] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState("all-outputs");
+  const [selectedFolderId, setSelectedFolderId] = useState(defaultGalleryFolderId);
   const [customFolders, setCustomFolders] = useState(() => readStoredCustomFolders(slug));
   const deferredQuery = useDeferredValue(query);
   const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders), [customFolders]);
   const selectedFolder = useMemo(
-    () => findFolder(selectedFolderId, folderGroups) ?? findFolder("all-outputs", folderGroups),
+    () => findFolder(selectedFolderId, folderGroups) ?? findFolder(defaultGalleryFolderId, folderGroups),
     [folderGroups, selectedFolderId],
   );
   const folderCounts = useMemo(() => buildFolderCounts(assets, folderGroups), [assets, folderGroups]);
@@ -31,7 +31,7 @@ export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: Imag
     }
 
     setCustomFolders(readStoredCustomFolders(slug));
-    setSelectedFolderId("all-outputs");
+    setSelectedFolderId(defaultGalleryFolderId);
     setQuery("");
   }, [open, slug]);
 

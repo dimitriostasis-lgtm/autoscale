@@ -4,19 +4,59 @@ import { ApolloProvider } from "@apollo/client/react";
 import { AppFrame } from "./components/layout/AppFrame";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { apolloClient } from "./lib/apollo";
-import { useRoute } from "./lib/router";
+import { type Route, useRoute } from "./lib/router";
 import { LoginPage } from "./pages/LoginPage";
 import { AdminPage } from "./pages/AdminPage";
 import { AgencyBillingPage } from "./pages/AgencyBillingPage";
 import { ModelGalleryPage } from "./pages/ModelGalleryPage";
 import { ModelSelectionPage } from "./pages/ModelSelectionPage";
 import { ModelWorkspacePage } from "./pages/ModelWorkspacePage";
-import type { InfluencerModel } from "./types";
+import type { InfluencerModel, Role, UserRecord } from "./types";
 import { theme } from "./styles/theme";
 
 type ThemeMode = "dark" | "light";
 
 const themeStorageKey = "autoscale-theme-mode";
+
+function resolveAccessPageTitle(role: Role): string {
+  if (role === "PLATFORM_ADMIN") {
+    return "Admin Access";
+  }
+
+  if (role === "AGENCY_ADMIN") {
+    return "Agency Access";
+  }
+
+  if (role === "AGENCY_MANAGER") {
+    return "Manager Access";
+  }
+
+  return "Access";
+}
+
+function resolveRouteTitle(route: Route, user: UserRecord | null): string {
+  if (route.name === "login") {
+    return "Login | AutoScale";
+  }
+
+  if (route.name === "models") {
+    return "Models | AutoScale";
+  }
+
+  if (route.name === "workspace") {
+    return "Workspace | AutoScale";
+  }
+
+  if (route.name === "gallery") {
+    return "Gallery | AutoScale";
+  }
+
+  if (route.name === "billing") {
+    return "Billing | AutoScale";
+  }
+
+  return `${user ? resolveAccessPageTitle(user.role) : "Admin Access"} | AutoScale`;
+}
 
 function resolveStoredThemeMode(): ThemeMode {
   if (typeof window === "undefined") {
@@ -53,6 +93,10 @@ function AppContent() {
   }, [themeMode]);
 
   useEffect(() => {
+    document.title = resolveRouteTitle(route, user);
+  }, [route, user]);
+
+  useEffect(() => {
     if (loading) {
       return;
     }
@@ -81,7 +125,7 @@ function AppContent() {
     return <LoginPage onLogin={async (email, password) => login(email, password)} />;
   }
 
-  let page = <ModelSelectionPage onOpenModel={(model: InfluencerModel) => navigate({ name: "workspace", slug: model.slug })} />;
+  let page = <ModelSelectionPage currentUser={user} onOpenModel={(model: InfluencerModel) => navigate({ name: "workspace", slug: model.slug })} />;
 
   if (route.name === "workspace") {
     page = (
