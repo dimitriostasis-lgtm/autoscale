@@ -6,6 +6,8 @@ import { BoardTabs } from "../components/workspace/BoardTabs";
 import { ImagePickerModal } from "../components/workspace/ImagePickerModal";
 import { SettingsPanel } from "../components/workspace/SettingsPanel";
 import { WorkspaceGrid } from "../components/workspace/WorkspaceGrid";
+import { cx } from "../lib/cx";
+import type { WorkspaceMode } from "../lib/router";
 import { uploadReferenceFile } from "../lib/uploads";
 import { INFLUENCER_MODEL_QUERY, MODEL_ASSETS_QUERY } from "../queries/model";
 import {
@@ -43,7 +45,56 @@ interface BoardUpdatedSubscriptionData {
 
 type WorkspaceBoardTab = Pick<WorkspaceBoard, "id" | "name" | "updatedAt">;
 
-type WorkspaceMode = "sfw" | "nsfw" | "playground";
+type WorkspaceGenerationKind = "image" | "video" | "voice";
+type WorkspaceTableMode = Exclude<WorkspaceMode, "playground">;
+
+interface WorkspaceModeMeta {
+  mode: WorkspaceTableMode;
+  kind: WorkspaceGenerationKind;
+  menuLabel: string;
+  safetyLabel: "SFW" | "NSFW";
+}
+
+const workspaceModeMenus: Array<{
+  kind: WorkspaceGenerationKind;
+  label: string;
+  modes: WorkspaceModeMeta[];
+}> = [
+  {
+    kind: "image",
+    label: "Image Gen",
+    modes: [
+      { mode: "image-sfw", kind: "image", menuLabel: "Image Gen", safetyLabel: "SFW" },
+      { mode: "image-nsfw", kind: "image", menuLabel: "Image Gen", safetyLabel: "NSFW" },
+    ],
+  },
+  {
+    kind: "video",
+    label: "Video Gen",
+    modes: [
+      { mode: "video-sfw", kind: "video", menuLabel: "Video Gen", safetyLabel: "SFW" },
+      { mode: "video-nsfw", kind: "video", menuLabel: "Video Gen", safetyLabel: "NSFW" },
+    ],
+  },
+  {
+    kind: "voice",
+    label: "Voice Gen",
+    modes: [
+      { mode: "voice-sfw", kind: "voice", menuLabel: "Voice Gen", safetyLabel: "SFW" },
+      { mode: "voice-nsfw", kind: "voice", menuLabel: "Voice Gen", safetyLabel: "NSFW" },
+    ],
+  },
+];
+
+const workspaceModeDefaultByKind: Record<WorkspaceGenerationKind, WorkspaceTableMode> = {
+  image: "image-sfw",
+  video: "video-sfw",
+  voice: "voice-sfw",
+};
+
+const workspaceModeMetaByMode = Object.fromEntries(
+  workspaceModeMenus.flatMap((menu) => menu.modes.map((mode) => [mode.mode, mode])),
+) as Record<WorkspaceTableMode, WorkspaceModeMeta>;
 
 type PickerState =
   | { kind: "row"; row: WorkspaceRow }
@@ -84,20 +135,22 @@ function buildPositionNamedBoards(boards: WorkspaceBoardTab[]): WorkspaceBoardTa
 }
 
 const workspaceModeBoardPrefixes: Partial<Record<WorkspaceMode, string>> = {
-  nsfw: "__autoscale_workspace_nsfw__:",
+  "image-nsfw": "__autoscale_workspace_nsfw__:",
   playground: "__autoscale_workspace_playground__:",
+  "video-sfw": "__autoscale_workspace_video_sfw__:",
+  "video-nsfw": "__autoscale_workspace_video_nsfw__:",
+  "voice-sfw": "__autoscale_workspace_voice_sfw__:",
+  "voice-nsfw": "__autoscale_workspace_voice_nsfw__:",
 };
 
-function resolveBoardWorkspaceMode(board: WorkspaceBoardTab): WorkspaceMode {
-  if (board.name.startsWith(workspaceModeBoardPrefixes.nsfw || "")) {
-    return "nsfw";
+function resolveBoardWorkspaceMode(board: WorkspaceBoardTab): WorkspaceMode | null {
+  for (const [mode, prefix] of Object.entries(workspaceModeBoardPrefixes) as Array<[WorkspaceMode, string]>) {
+    if (board.name.startsWith(prefix)) {
+      return mode;
+    }
   }
 
-  if (board.name.startsWith(workspaceModeBoardPrefixes.playground || "")) {
-    return "playground";
-  }
-
-  return "sfw";
+  return "image-sfw";
 }
 
 function filterBoardsForWorkspaceMode(boards: WorkspaceBoardTab[], mode: WorkspaceMode): WorkspaceBoardTab[] {
@@ -111,30 +164,87 @@ function buildBoardNameForWorkspaceMode(mode: WorkspaceMode, index: number): str
   return prefix ? `${prefix}${label}` : label;
 }
 
-function ModeTabs({ activeMode, onSelectMode }: { activeMode: WorkspaceMode; onSelectMode: (mode: WorkspaceMode) => void }) {
+function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: WorkspaceMode; onSelectMode: (mode: WorkspaceMode) => void }) {
+  const [openKind, setOpenKind] = useState<WorkspaceGenerationKind | null>(null);
+  const activeMeta = activeMode === "playground" ? null : workspaceModeMetaByMode[activeMode];
+
   return (
-    <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-[#262626] p-1">
-      {[
-        { mode: "sfw", label: "SFW" },
-        { mode: "nsfw", label: "NSFW" },
-        { mode: "playground", label: "Playground" },
-      ].map((item) => {
-        const active = activeMode === item.mode;
+    <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-[#262626] p-1">
+      {workspaceModeMenus.map((menu) => {
+        const activeMenu = activeMeta?.kind === menu.kind;
+        const isOpen = openKind === menu.kind;
+        const defaultMode = workspaceModeDefaultByKind[menu.kind];
 
         return (
-          <button
-            key={item.mode}
-            className={
-              "rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition " +
-              (active ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82")
-            }
-            onClick={() => onSelectMode(item.mode as WorkspaceMode)}
-            type="button"
+          <div
+            key={menu.kind}
+            className="relative -mb-2 pb-2"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setOpenKind(null);
+              }
+            }}
+            onFocus={() => setOpenKind(menu.kind)}
+            onMouseEnter={() => setOpenKind(menu.kind)}
+            onMouseLeave={() => setOpenKind((current) => (current === menu.kind ? null : current))}
           >
-            {item.label}
-          </button>
+            <button
+              aria-expanded={isOpen}
+              className={cx(
+                "inline-flex min-w-24 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition",
+                activeMenu ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
+              )}
+              onClick={() => {
+                onSelectMode(defaultMode);
+              }}
+              type="button"
+            >
+              {menu.label}
+              <span aria-hidden="true" className="text-[10px] opacity-70">
+                v
+              </span>
+            </button>
+
+            {isOpen ? (
+              <div className="absolute left-0 top-full z-30 w-36 overflow-hidden rounded-2xl border border-white/10 bg-[#202020] p-1 shadow-[0_18px_42px_rgba(0,0,0,0.42)]">
+                {menu.modes.map((item) => {
+                  const active = activeMode === item.mode;
+
+                  return (
+                    <button
+                      key={item.mode}
+                      className={cx(
+                        "block w-full rounded-xl px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.14em] transition",
+                        active ? "bg-lime-300 text-black" : "text-white/62 hover:bg-white/[0.06] hover:text-white",
+                      )}
+                      onClick={() => {
+                        setOpenKind(null);
+                        onSelectMode(item.mode);
+                      }}
+                      type="button"
+                    >
+                      {item.safetyLabel}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         );
       })}
+      <button
+        className={cx(
+          "rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition",
+          activeMode === "playground" ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
+        )}
+        onClick={() => {
+          setOpenKind(null);
+          onSelectMode("playground");
+        }}
+        type="button"
+      >
+        Playground
+      </button>
     </div>
   );
 }
@@ -501,6 +611,8 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   }
 
   const completedRows = board?.rows.filter((row) => row.status === "SUCCEEDED").length ?? 0;
+  const activeModeMeta = mode === "playground" ? null : workspaceModeMetaByMode[mode];
+  const activeModeLabel = activeModeMeta ? `${activeModeMeta.menuLabel} / ${activeModeMeta.safetyLabel}` : "Playground";
 
   return (
     <div className="generation-workspace space-y-4">
@@ -513,10 +625,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Generation workspace</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <h1 className="font-display text-2xl text-white sm:text-3xl">{model.name}</h1>
-                  <ModeTabs activeMode={mode} onSelectMode={onSelectMode} />
-                  <span className="rounded-full border border-white/10 bg-[#2b2b2b] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
-                    {mode === "playground" ? "Playground" : activeBoardLabel}
-                  </span>
+                  <GenerationModeMenus activeMode={mode} onSelectMode={onSelectMode} />
                 </div>
                 <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/38">{model.handle}</p>
               </div>
@@ -524,14 +633,19 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
 
             <div className="flex flex-wrap items-center gap-2 text-xs text-white/48">
               <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
+                {mode === "playground" ? "Playground" : activeBoardLabel}
+              </span>
+              <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
                 {board?.rows.length ?? 0} rows
               </span>
               <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
                 {completedRows} complete
               </span>
-              <span className="rounded-full border border-white/10 bg-[#2a2a2a] px-3 py-1.5 uppercase tracking-[0.16em]">
-                {mode === "sfw" ? "SFW" : mode === "nsfw" ? "NSFW" : "Playground"}
-              </span>
+              {mode === "playground" ? null : (
+                <span className="rounded-full border border-lime-300/45 bg-lime-300/12 px-3.5 py-1.5 font-bold uppercase tracking-[0.16em] text-lime-100 shadow-[0_0_24px_rgba(190,242,100,0.16)]">
+                  {activeModeLabel}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -539,11 +653,9 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         <div className="border-b border-white/8 bg-[#222222] px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-3xl text-sm leading-6 text-white/58">
-              {mode === "playground"
-                ? `${model.description} Playground mode gives you a visual wall, a bottom prompt composer, and quick settings without folder rails.`
-                : mode === "nsfw"
-                  ? `${model.description} NSFW mode keeps the workspace structure familiar while separating this run surface from the SFW workflow.`
-                  : `${model.description} Shared references live in the left rail, each row maps to one worker job, and outputs return directly into the matching record.`}
+              {activeModeMeta
+                ? `${model.description} ${activeModeMeta.menuLabel} ${activeModeMeta.safetyLabel} keeps its own tables, settings, rows, and outputs.`
+                : `${model.description} Playground mode gives you a visual wall, a bottom prompt composer, and quick settings without folder rails.`}
             </p>
             {mode === "playground" ? null : (
             <div className="flex flex-wrap gap-2">

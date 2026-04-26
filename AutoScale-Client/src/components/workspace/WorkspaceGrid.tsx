@@ -49,6 +49,8 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
   const gridColumns = "grid-cols-[56px_repeat(7,minmax(0,1fr))]";
   const cellClass = "border-r border-white/8 px-3 py-3";
   const panelClass = "h-full rounded-xl border border-white/8 bg-[#202020] p-3";
+  const stackedControlPanelClass = cx(panelClass, "flex flex-col gap-2");
+  const pendingJobClass = "mt-1 flex min-h-[176px] flex-1 items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#1a1a1a] px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/32";
   const posePromptSettingsVisible = board.settings.posePromptMode === "CUSTOM" && board.settings.poseMultiplierEnabled;
   const visiblePosePromptCount = Math.max(1, Math.min(4, board.settings.poseMultiplier));
   const activePosePromptRow = board.rows.find((row) => row.id === posePromptSettingsRowId) || null;
@@ -199,11 +201,11 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
                 </div>
 
                 <div className={cellClass}>
-                  <div className={cx(panelClass, "flex flex-col justify-between")}>
+                  <div className={stackedControlPanelClass}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
                     <div
                       className={cx(
-                        "mt-3 rounded-lg border px-3 py-2 text-center text-sm font-semibold transition",
+                        "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
                         poseMultiplierEnabled
                           ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
                           : "border-white/8 bg-[#222222] text-white/62",
@@ -212,7 +214,7 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
                       {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
                     </div>
                     {awaitingOutput ? (
-                      <div className="mt-3 flex min-h-[56px] items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#1a1a1a] px-3 text-center text-[10px] uppercase tracking-[0.18em] text-white/28">
+                      <div className={pendingJobClass}>
                         Pending
                       </div>
                     ) : null}
@@ -220,11 +222,11 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
                 </div>
 
                 <div className={cellClass}>
-                  <div className={cx(panelClass, "flex flex-col justify-between")}>
+                  <div className={stackedControlPanelClass}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Swap</p>
                     <button
                       className={cx(
-                        "mt-3 inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                        "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
                         row.faceSwap
                           ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
                           : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
@@ -235,7 +237,7 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
                       {row.faceSwap ? "On" : "Off"}
                     </button>
                     {awaitingOutput ? (
-                      <div className="mt-3 flex min-h-[56px] items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#1a1a1a] px-3 text-center text-[10px] uppercase tracking-[0.18em] text-white/28">
+                      <div className={pendingJobClass}>
                         Pending
                       </div>
                     ) : null}

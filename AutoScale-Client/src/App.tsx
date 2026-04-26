@@ -87,8 +87,8 @@ function AppContent() {
     page = (
       <ModelWorkspacePage
         boardId={route.boardId}
-        mode={route.mode ?? "sfw"}
-        onSelectBoard={(nextBoardId) => navigate({ name: "workspace", slug: route.slug, boardId: nextBoardId, mode: route.mode ?? "sfw" })}
+        mode={route.mode ?? "image-sfw"}
+        onSelectBoard={(nextBoardId) => navigate({ name: "workspace", slug: route.slug, boardId: nextBoardId, mode: route.mode ?? "image-sfw" })}
         onSelectMode={(nextMode) => navigate({ name: "workspace", slug: route.slug, boardId: null, mode: nextMode })}
         slug={route.slug}
       />

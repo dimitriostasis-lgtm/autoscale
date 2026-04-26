@@ -1,12 +1,28 @@
 import { startTransition, useEffect, useEffectEvent, useState } from "react";
 
+export type WorkspaceMode = "image-sfw" | "image-nsfw" | "video-sfw" | "video-nsfw" | "voice-sfw" | "voice-nsfw" | "playground";
+
 export type Route =
   | { name: "login" }
   | { name: "models" }
-  | { name: "workspace"; slug: string; boardId?: string | null; mode?: "sfw" | "nsfw" | "playground" }
+  | { name: "workspace"; slug: string; boardId?: string | null; mode?: WorkspaceMode }
   | { name: "gallery"; slug: string }
   | { name: "billing" }
   | { name: "admin"; sectionId?: string | null };
+
+const workspaceModes = new Set<WorkspaceMode>(["image-sfw", "image-nsfw", "video-sfw", "video-nsfw", "voice-sfw", "voice-nsfw", "playground"]);
+
+function normalizeWorkspaceMode(requestedMode: string | null | undefined): WorkspaceMode {
+  if (requestedMode === "sfw") {
+    return "image-sfw";
+  }
+
+  if (requestedMode === "nsfw") {
+    return "image-nsfw";
+  }
+
+  return workspaceModes.has(requestedMode as WorkspaceMode) ? (requestedMode as WorkspaceMode) : "image-sfw";
+}
 
 function currentUrl(): URL {
   return new URL(window.location.href);
@@ -33,7 +49,7 @@ export function parseRoute(url = currentUrl()): Route {
       name: "workspace",
       slug: segments[1],
       boardId: url.searchParams.get("board"),
-      mode: requestedMode === "nsfw" || requestedMode === "playground" ? requestedMode : "sfw",
+      mode: normalizeWorkspaceMode(requestedMode),
     };
   }
 
@@ -63,7 +79,7 @@ export function toPath(route: Route): string {
     return "/models";
   }
   if (route.name === "workspace") {
-    const modeSegment = route.mode && route.mode !== "sfw" ? `/${route.mode}` : "";
+    const modeSegment = route.mode && route.mode !== "image-sfw" ? `/${route.mode}` : "";
     const url = new URL(`/models/${route.slug}/workspace${modeSegment}`, window.location.origin);
     if (route.boardId) {
       url.searchParams.set("board", route.boardId);

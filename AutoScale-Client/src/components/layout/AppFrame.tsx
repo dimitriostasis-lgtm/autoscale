@@ -140,7 +140,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
                   A
                 </span>
                 <span>
-                  <span className="font-display block text-lg text-[color:var(--text-strong)]">Autoscale</span>
+                  <span className="font-display block text-lg text-[color:var(--text-strong)]">AutoScale Group</span>
                   <span className="block text-xs uppercase tracking-[0.24em] text-[color:var(--text-muted)]">Internal Generation</span>
                 </span>
               </button>
@@ -150,7 +150,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
                   { label: "Models", route: { name: "models" } as Route, active: route.name === "models" },
                   {
                     label: "Workspace",
-                    route: modelSlug ? ({ name: "workspace", slug: modelSlug, boardId: route.name === "workspace" ? route.boardId : null, mode: route.name === "workspace" ? route.mode : "sfw" } as Route) : null,
+                    route: modelSlug ? ({ name: "workspace", slug: modelSlug, boardId: route.name === "workspace" ? route.boardId : null, mode: route.name === "workspace" ? route.mode : "image-sfw" } as Route) : null,
                     active: route.name === "workspace",
                   },
                   {
