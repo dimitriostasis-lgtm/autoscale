@@ -5,10 +5,13 @@ import {
   getMaxQuantityForGenerationModel,
   getQualityOptionsForGenerationModel,
   getResolutionOptionsForGenerationModel,
+  getVideoDurationOptionsForGenerationModel,
+  isVideoGenerationModel,
   normalizeAspectRatioForGenerationModel,
   normalizeQualityForGenerationModel,
   normalizePoseMultiplierGenerationModel,
   normalizeResolutionForGenerationModel,
+  normalizeVideoDurationForGenerationModel,
   poseMultiplierGenerationModelOptions,
   qualityLabels,
   resolutionLabels,
@@ -19,6 +22,7 @@ import {
 interface SettingsPanelProps {
   settings: BoardSettings;
   allowedGenerationModels: string[];
+  generationKind: "image" | "video" | "voice";
   poseWorkerModelLocked?: boolean;
   promptPrefix: string;
   onSettingsChange: (nextSettings: BoardSettings) => void;
@@ -29,6 +33,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   settings,
   allowedGenerationModels,
+  generationKind,
   poseWorkerModelLocked = false,
   promptPrefix,
   onSettingsChange,
@@ -36,15 +41,37 @@ export function SettingsPanel({
   onPickReference,
 }: SettingsPanelProps) {
   const posePromptTemplates = Array.from({ length: 4 }, (_, index) => settings.posePromptTemplates[index] ?? settings.posePromptTemplate);
+  const videoGenerationModel = isVideoGenerationModel(settings.generationModel);
   const visiblePosePromptCount = Math.max(1, Math.min(4, settings.poseMultiplier));
-  const poseMultiplierAllowed = settings.quantity === 1;
+  const poseMultiplierAllowed = settings.quantity === 1 && !videoGenerationModel;
   const poseMultiplierEnabled = poseMultiplierAllowed && settings.poseMultiplierEnabled;
   const poseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
   const maxQuantity = getMaxQuantityForGenerationModel(settings.generationModel);
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(settings.generationModel);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(settings.generationModel);
+  const allowedVideoDurationOptions = getVideoDurationOptionsForGenerationModel(settings.generationModel);
+  const selectedVideoDuration = normalizeVideoDurationForGenerationModel(settings.generationModel, settings.videoDurationSeconds);
+  const firstVideoDuration = allowedVideoDurationOptions[0] ?? null;
+  const lastVideoDuration = allowedVideoDurationOptions[allowedVideoDurationOptions.length - 1] ?? null;
+  const resolvedVideoDuration = selectedVideoDuration ?? firstVideoDuration;
+  const videoDurationProgress =
+    resolvedVideoDuration !== null && firstVideoDuration !== null && lastVideoDuration !== null && lastVideoDuration > firstVideoDuration
+      ? ((resolvedVideoDuration - firstVideoDuration) / (lastVideoDuration - firstVideoDuration)) * 100
+      : 0;
   const allowedQualityOptions = getQualityOptionsForGenerationModel(settings.generationModel);
   const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
+  const promptAutomationLabel = generationKind === "image" || videoGenerationModel ? "Text Prompt Automation" : "Prompt automation";
+  const promptImageAutomationLabel = videoGenerationModel
+    ? "Video Reference Automation"
+    : generationKind === "image"
+      ? "Image Reference Automation"
+      : "Prompt image automation";
+  const isVoiceWorkspace = generationKind === "voice";
+  const showImageReferenceAutomation = !isVoiceWorkspace;
+  const showPoseControls = generationKind === "image";
+  const showFaceSwapControls = generationKind === "image";
+  const showPromptContext = !isVoiceWorkspace;
+  const showGlobalReferences = !isVoiceWorkspace;
 
   return (
     <section className="h-full bg-[#202020] text-white">
@@ -64,6 +91,7 @@ export function SettingsPanel({
                 value={settings.generationModel}
                 onChange={(event) => {
                   const nextGenerationModel = event.target.value;
+                  const nextVideoGenerationModel = isVideoGenerationModel(nextGenerationModel);
                   const nextQuantity = Math.min(settings.quantity, getMaxQuantityForGenerationModel(nextGenerationModel));
                   const nextResolution = normalizeResolutionForGenerationModel(nextGenerationModel, settings.resolution);
                   const nextQuality = normalizeQualityForGenerationModel(nextGenerationModel, settings.quality);
@@ -71,10 +99,11 @@ export function SettingsPanel({
                     ...settings,
                     generationModel: nextGenerationModel,
                     resolution: nextResolution,
+                    videoDurationSeconds: normalizeVideoDurationForGenerationModel(nextGenerationModel, settings.videoDurationSeconds),
                     quality: nextQuality,
                     aspectRatio: normalizeAspectRatioForGenerationModel(nextGenerationModel, settings.aspectRatio),
                     quantity: nextQuantity,
-                    poseMultiplierEnabled: nextQuantity === 1 ? settings.poseMultiplierEnabled : false,
+                    poseMultiplierEnabled: nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
                     poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
                   });
                 }}
@@ -136,30 +165,69 @@ export function SettingsPanel({
               </select>
             </label>
 
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Quantity</span>
-              <select
-                className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                value={settings.quantity}
-                onChange={(event) => {
-                  const nextQuantity = Number(event.target.value);
-                  onSettingsChange({
-                    ...settings,
-                    quantity: nextQuantity,
-                    poseMultiplierEnabled: nextQuantity === 1 ? settings.poseMultiplierEnabled : false,
-                  });
-                }}
-              >
-                {quantityOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {allowedVideoDurationOptions.length ? (
+              <div className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Duration</span>
+                <div className="rounded-2xl border border-white/8 bg-[#262626] p-2 shadow-[0_16px_36px_rgba(0,0,0,0.24)]">
+                  <div className="rounded-xl bg-[#131517] p-2">
+                    <p className="mb-2 text-sm font-semibold text-white">Choose duration</p>
+                    <div className="w-full" role="group" aria-label="Choose duration">
+                      <div className="group relative h-9 w-full overflow-hidden rounded-md border border-[#424242] bg-[#202020] transition hover:border-white/24">
+                        <output className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-left text-xs font-semibold text-white">
+                          {resolvedVideoDuration}s
+                        </output>
+                        <div
+                          className="pointer-events-none absolute inset-y-0 left-0 bg-[#34383d] transition-[width]"
+                          style={{ width: `${videoDurationProgress}%` }}
+                        />
+                        <input
+                          aria-label="Choose duration"
+                          aria-valuetext={resolvedVideoDuration !== null ? `${resolvedVideoDuration}s` : undefined}
+                          className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+                          max={lastVideoDuration ?? 0}
+                          min={firstVideoDuration ?? 0}
+                          onChange={(event) => onSettingsChange({ ...settings, videoDurationSeconds: Number(event.target.value) })}
+                          step={1}
+                          type="range"
+                          value={resolvedVideoDuration ?? firstVideoDuration ?? 0}
+                        />
+                        <div
+                          className="pointer-events-none absolute top-1/2 z-10 h-full w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/86 shadow-[0_0_0_1px_rgba(255,255,255,0.24)] transition-[left]"
+                          style={{ left: `${videoDurationProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {!videoGenerationModel ? (
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Quantity</span>
+                <select
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  value={settings.quantity}
+                  onChange={(event) => {
+                    const nextQuantity = Number(event.target.value);
+                    onSettingsChange({
+                      ...settings,
+                      quantity: nextQuantity,
+                      poseMultiplierEnabled: nextQuantity === 1 ? settings.poseMultiplierEnabled : false,
+                    });
+                  }}
+                >
+                  {quantityOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
             <div className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Prompt automation</span>
+              <span className="text-sm font-semibold text-white/76">{promptAutomationLabel}</span>
               <button
                 className={
                   settings.autoPromptGen
@@ -175,184 +243,195 @@ export function SettingsPanel({
               </button>
             </div>
 
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Prompt image automation</span>
-              <button
-                className={
-                  settings.autoPromptImage
-                    ? "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                    : "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
-                }
-                onClick={() => {
-                  const nextAutoPromptImage = !settings.autoPromptImage;
-                  onSettingsChange({
-                    ...settings,
-                    autoPromptImage: nextAutoPromptImage,
-                    autoPromptGen: nextAutoPromptImage ? true : settings.autoPromptGen,
-                  });
-                }}
-                type="button"
-              >
-                <span aria-hidden="true" />
-                <span className="text-center">{settings.autoPromptImage ? "Auto Image On" : "Auto Image Off"}</span>
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
-              <div className="group/pose relative">
+            {showImageReferenceAutomation ? (
+              <div className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">{promptImageAutomationLabel}</span>
                 <button
                   className={
-                    poseMultiplierEnabled
-                      ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                      : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131] disabled:cursor-not-allowed disabled:opacity-45"
+                    settings.autoPromptImage
+                      ? "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                      : "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
                   }
-                  disabled={!poseMultiplierAllowed}
-                  onClick={() =>
+                  onClick={() => {
+                    const nextAutoPromptImage = !settings.autoPromptImage;
                     onSettingsChange({
                       ...settings,
-                      poseMultiplierEnabled: !poseMultiplierEnabled,
-                    })
-                  }
+                      autoPromptImage: nextAutoPromptImage,
+                      autoPromptGen: nextAutoPromptImage ? true : settings.autoPromptGen,
+                    });
+                  }}
                   type="button"
                 >
-                  <span>{poseMultiplierEnabled ? "Pose Multiplier On" : "Pose Multiplier Off"}</span>
-                  <span className="flex items-center gap-2">
-                    {!poseMultiplierAllowed ? (
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/12 text-[11px] font-semibold text-white/58 opacity-0 transition group-hover/pose:opacity-100">
-                        i
-                      </span>
-                    ) : null}
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
-                  </span>
+                  <span aria-hidden="true" />
+                  <span className="text-center">{settings.autoPromptImage ? "Auto Image On" : "Auto Image Off"}</span>
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
                 </button>
-                {!poseMultiplierAllowed ? (
-                  <div className="pointer-events-none absolute right-0 top-full z-10 mt-2 max-w-56 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs leading-5 text-white/62 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/pose:translate-y-0 group-hover/pose:opacity-100 group-hover/pose:delay-75">
-                    You can only turn on pose multiplier when quantity is set to 1.
+              </div>
+            ) : null}
+
+            {showPoseControls ? (
+              <div className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
+                <div className="group/pose relative">
+                  <button
+                    className={
+                      poseMultiplierEnabled
+                        ? "inline-flex w-full items-center justify-between rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                        : "inline-flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131] disabled:cursor-not-allowed disabled:opacity-45"
+                    }
+                    disabled={!poseMultiplierAllowed}
+                    onClick={() =>
+                      onSettingsChange({
+                        ...settings,
+                        poseMultiplierEnabled: !poseMultiplierEnabled,
+                      })
+                    }
+                    type="button"
+                  >
+                    <span>{poseMultiplierEnabled ? "Pose Multiplier On" : "Pose Multiplier Off"}</span>
+                    <span className="flex items-center gap-2">
+                      {!poseMultiplierAllowed ? (
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/12 text-[11px] font-semibold text-white/58 opacity-0 transition group-hover/pose:opacity-100">
+                          i
+                        </span>
+                      ) : null}
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
+                    </span>
+                  </button>
+                  {!poseMultiplierAllowed ? (
+                    <div className="pointer-events-none absolute right-0 top-full z-10 mt-2 max-w-56 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs leading-5 text-white/62 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/pose:translate-y-0 group-hover/pose:opacity-100 group-hover/pose:delay-75">
+                      You can only turn on pose multiplier when quantity is set to 1.
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#262626] p-2">
+                  <button
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/8 bg-[#202020] text-lg font-semibold text-white/78 transition hover:bg-[#2c2c2c] disabled:cursor-not-allowed disabled:opacity-35"
+                    disabled={!poseMultiplierEnabled || settings.poseMultiplier <= 1}
+                    onClick={() => onSettingsChange({ ...settings, poseMultiplier: Math.max(1, settings.poseMultiplier - 1) })}
+                    type="button"
+                  >
+                    -
+                  </button>
+                  <div className="flex-1 rounded-lg border border-white/8 bg-[#202020] px-3 py-2 text-center text-sm font-semibold text-white">
+                    {poseMultiplierEnabled ? `${settings.poseMultiplier}x` : "Off"}
                   </div>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#262626] p-2">
-                <button
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/8 bg-[#202020] text-lg font-semibold text-white/78 transition hover:bg-[#2c2c2c] disabled:cursor-not-allowed disabled:opacity-35"
-                  disabled={!poseMultiplierEnabled || settings.poseMultiplier <= 1}
-                  onClick={() => onSettingsChange({ ...settings, poseMultiplier: Math.max(1, settings.poseMultiplier - 1) })}
-                  type="button"
-                >
-                  -
-                </button>
-                <div className="flex-1 rounded-lg border border-white/8 bg-[#202020] px-3 py-2 text-center text-sm font-semibold text-white">
-                  {poseMultiplierEnabled ? `${settings.poseMultiplier}x` : "Off"}
+                  <button
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/8 bg-[#202020] text-lg font-semibold text-white/78 transition hover:bg-[#2c2c2c] disabled:cursor-not-allowed disabled:opacity-35"
+                    disabled={!poseMultiplierEnabled || settings.poseMultiplier >= 4}
+                    onClick={() => onSettingsChange({ ...settings, poseMultiplier: Math.min(4, settings.poseMultiplier + 1) })}
+                    type="button"
+                  >
+                    +
+                  </button>
                 </div>
-                <button
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/8 bg-[#202020] text-lg font-semibold text-white/78 transition hover:bg-[#2c2c2c] disabled:cursor-not-allowed disabled:opacity-35"
-                  disabled={!poseMultiplierEnabled || settings.poseMultiplier >= 4}
-                  onClick={() => onSettingsChange({ ...settings, poseMultiplier: Math.min(4, settings.poseMultiplier + 1) })}
-                  type="button"
-                >
-                  +
-                </button>
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold text-white/76">Pose worker model</span>
+                  <select
+                    className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                    disabled={poseWorkerModelLocked || !poseMultiplierAllowed}
+                    value={poseWorkerModelLocked ? "automatic" : poseMultiplierGenerationModel}
+                    onChange={(event) => onSettingsChange({ ...settings, poseMultiplierGenerationModel: event.target.value })}
+                  >
+                    {poseWorkerModelLocked ? (
+                      <option value="automatic">Automatic</option>
+                    ) : (
+                      poseMultiplierGenerationModelOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {workerModelLabels[option]}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </label>
               </div>
-              <label className="block space-y-2">
-                <span className="text-sm font-semibold text-white/76">Pose worker model</span>
-                <select
-                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                  disabled={poseWorkerModelLocked || !poseMultiplierAllowed}
-                  value={poseWorkerModelLocked ? "automatic" : poseMultiplierGenerationModel}
-                  onChange={(event) => onSettingsChange({ ...settings, poseMultiplierGenerationModel: event.target.value })}
-                >
-                  {poseWorkerModelLocked ? (
-                    <option value="automatic">Automatic</option>
-                  ) : (
-                    poseMultiplierGenerationModelOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {workerModelLabels[option]}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </label>
-            </div>
+            ) : null}
 
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Pose multiplier prompt mode</span>
-              <div className="grid grid-cols-2 gap-2">
+            {showPoseControls ? (
+              <div className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Pose multiplier prompt mode</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    className={
+                      settings.posePromptMode === "AUTO"
+                        ? "inline-flex items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                        : "inline-flex items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                    }
+                    onClick={() => onSettingsChange({ ...settings, posePromptMode: "AUTO" })}
+                    type="button"
+                  >
+                    Auto mode
+                  </button>
+                  <button
+                    className={
+                      settings.posePromptMode === "CUSTOM"
+                        ? "inline-flex items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                        : "inline-flex items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                    }
+                    onClick={() => onSettingsChange({ ...settings, posePromptMode: "CUSTOM" })}
+                    type="button"
+                  >
+                    Custom prompt
+                  </button>
+                </div>
+                {settings.posePromptMode === "AUTO" ? (
+                  <div className="rounded-xl border border-white/8 bg-[#262626] px-3 py-3 text-sm leading-6 text-white/58">
+                    Backend default pose-expansion prompt will be used automatically for the selected multiplier.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm leading-6 text-white/54">Each prompt maps to one generated image in the multiplied output set.</p>
+                    {posePromptTemplates.slice(0, visiblePosePromptCount).map((template, index) => (
+                      <label key={index} className="block space-y-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Generated image {index + 1}</span>
+                        <textarea
+                          className={theme.input + " min-h-[96px] rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 text-sm leading-6"}
+                          value={template}
+                          onChange={(event) => {
+                            const nextPosePromptTemplates = posePromptTemplates.map((currentTemplate, templateIndex) =>
+                              templateIndex === index ? event.target.value : currentTemplate,
+                            );
+                            onSettingsChange({
+                              ...settings,
+                              posePromptTemplate: nextPosePromptTemplates[0] || settings.posePromptTemplate,
+                              posePromptTemplates: nextPosePromptTemplates,
+                            });
+                          }}
+                          placeholder={`Describe the pose direction for generated image ${index + 1}`}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {showFaceSwapControls ? (
+              <div className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Face swap</span>
                 <button
                   className={
-                    settings.posePromptMode === "AUTO"
-                      ? "inline-flex items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                      : "inline-flex items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                    settings.faceSwap
+                      ? "inline-flex w-full items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                      : "inline-flex w-full items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
                   }
-                  onClick={() => onSettingsChange({ ...settings, posePromptMode: "AUTO" })}
+                  onClick={() => onSettingsChange({ ...settings, faceSwap: !settings.faceSwap })}
                   type="button"
                 >
-                  Auto mode
-                </button>
-                <button
-                  className={
-                    settings.posePromptMode === "CUSTOM"
-                      ? "inline-flex items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                      : "inline-flex items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
-                  }
-                  onClick={() => onSettingsChange({ ...settings, posePromptMode: "CUSTOM" })}
-                  type="button"
-                >
-                  Custom prompt
+                  {settings.faceSwap ? "Enabled for all rows" : "Disabled for all rows"}
                 </button>
               </div>
-              {settings.posePromptMode === "AUTO" ? (
-                <div className="rounded-xl border border-white/8 bg-[#262626] px-3 py-3 text-sm leading-6 text-white/58">
-                  Backend default pose-expansion prompt will be used automatically for the selected multiplier.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm leading-6 text-white/54">Each prompt maps to one generated image in the multiplied output set.</p>
-                  {posePromptTemplates.slice(0, visiblePosePromptCount).map((template, index) => (
-                    <label key={index} className="block space-y-2">
-                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Generated image {index + 1}</span>
-                      <textarea
-                        className={theme.input + " min-h-[96px] rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 text-sm leading-6"}
-                        value={template}
-                        onChange={(event) => {
-                          const nextPosePromptTemplates = posePromptTemplates.map((currentTemplate, templateIndex) =>
-                            templateIndex === index ? event.target.value : currentTemplate,
-                          );
-                          onSettingsChange({
-                            ...settings,
-                            posePromptTemplate: nextPosePromptTemplates[0] || settings.posePromptTemplate,
-                            posePromptTemplates: nextPosePromptTemplates,
-                          });
-                        }}
-                        placeholder={`Describe the pose direction for generated image ${index + 1}`}
-                      />
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
+            ) : null}
 
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Face swap</span>
-              <button
-                className={
-                  settings.faceSwap
-                    ? "inline-flex w-full items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                    : "inline-flex w-full items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
-                }
-                onClick={() => onSettingsChange({ ...settings, faceSwap: !settings.faceSwap })}
-                type="button"
-              >
-                {settings.faceSwap ? "Enabled for all rows" : "Disabled for all rows"}
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-white/8 bg-[#262626] p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/40">Default prompt context</p>
-              <p className="mt-3 text-sm leading-6 text-white/58">{promptPrefix}</p>
-            </div>
+            {showPromptContext ? (
+              <div className="rounded-2xl border border-white/8 bg-[#262626] p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/40">Default prompt context</p>
+                <p className="mt-3 text-sm leading-6 text-white/58">{promptPrefix}</p>
+              </div>
+            ) : null}
           </div>
 
+          {showGlobalReferences ? (
           <div className="space-y-3 border-t border-white/8 pt-5">
             <div>
               <p className="text-sm font-semibold text-white">Global reference images</p>
@@ -400,6 +479,7 @@ export function SettingsPanel({
               })}
             </div>
           </div>
+          ) : null}
       </div>
     </section>
   );

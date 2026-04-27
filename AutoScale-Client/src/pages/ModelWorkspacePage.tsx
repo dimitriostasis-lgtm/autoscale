@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApolloClient, useMutation, useQuery, useSubscription } from "@apollo/client/react";
 
+import playgroundReadyImage from "../assets/playground-ready.png";
 import { InfluencerAvatar } from "../components/model/InfluencerAvatar";
 import { BoardTabs } from "../components/workspace/BoardTabs";
 import { ImagePickerModal } from "../components/workspace/ImagePickerModal";
@@ -23,12 +24,22 @@ import {
   UPDATE_SETTINGS_MUTATION,
 } from "../queries/workspace";
 import {
+  getAspectRatioOptionsForGenerationModel,
   getMaxQuantityForGenerationModel,
+  getResolutionOptionsForGenerationModel,
+  getVideoDurationOptionsForGenerationModel,
+  imageGenerationModelOptions,
+  isVideoGenerationModel,
   normalizeAspectRatioForGenerationModel,
   normalizeQualityForGenerationModel,
   normalizePoseMultiplierGenerationModel,
   normalizeResolutionForGenerationModel,
+  normalizeVideoDurationForGenerationModel,
+  resolutionLabels,
   theme,
+  videoGenerationModelOptions,
+  videoNsfwGenerationModelOptions,
+  workerModelLabels,
 } from "../styles/theme";
 import type { BoardSettings, GeneratedAsset, InfluencerModel, ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../types";
 
@@ -107,7 +118,12 @@ const workspaceModeMetaByMode = Object.fromEntries(
 ) as Record<WorkspaceTableMode, WorkspaceModeMeta>;
 
 const workspaceModeGenerationModelOptions: Partial<Record<WorkspaceMode, string[]>> = {
+  "image-sfw": [...imageGenerationModelOptions],
   "image-nsfw": ["sd_4_5", "sdxl"],
+  "video-sfw": [...videoGenerationModelOptions],
+  "video-nsfw": [...videoNsfwGenerationModelOptions],
+  "voice-sfw": [...imageGenerationModelOptions],
+  "voice-nsfw": [...imageGenerationModelOptions],
 };
 
 function resolveWorkspaceGenerationModels(mode: WorkspaceMode, modelGenerationModels: string[]): string[] {
@@ -126,6 +142,7 @@ function normalizeSettingsForGenerationModel(settings: BoardSettings, generation
     ...settings,
     generationModel,
     resolution: normalizeResolutionForGenerationModel(generationModel, settings.resolution),
+    videoDurationSeconds: normalizeVideoDurationForGenerationModel(generationModel, settings.videoDurationSeconds),
     quality: normalizeQualityForGenerationModel(generationModel, settings.quality),
     aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, settings.aspectRatio),
     quantity,
@@ -136,7 +153,9 @@ function normalizeSettingsForGenerationModel(settings: BoardSettings, generation
 
 type PickerState =
   | { kind: "row"; row: WorkspaceRow }
-  | { kind: "global"; slotIndex: number };
+  | { kind: "global"; slotIndex: number; source?: "tray" };
+
+const maxPlaygroundReferenceCount = 10;
 
 function buildUploadReference(slotIndex: number, fileName: string, upload: Awaited<ReturnType<typeof uploadReferenceFile>>): ReferenceSelection {
   return {
@@ -163,6 +182,91 @@ function buildAssetReference(slotIndex: number, asset: GeneratedAsset): Referenc
     uploadUrl: null,
     asset,
   };
+}
+
+function buildEmptyGlobalReference(slotIndex: number): ReferenceSelection {
+  return {
+    id: `global-empty-${slotIndex}`,
+    slotIndex,
+    label: `Global ${slotIndex + 1}`,
+    sourceType: "UPLOAD",
+    assetId: null,
+    assetUrl: null,
+    uploadPath: null,
+    uploadUrl: null,
+    asset: null,
+  };
+}
+
+function previewSourceForReference(reference: ReferenceSelection): string | null {
+  return reference.asset?.url || reference.assetUrl || reference.uploadUrl || null;
+}
+
+function filledGlobalReferences(settings: BoardSettings): ReferenceSelection[] {
+  return settings.globalReferences
+    .filter((reference) => previewSourceForReference(reference))
+    .sort((left, right) => left.slotIndex - right.slotIndex);
+}
+
+function normalizeGlobalReferenceTray(references: ReferenceSelection[]): ReferenceSelection[] {
+  const filledReferences = references
+    .filter((reference) => previewSourceForReference(reference))
+    .slice(0, maxPlaygroundReferenceCount)
+    .map((reference, index) => ({ ...reference, slotIndex: index }));
+
+  return [
+    ...filledReferences,
+    ...Array.from({ length: maxPlaygroundReferenceCount - filledReferences.length }, (_, index) =>
+      buildEmptyGlobalReference(filledReferences.length + index),
+    ),
+  ];
+}
+
+function upsertGlobalReference(settings: BoardSettings, reference: ReferenceSelection): ReferenceSelection[] {
+  const references = filledGlobalReferences(settings);
+  const targetIndex = Math.max(0, Math.min(reference.slotIndex, maxPlaygroundReferenceCount - 1));
+
+  if (targetIndex < references.length) {
+    references[targetIndex] = reference;
+  } else {
+    references.push(reference);
+  }
+
+  return normalizeGlobalReferenceTray(references);
+}
+
+function replaceGlobalReferenceAtSlot(settings: BoardSettings, reference: ReferenceSelection): ReferenceSelection[] {
+  const replacedReferences = settings.globalReferences.map((selection) => (selection.slotIndex === reference.slotIndex ? reference : selection));
+
+  if (replacedReferences.some((selection) => selection.id === reference.id)) {
+    return replacedReferences.sort((left, right) => left.slotIndex - right.slotIndex);
+  }
+
+  return [...replacedReferences, reference].sort((left, right) => left.slotIndex - right.slotIndex);
+}
+
+function moveReferenceToIndex(references: ReferenceSelection[], sourceReferenceId: string, targetIndex: number): ReferenceSelection[] {
+  const sourceIndex = references.findIndex((reference) => reference.id === sourceReferenceId);
+
+  if (sourceIndex === -1) {
+    return references;
+  }
+
+  const nextReferences = [...references];
+  const [sourceReference] = nextReferences.splice(sourceIndex, 1);
+  const boundedTargetIndex = Math.max(0, Math.min(targetIndex, nextReferences.length));
+
+  nextReferences.splice(boundedTargetIndex, 0, sourceReference);
+
+  return nextReferences;
+}
+
+function removeGlobalReference(settings: BoardSettings, referenceId: string): ReferenceSelection[] {
+  return normalizeGlobalReferenceTray(filledGlobalReferences(settings).filter((reference) => reference.id !== referenceId));
+}
+
+function reorderGlobalReference(settings: BoardSettings, sourceReferenceId: string, targetIndex: number): ReferenceSelection[] {
+  return normalizeGlobalReferenceTray(moveReferenceToIndex(filledGlobalReferences(settings), sourceReferenceId, targetIndex));
 }
 
 function buildPositionNamedBoards(boards: WorkspaceBoardTab[]): WorkspaceBoardTab[] {
@@ -301,20 +405,193 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
 }
 
 function PlaygroundSurface({
+  allowedGenerationModels,
   assets,
   board,
-  model,
+  onPickReference,
+  onSettingsChange,
+  onUploadReferences,
 }: {
+  allowedGenerationModels: string[];
   assets: GeneratedAsset[];
   board: WorkspaceBoard | null;
-  model: InfluencerModel;
+  onPickReference: (slotIndex: number) => void;
+  onSettingsChange: (nextSettings: BoardSettings) => void;
+  onUploadReferences: (slotIndex: number, files: File[]) => Promise<void> | void;
 }) {
   const [prompt, setPrompt] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [referenceMenuPosition, setReferenceMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const [draggedReferenceId, setDraggedReferenceId] = useState<string | null>(null);
+  const [referenceDropIndex, setReferenceDropIndex] = useState<number | null>(null);
+  const [referenceDragPreview, setReferenceDragPreview] = useState<{
+    reference: ReferenceSelection;
+    x: number;
+    offsetX: number;
+    railLeft: number;
+    railRight: number;
+    railTop: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const referenceTileElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const referenceMenuRef = useRef<HTMLDivElement | null>(null);
+  const addReferenceButtonRef = useRef<HTMLButtonElement | null>(null);
+  const referenceRailRef = useRef<HTMLDivElement | null>(null);
   const visibleAssets = assets.slice(0, 18);
 
+  useEffect(() => {
+    if (!referenceMenuPosition) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (referenceMenuRef.current?.contains(target) || addReferenceButtonRef.current?.contains(target)) {
+        return;
+      }
+
+      setReferenceMenuPosition(null);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setReferenceMenuPosition(null);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [referenceMenuPosition]);
+
+  if (!board) {
+    return (
+      <div className="relative min-h-[68vh] overflow-hidden bg-[color:var(--surface-card-strong)]">
+        <div className="grid gap-px bg-white/8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {visibleAssets.map((asset) => (
+            <button key={asset.id} className="group relative aspect-[3/4] overflow-hidden bg-[#202020] text-left" type="button">
+              <img alt={asset.fileName} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" src={asset.url} />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 transition group-hover:opacity-100">
+                <p className="line-clamp-1 text-sm font-semibold text-white">{asset.fileName}</p>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/62">{asset.promptSnapshot}</p>
+              </div>
+            </button>
+          ))}
+
+          {!visibleAssets.length ? (
+            <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[color:var(--surface-card)] px-6 text-center">
+              <img alt="Ready to bring your idea to life?" className="w-full max-w-[680px] select-none object-contain opacity-95" draggable={false} src={playgroundReadyImage} />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  const settings = board.settings;
+  const generationModel = settings.generationModel;
+  const videoGenerationModel = isVideoGenerationModel(generationModel);
+  const allowedResolutionOptions = getResolutionOptionsForGenerationModel(generationModel);
+  const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(generationModel);
+  const allowedVideoDurationOptions = getVideoDurationOptionsForGenerationModel(generationModel);
+  const maxQuantity = getMaxQuantityForGenerationModel(generationModel);
+  const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
+  const imageModelSelectOptions = allowedGenerationModels.filter((option) => imageGenerationModelOptions.includes(option as (typeof imageGenerationModelOptions)[number]));
+  const videoModelSelectOptions = allowedGenerationModels.filter(
+    (option) => videoGenerationModelOptions.includes(option as (typeof videoGenerationModelOptions)[number]) || videoNsfwGenerationModelOptions.includes(option as (typeof videoNsfwGenerationModelOptions)[number]),
+  );
+  const activeGlobalReferences = filledGlobalReferences(settings);
+  const draggedReference = draggedReferenceId ? activeGlobalReferences.find((reference) => reference.id === draggedReferenceId) ?? null : null;
+  const referencesWithoutDragged = draggedReference
+    ? activeGlobalReferences.filter((reference) => reference.id !== draggedReference.id)
+    : activeGlobalReferences;
+  const draggedReferenceOriginalIndex = draggedReference
+    ? activeGlobalReferences.findIndex((reference) => reference.id === draggedReference.id)
+    : -1;
+  const activeReferenceDropIndex = draggedReference
+    ? Math.max(0, Math.min(referenceDropIndex ?? draggedReferenceOriginalIndex, referencesWithoutDragged.length))
+    : null;
+  const previewReferenceItems = draggedReference
+    ? [
+        ...referencesWithoutDragged.slice(0, activeReferenceDropIndex ?? 0).map((reference) => ({ kind: "reference" as const, reference })),
+        { kind: "drop-slot" as const, id: "reference-drop-slot" },
+        ...referencesWithoutDragged.slice(activeReferenceDropIndex ?? 0).map((reference) => ({ kind: "reference" as const, reference })),
+      ]
+    : activeGlobalReferences.map((reference) => ({ kind: "reference" as const, reference }));
+  const nextReferenceSlot = activeGlobalReferences.length;
+  const canAddReference = nextReferenceSlot < maxPlaygroundReferenceCount;
+
+  function updateGenerationModel(nextGenerationModel: string) {
+    const nextVideoGenerationModel = isVideoGenerationModel(nextGenerationModel);
+    const nextQuantity = Math.min(settings.quantity, getMaxQuantityForGenerationModel(nextGenerationModel));
+
+    onSettingsChange({
+      ...settings,
+      generationModel: nextGenerationModel,
+      resolution: normalizeResolutionForGenerationModel(nextGenerationModel, settings.resolution),
+      videoDurationSeconds: normalizeVideoDurationForGenerationModel(nextGenerationModel, settings.videoDurationSeconds),
+      quality: normalizeQualityForGenerationModel(nextGenerationModel, settings.quality),
+      aspectRatio: normalizeAspectRatioForGenerationModel(nextGenerationModel, settings.aspectRatio),
+      quantity: nextQuantity,
+      poseMultiplierEnabled: nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
+      poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
+    });
+  }
+
+  const controlClass =
+    "h-10 rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-strong)] outline-none transition hover:bg-[color:var(--surface-soft-hover)] focus:border-[color:var(--focus-ring)]";
+  const iconTileClass =
+    "grid size-14 shrink-0 place-items-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-muted)] transition-all duration-200 ease-out hover:bg-[color:var(--surface-soft-hover)]";
+  const addReferenceButtonClass =
+    "relative -top-[5.5px] grid size-8 shrink-0 place-items-center rounded-[0.625rem] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-strong)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--accent-text)] focus-visible:ring-2 focus-visible:ring-[color:var(--focus-ring)]";
+
+  function resolveReferenceDropIndex(clientX: number, sourceReferenceId: string): number {
+    const tileBounds = [];
+
+    for (const reference of activeGlobalReferences.filter((currentReference) => currentReference.id !== sourceReferenceId)) {
+      if (reference.id === sourceReferenceId) {
+        continue;
+      }
+
+      const tile = referenceTileElementsRef.current.get(reference.id);
+      if (!tile) {
+        continue;
+      }
+
+      const bounds = tile.getBoundingClientRect();
+      tileBounds.push({ centerX: bounds.left + bounds.width / 2, left: bounds.left });
+    }
+
+    const orderedTileBounds = tileBounds.sort((left, right) => left.left - right.left);
+    const beforeIndex = orderedTileBounds.findIndex((bounds) => clientX < bounds.centerX);
+
+    return beforeIndex === -1 ? orderedTileBounds.length : beforeIndex;
+  }
+
+  function finishReferenceDrag() {
+    if (draggedReferenceId && referenceDropIndex !== null) {
+      onSettingsChange({
+        ...settings,
+        globalReferences: reorderGlobalReference(settings, draggedReferenceId, referenceDropIndex),
+      });
+    }
+
+    setDraggedReferenceId(null);
+    setReferenceDropIndex(null);
+    setReferenceDragPreview(null);
+  }
+
   return (
-    <div className="relative min-h-[68vh] overflow-hidden bg-[#171717]">
+    <div className="relative min-h-[68vh] overflow-hidden bg-[color:var(--surface-card-strong)] pb-44">
       <div className="grid gap-px bg-white/8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {visibleAssets.map((asset) => (
           <button key={asset.id} className="group relative aspect-[3/4] overflow-hidden bg-[#202020] text-left" type="button">
@@ -327,60 +604,347 @@ function PlaygroundSurface({
         ))}
 
         {!visibleAssets.length ? (
-          <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[#1b1b1b] px-6 text-center">
-            <div>
-              <p className="font-display text-2xl text-white">Playground is ready</p>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-white/56">
-                Generated images for {model.name} will appear here as a visual working wall.
-              </p>
-            </div>
+          <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[color:var(--surface-card)] px-6 text-center">
+            <img
+              alt="Ready to bring your idea to life?"
+              className="w-full max-w-[680px] select-none object-contain opacity-95"
+              draggable={false}
+              src={playgroundReadyImage}
+            />
           </div>
         ) : null}
       </div>
 
-      {settingsOpen ? (
-        <div className="absolute right-4 top-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-[28px] border border-white/10 bg-[#202020]/95 p-4 shadow-[0_22px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Settings</p>
-              <p className="mt-2 text-sm font-semibold text-white">Playground defaults</p>
-            </div>
-            <button className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/62" onClick={() => setSettingsOpen(false)} type="button">
-              Close
-            </button>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {[
-              ["Model", board?.settings.generationModel || model.defaults.generationModel],
-              ["Resolution", board?.settings.resolution || model.defaults.resolution],
-              ["Ratio", board?.settings.aspectRatio || model.defaults.aspectRatio],
-              ["Quantity", String(board?.settings.quantity || model.defaults.quantity)],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/38">{label}</p>
-                <p className="mt-2 text-sm font-semibold text-white">{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <form
+        className="sticky bottom-4 z-30 mx-auto mt-4 w-[min(calc(100%-2rem),70rem)] rounded-[26px] border border-[color:var(--surface-border-strong)] bg-[color:var(--surface-card-strong)] p-1 shadow-[0_24px_90px_rgba(0,0,0,0.26)] backdrop-blur-2xl"
+        style={{
+          background:
+            "linear-gradient(115deg, color-mix(in srgb, var(--text-strong) 8%, transparent) 27.54%, color-mix(in srgb, var(--surface-card) 38%, transparent) 85.5%), var(--surface-card-strong)",
+        }}
+        onSubmit={(event) => event.preventDefault()}
+      >
+        <fieldset className="flex min-w-0 flex-col gap-4 rounded-[22px] border border-[color:var(--surface-border)] p-4 sm:p-5 lg:flex-row lg:items-end">
+          <div className="min-w-0 flex-1 space-y-3">
+            <div
+              className="relative flex min-h-16 items-center gap-2 overflow-x-auto overflow-y-visible pb-2"
+              onPointerCancel={finishReferenceDrag}
+              onPointerMove={(event) => {
+                if (!draggedReferenceId) {
+                  return;
+                }
 
-      <div className="sticky bottom-0 z-10 border-t border-white/8 bg-[#171717]/82 px-4 py-4 backdrop-blur-2xl sm:px-6">
-        <div className="mx-auto flex max-w-5xl items-end gap-3 rounded-[32px] border border-white/10 bg-[#252525] p-2 shadow-[0_22px_70px_rgba(0,0,0,0.45)]">
-          <textarea
-            className="min-h-16 flex-1 resize-none rounded-[26px] border border-white/8 bg-[#181818] px-5 py-4 text-sm leading-6 text-white outline-none placeholder:text-white/34 focus:border-lime-300/25"
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Describe what you want to generate..."
-            value={prompt}
-          />
-          <button className={theme.buttonSecondary + " h-12 rounded-full px-4"} onClick={() => setSettingsOpen((current) => !current)} type="button">
-            Settings
-          </button>
-          <button className={theme.buttonPrimary + " h-12 rounded-full px-5"} disabled={!prompt.trim()} type="button">
+                setReferenceDragPreview((current) => {
+                  if (!current) {
+                    return current;
+                  }
+
+                  const railBounds = referenceRailRef.current?.getBoundingClientRect();
+
+                  return {
+                    ...current,
+                    railLeft: railBounds?.left ?? current.railLeft,
+                    railRight: railBounds?.right ?? current.railRight,
+                    x: event.clientX,
+                  };
+                });
+                setReferenceDropIndex((current) => {
+                  const nextDropIndex = resolveReferenceDropIndex(event.clientX, draggedReferenceId);
+                  return current === nextDropIndex ? current : nextDropIndex;
+                });
+              }}
+              onPointerUp={finishReferenceDrag}
+              ref={referenceRailRef}
+            >
+              {previewReferenceItems.map((item, index) => {
+                if (item.kind === "drop-slot") {
+                  return (
+                    <div
+                      key={item.id}
+                      className="size-14 shrink-0 rounded-xl border-2 border-dashed border-[color:var(--accent-main)] bg-[color:var(--surface-soft-hover)] shadow-[0_0_22px_color-mix(in_srgb,var(--accent-main)_28%,transparent)] transition-all duration-200"
+                    />
+                  );
+                }
+
+                const { reference } = item;
+                const previewSrc = previewSourceForReference(reference);
+
+                return (
+                  <div
+                    key={reference.id || index}
+                    aria-grabbed={draggedReferenceId === reference.id}
+                    className={cx(iconTileClass, "group relative cursor-grab touch-none select-none overflow-visible active:cursor-grabbing")}
+                    onPointerDown={(event) => {
+                      if (event.button !== 0) {
+                        return;
+                      }
+
+                      const bounds = event.currentTarget.getBoundingClientRect();
+                      const railBounds = referenceRailRef.current?.getBoundingClientRect() ?? bounds;
+                      try {
+                        referenceRailRef.current?.setPointerCapture(event.pointerId);
+                      } catch {
+                        // Some browsers only allow the original pointer target to capture.
+                      }
+                      setReferenceMenuPosition(null);
+                      setDraggedReferenceId(reference.id);
+                      setReferenceDropIndex(activeGlobalReferences.findIndex((currentReference) => currentReference.id === reference.id));
+                      setReferenceDragPreview({
+                        reference,
+                        x: event.clientX,
+                        offsetX: event.clientX - bounds.left,
+                        railLeft: railBounds.left,
+                        railRight: railBounds.right,
+                        railTop: bounds.top,
+                        width: bounds.width,
+                        height: bounds.height,
+                      });
+                      event.preventDefault();
+                    }}
+                    ref={(node) => {
+                      if (node) {
+                        referenceTileElementsRef.current.set(reference.id, node);
+                      } else {
+                        referenceTileElementsRef.current.delete(reference.id);
+                      }
+                    }}
+                    title="Drag to reorder"
+                  >
+                    <img alt={reference.label} className="h-full w-full rounded-xl object-cover" draggable={false} src={previewSrc ?? ""} />
+                    <button
+                      aria-label="Remove reference image"
+                      className="absolute -right-2 -top-2 z-10 grid size-6 place-items-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] text-[color:var(--text-muted)] opacity-100 shadow-[0_8px_22px_rgba(0,0,0,0.25)] transition hover:text-[color:var(--text-strong)] sm:opacity-0 sm:group-hover:opacity-100"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onSettingsChange({
+                          ...settings,
+                          globalReferences: removeGlobalReference(settings, reference.id),
+                        });
+                      }}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      type="button"
+                    >
+                      <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
+                        <path
+                          fill="currentColor"
+                          d="M4.22 4.22a.75.75 0 0 1 1.06 0L10 8.94l4.72-4.72a.75.75 0 1 1 1.06 1.06L11.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 0 1-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 0 1 0-1.06Z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+              {canAddReference ? (
+                <div className="relative">
+                  <button
+                    aria-label="Add reference image"
+                    className={addReferenceButtonClass}
+                    onClick={(event) => {
+                      const bounds = event.currentTarget.getBoundingClientRect();
+                      const menuWidth = 176;
+                      const menuHeight = 104;
+                      const nextLeft = Math.max(8, Math.min(bounds.left, window.innerWidth - menuWidth - 8));
+                      const nextTop =
+                        bounds.bottom + menuHeight + 8 > window.innerHeight
+                          ? Math.max(8, bounds.top - menuHeight - 8)
+                          : bounds.bottom + 8;
+
+                      setReferenceMenuPosition((current) => (current ? null : { left: nextLeft, top: nextTop }));
+                    }}
+                    ref={addReferenceButtonRef}
+                    type="button"
+                  >
+                    <svg aria-hidden="true" className="size-5" viewBox="0 0 20 20">
+                      <path fill="currentColor" d="M9.16602 9.16602V4.16602H10.8327V9.16602H15.8327V10.8327H10.8327V15.8327H9.16602V10.8327H4.16602V9.16602H9.16602Z" />
+                    </svg>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <textarea
+              className="min-h-16 max-h-32 w-full resize-none border-none bg-transparent text-sm leading-6 text-[color:var(--text-strong)] outline-none placeholder:text-[color:var(--text-muted)]"
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="Describe the scene you imagine"
+              value={prompt}
+            />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select aria-label="Worker model" className={controlClass + " min-w-40"} disabled={!board} onChange={(event) => updateGenerationModel(event.target.value)} value={generationModel}>
+                {imageModelSelectOptions.length ? (
+                  <optgroup label="Image models">
+                    {imageModelSelectOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {workerModelLabels[option]}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {videoModelSelectOptions.length ? (
+                  <optgroup label="Video models">
+                    {videoModelSelectOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {workerModelLabels[option]}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                <optgroup label="Voice models">
+                  <option disabled value="__voice_models_coming_soon">
+                    Coming soon
+                  </option>
+                </optgroup>
+              </select>
+
+              <select
+                aria-label="Resolution"
+                className={controlClass + " w-24"}
+                disabled={!board}
+                onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
+                value={settings.resolution}
+              >
+                {allowedResolutionOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {resolutionLabels[option]}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                aria-label="Aspect ratio"
+                className={controlClass + " w-24"}
+                disabled={!board}
+                onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
+                value={normalizeAspectRatioForGenerationModel(generationModel, settings.aspectRatio)}
+              >
+                {allowedAspectRatioOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+
+              {allowedVideoDurationOptions.length ? (
+                <select
+                  aria-label="Duration"
+                  className={controlClass + " w-24"}
+                  disabled={!board}
+                  onChange={(event) => onSettingsChange({ ...settings, videoDurationSeconds: Number(event.target.value) })}
+                  value={normalizeVideoDurationForGenerationModel(generationModel, settings.videoDurationSeconds) ?? allowedVideoDurationOptions[0]}
+                >
+                  {allowedVideoDurationOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}s
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+
+              {!videoGenerationModel ? (
+                <div className="flex h-10 items-center gap-1 rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-2">
+                  <button
+                    aria-label="Decrease quantity"
+                    className="grid size-7 place-items-center rounded-lg text-[color:var(--text-muted)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:opacity-35"
+                    disabled={!board || settings.quantity <= 1}
+                    onClick={() => onSettingsChange({ ...settings, quantity: Math.max(1, settings.quantity - 1) })}
+                    type="button"
+                  >
+                    -
+                  </button>
+                  <select
+                    aria-label="Quantity"
+                    className="h-8 bg-transparent px-1 text-center text-xs font-bold text-[color:var(--text-strong)] outline-none"
+                    disabled={!board}
+                    onChange={(event) => onSettingsChange({ ...settings, quantity: Number(event.target.value) })}
+                    value={settings.quantity}
+                  >
+                    {quantityOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}/{maxQuantity}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    aria-label="Increase quantity"
+                    className="grid size-7 place-items-center rounded-lg text-[color:var(--text-muted)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:opacity-35"
+                    disabled={!board || settings.quantity >= maxQuantity}
+                    onClick={() => onSettingsChange({ ...settings, quantity: Math.min(maxQuantity, settings.quantity + 1) })}
+                    type="button"
+                  >
+                    +
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <button className={theme.buttonPrimary + " h-20 w-full rounded-2xl px-6 text-sm lg:w-36"} disabled={!prompt.trim()} type="submit">
             Generate
           </button>
+        </fieldset>
+      </form>
+      {referenceMenuPosition ? (
+        <div
+          className="fixed z-[95] w-44 overflow-hidden rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.28)] backdrop-blur-2xl"
+          ref={referenceMenuRef}
+          style={{
+            left: referenceMenuPosition.left,
+            top: referenceMenuPosition.top,
+          }}
+        >
+          <label className="block cursor-pointer rounded-xl px-3 py-2 text-sm font-semibold text-[color:var(--text-main)] transition hover:bg-[color:var(--surface-soft-hover)]">
+            Upload image
+            <input
+              accept="image/*"
+              className="hidden"
+              multiple
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []).slice(0, maxPlaygroundReferenceCount - activeGlobalReferences.length);
+                if (files.length) {
+                  setReferenceMenuPosition(null);
+                  void onUploadReferences(nextReferenceSlot, files);
+                }
+                event.target.value = "";
+              }}
+              type="file"
+            />
+          </label>
+          <button
+            className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[color:var(--text-main)] transition hover:bg-[color:var(--surface-soft-hover)]"
+            onClick={() => {
+              setReferenceMenuPosition(null);
+              onPickReference(nextReferenceSlot);
+            }}
+            type="button"
+          >
+            Choose from gallery
+          </button>
         </div>
-      </div>
+      ) : null}
+      {referenceDragPreview ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-[90] overflow-hidden rounded-xl border border-[color:var(--focus-ring)] bg-[color:var(--surface-card-strong)] shadow-[0_24px_70px_rgba(0,0,0,0.42)] ring-2 ring-[color:var(--focus-ring)]"
+          style={{
+            height: referenceDragPreview.height,
+            left: Math.max(
+              referenceDragPreview.railLeft,
+              Math.min(referenceDragPreview.x - referenceDragPreview.offsetX, referenceDragPreview.railRight - referenceDragPreview.width),
+            ),
+            top: referenceDragPreview.railTop,
+            transform: "scale(1.08)",
+            transformOrigin: "center",
+            width: referenceDragPreview.width,
+          }}
+        >
+          <img
+            alt=""
+            className="h-full w-full object-cover"
+            draggable={false}
+            src={previewSourceForReference(referenceDragPreview.reference) ?? ""}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -583,6 +1147,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         input: {
           generationModel: nextSettings.generationModel,
           resolution: nextSettings.resolution,
+          videoDurationSeconds: nextSettings.videoDurationSeconds,
           quality: nextSettings.quality,
           aspectRatio: nextSettings.aspectRatio,
           quantity: nextSettings.quantity,
@@ -623,6 +1188,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     const alreadyNormalized =
       normalizedSettings.generationModel === board.settings.generationModel &&
       normalizedSettings.resolution === board.settings.resolution &&
+      normalizedSettings.videoDurationSeconds === board.settings.videoDurationSeconds &&
       normalizedSettings.quality === board.settings.quality &&
       normalizedSettings.aspectRatio === board.settings.aspectRatio &&
       normalizedSettings.quantity === board.settings.quantity &&
@@ -648,12 +1214,38 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     if (!board) {
       return;
     }
+
     const upload = await uploadReferenceFile(file);
+    const reference = buildUploadReference(slotIndex, file.name, upload);
     const nextSettings: BoardSettings = {
       ...board.settings,
-      globalReferences: board.settings.globalReferences.map((selection) =>
-        selection.slotIndex === slotIndex ? buildUploadReference(slotIndex, file.name, upload) : selection,
-      ),
+      globalReferences: replaceGlobalReferenceAtSlot(board.settings, reference),
+    };
+    await handleSettingsChange(nextSettings);
+  }
+
+  async function handleUploadGlobalReferences(slotIndex: number, files: File[]) {
+    if (!board) {
+      return;
+    }
+
+    const currentReferenceCount = filledGlobalReferences(board.settings).length;
+    const availableSlotCount = Math.max(0, maxPlaygroundReferenceCount - Math.min(slotIndex, currentReferenceCount));
+    const selectedFiles = files.slice(0, availableSlotCount);
+
+    if (!selectedFiles.length) {
+      return;
+    }
+
+    const uploads = await Promise.all(selectedFiles.map((file) => uploadReferenceFile(file)));
+    const references = uploads.map((upload, index) => buildUploadReference(slotIndex + index, selectedFiles[index].name, upload));
+    const globalReferences = references.reduce(
+      (nextReferences, reference) => upsertGlobalReference({ ...board.settings, globalReferences: nextReferences }, reference),
+      board.settings.globalReferences,
+    );
+    const nextSettings: BoardSettings = {
+      ...board.settings,
+      globalReferences,
     };
     await handleSettingsChange(nextSettings);
   }
@@ -669,11 +1261,13 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         reference: buildAssetReference(0, asset),
       });
     } else {
+      const reference = buildAssetReference(pickerState.slotIndex, asset);
       const nextSettings: BoardSettings = {
         ...board.settings,
-        globalReferences: board.settings.globalReferences.map((selection) =>
-          selection.slotIndex === pickerState.slotIndex ? buildAssetReference(pickerState.slotIndex, asset) : selection,
-        ),
+        globalReferences:
+          pickerState.source === "tray"
+            ? upsertGlobalReference(board.settings, reference)
+            : replaceGlobalReferenceAtSlot(board.settings, reference),
       };
       await handleSettingsChange(nextSettings);
     }
@@ -742,7 +1336,14 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         </div>
 
         {mode === "playground" ? (
-          <PlaygroundSurface assets={assets} board={board} model={model} />
+          <PlaygroundSurface
+            allowedGenerationModels={activeGenerationModelOptions}
+            assets={assets}
+            board={board}
+            onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex, source: "tray" })}
+            onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
+            onUploadReferences={(slotIndex, files) => void handleUploadGlobalReferences(slotIndex, files)}
+          />
         ) : (
         <div className="grid min-h-[68vh] gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
           {boardLoading && !board ? (
@@ -752,6 +1353,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
               <div className="border-b border-white/8 bg-[#202020] xl:border-r xl:border-b-0">
                 <SettingsPanel
                   allowedGenerationModels={activeGenerationModelOptions}
+                  generationKind={activeModeMeta?.kind ?? "image"}
                   onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex })}
                   onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
                   onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
@@ -772,6 +1374,9 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
 
                 <WorkspaceGrid
                   board={board}
+                  referenceColumnLabel={`${activeModeMeta?.kind ?? "image"} reference`}
+                  referenceColumnLocked={(activeModeMeta?.kind ?? "image") === "voice"}
+                  showPoseAndFaceSwapColumns={(activeModeMeta?.kind ?? "image") === "image"}
                   onAddRow={async () => {
                     await addRowMutation({ variables: { boardId: board.id } });
                     await refetchBoard();

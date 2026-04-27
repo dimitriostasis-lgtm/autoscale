@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "../config/env.js";
 import { readStore, updateStore } from "../lib/store.js";
 import { saveGeneratedFile, toAbsoluteStoragePath } from "../lib/storage.js";
-import { normalizeResolutionForGenerationModel } from "../types/domain.js";
+import { normalizeResolutionForGenerationModel, normalizeVideoDurationForGenerationModel } from "../types/domain.js";
 import type { AuthUser, GeneratedAsset, GenerationStatus, ReferenceSelection, StoreData } from "../types/domain.js";
 
 import { publishAssetCreated, publishBoardUpdate } from "./notifications.service.js";
@@ -49,6 +49,7 @@ interface RowJobLink {
   prompt: string;
   generationModel: GeneratedAsset["generationModel"];
   resolution: GeneratedAsset["resolution"];
+  videoDurationSeconds: number | null;
   aspectRatio: GeneratedAsset["aspectRatio"];
   quantity: number;
 }
@@ -105,6 +106,7 @@ async function createWorkerJob(options: {
   prompt: string;
   generationModel: string;
   resolution: string;
+  videoDurationSeconds: number | null;
   aspectRatio: string;
   quantity: number;
   globalReferences: FilePayload[];
@@ -116,6 +118,9 @@ async function createWorkerJob(options: {
   formData.append("prompt", options.prompt);
   formData.append("model", options.generationModel);
   formData.append("resolution", options.resolution);
+  if (options.videoDurationSeconds !== null) {
+    formData.append("duration", String(options.videoDurationSeconds));
+  }
   formData.append("aspect_ratio", options.aspectRatio);
   formData.append("quantity", String(options.quantity));
   formData.append("headless", "false");
@@ -275,11 +280,13 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
       const poseMultiplierActive = board.settings.poseMultiplierEnabled && row.poseMultiplier > 1;
       const generationModel = poseMultiplierActive ? board.settings.poseMultiplierGenerationModel : board.settings.generationModel;
       const resolution = normalizeResolutionForGenerationModel(generationModel, board.settings.resolution);
+      const videoDurationSeconds = normalizeVideoDurationForGenerationModel(generationModel, board.settings.videoDurationSeconds);
       const quantity = poseMultiplierActive ? Math.max(1, Math.min(4, row.poseMultiplier)) : board.settings.quantity;
       const jobId = await createWorkerJob({
         prompt: row.prompt,
         generationModel,
         resolution,
+        videoDurationSeconds,
         aspectRatio: board.settings.aspectRatio,
         quantity,
         globalReferences,
@@ -288,7 +295,7 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         isLast: index === activeRows.length - 1,
       });
 
-      rowJobs.push({ rowId: row.id, jobId, prompt: row.prompt, generationModel, resolution, aspectRatio: board.settings.aspectRatio, quantity });
+      rowJobs.push({ rowId: row.id, jobId, prompt: row.prompt, generationModel, resolution, videoDurationSeconds, aspectRatio: board.settings.aspectRatio, quantity });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to submit this row to the generation worker";
       const remainingIds = activeRows.slice(index).map((entry) => entry.id);

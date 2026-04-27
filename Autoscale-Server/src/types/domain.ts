@@ -29,12 +29,15 @@ export type GenerationStatus =
 
 export type ReferenceSourceType = "UPLOAD" | "ASSET";
 
-export const SUPPORTED_WORKER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
+export const IMAGE_WORKER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
+export const VIDEO_WORKER_GENERATION_MODELS = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"] as const;
+export const VIDEO_NSFW_WORKER_GENERATION_MODELS = ["sd_2_0", "sd_2_0_fast", "grok_imagine"] as const;
+export const SUPPORTED_WORKER_GENERATION_MODELS = [...IMAGE_WORKER_GENERATION_MODELS, ...VIDEO_WORKER_GENERATION_MODELS] as const;
 
 export type WorkerGenerationModel = (typeof SUPPORTED_WORKER_GENERATION_MODELS)[number];
 
-export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = SUPPORTED_WORKER_GENERATION_MODELS.filter(
-  (generationModel): generationModel is Exclude<WorkerGenerationModel, "sdxl"> => generationModel !== "sdxl",
+export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = IMAGE_WORKER_GENERATION_MODELS.filter(
+  (generationModel): generationModel is Exclude<(typeof IMAGE_WORKER_GENERATION_MODELS)[number], "sdxl"> => generationModel !== "sdxl",
 );
 
 export type PoseMultiplierGenerationModel = (typeof SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS)[number];
@@ -52,10 +55,14 @@ export function normalizePoseMultiplierGenerationModel(value: unknown, fallbackV
 }
 
 export function getMaxBoardQuantityForGenerationModel(generationModel: WorkerGenerationModel | string): number {
+  if (VIDEO_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VIDEO_WORKER_GENERATION_MODELS)[number])) {
+    return 1;
+  }
+
   return generationModel === "sdxl" ? 20 : 4;
 }
 
-export const SUPPORTED_WORKER_RESOLUTIONS = ["1k", "2k", "4k"] as const;
+export const SUPPORTED_WORKER_RESOLUTIONS = ["480p", "720p", "1080p", "1k", "2k", "4k"] as const;
 
 export type WorkerResolution = (typeof SUPPORTED_WORKER_RESOLUTIONS)[number];
 
@@ -72,7 +79,23 @@ export function getAllowedResolutionsForGenerationModel(generationModel: WorkerG
     return ["1k", "2k"];
   }
 
-  return [...SUPPORTED_WORKER_RESOLUTIONS];
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return ["480p", "720p", "1080p"];
+  }
+
+  if (generationModel === "kling_3_0") {
+    return ["720p", "1080p", "4k"];
+  }
+
+  if (generationModel === "kling_motion_control") {
+    return ["720p", "1080p"];
+  }
+
+  if (generationModel === "grok_imagine") {
+    return ["480p", "720p"];
+  }
+
+  return ["1k", "2k", "4k"];
 }
 
 export function normalizeResolutionForGenerationModel(
@@ -115,6 +138,39 @@ export function normalizeQualityForGenerationModel(
   }
 
   return allowedQualities[0] || "medium";
+}
+
+export function getAllowedVideoDurationsForGenerationModel(generationModel: WorkerGenerationModel | string): number[] {
+  if (generationModel === "kling_motion_control") {
+    return [];
+  }
+
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return Array.from({ length: 12 }, (_, index) => index + 4);
+  }
+
+  if (generationModel === "kling_3_0" || generationModel === "grok_imagine") {
+    return Array.from({ length: 13 }, (_, index) => index + 3);
+  }
+
+  return [];
+}
+
+export function normalizeVideoDurationForGenerationModel(
+  generationModel: WorkerGenerationModel | string,
+  duration: number | null | undefined,
+): number | null {
+  const allowedDurations = getAllowedVideoDurationsForGenerationModel(generationModel);
+
+  if (!allowedDurations.length) {
+    return null;
+  }
+
+  if (typeof duration === "number" && allowedDurations.includes(duration)) {
+    return duration;
+  }
+
+  return allowedDurations[0] ?? null;
 }
 
 export const DEFAULT_POSE_PROMPT_TEMPLATE = "Keep the same framing and styling while varying the body pose for each multiplied shot.";
@@ -239,6 +295,7 @@ export interface ReferenceSelection {
 export interface BoardSettings {
   generationModel: WorkerGenerationModel;
   resolution: WorkerResolution;
+  videoDurationSeconds: number | null;
   quality: WorkerQuality;
   aspectRatio: WorkerAspectRatio;
   quantity: number;

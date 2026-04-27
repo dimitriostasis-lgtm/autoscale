@@ -8,6 +8,7 @@ import {
   normalizePosePromptTemplates,
   normalizeQualityForGenerationModel,
   normalizeResolutionForGenerationModel,
+  normalizeVideoDurationForGenerationModel,
 } from "../types/domain.js";
 import type { AuthUser, ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../types/domain.js";
 
@@ -246,6 +247,7 @@ export async function updateBoardSettings(
   input: {
     generationModel: string;
     resolution: string;
+    videoDurationSeconds?: number | null;
     quality: string;
     aspectRatio: string;
     quantity: number;
@@ -266,6 +268,7 @@ export async function updateBoardSettings(
     const board = assertBoardEdit(current, viewer, boardId);
     const normalizedGenerationModel = input.generationModel as WorkspaceBoard["settings"]["generationModel"];
     const normalizedResolution = normalizeResolutionForGenerationModel(normalizedGenerationModel, input.resolution);
+    const normalizedVideoDurationSeconds = normalizeVideoDurationForGenerationModel(normalizedGenerationModel, input.videoDurationSeconds);
     const normalizedQuality = normalizeQualityForGenerationModel(normalizedGenerationModel, input.quality);
     const normalizedAspectRatio = normalizeAspectRatioForGenerationModel(normalizedGenerationModel, input.aspectRatio);
     const normalizedQuantity = Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
@@ -278,6 +281,7 @@ export async function updateBoardSettings(
     board.settings = {
       generationModel: normalizedGenerationModel,
       resolution: normalizedResolution,
+      videoDurationSeconds: normalizedVideoDurationSeconds,
       quality: normalizedQuality,
       aspectRatio: normalizedAspectRatio,
       quantity: normalizedQuantity,

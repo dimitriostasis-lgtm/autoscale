@@ -21,6 +21,7 @@ export const BOARD_DETAIL_QUERY = gql`
       settings {
         generationModel
         resolution
+        videoDurationSeconds
         quality
         aspectRatio
         quantity
@@ -200,6 +201,7 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
       settings {
         generationModel
         resolution
+        videoDurationSeconds
         quality
         aspectRatio
         quantity

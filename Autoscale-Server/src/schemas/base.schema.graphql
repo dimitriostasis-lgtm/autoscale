@@ -88,6 +88,7 @@ type ReferenceSelection {
 type BoardSettings {
   generationModel: String!
   resolution: String!
+  videoDurationSeconds: Int
   quality: String!
   aspectRatio: String!
   quantity: Int!
@@ -215,6 +216,7 @@ input UpdateBoardRowInput {
 input BoardSettingsInput {
   generationModel: String!
   resolution: String!
+  videoDurationSeconds: Int
   quality: String!
   aspectRatio: String!
   quantity: Int!

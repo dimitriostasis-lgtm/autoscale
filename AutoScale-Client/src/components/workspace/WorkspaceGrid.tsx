@@ -7,6 +7,9 @@ import { PosePromptSettingsModal } from "./PosePromptSettingsModal";
 
 interface WorkspaceGridProps {
   board: WorkspaceBoard;
+  referenceColumnLabel: string;
+  referenceColumnLocked: boolean;
+  showPoseAndFaceSwapColumns: boolean;
   onCommitRow: (input: {
     rowId: string;
     label?: string;
@@ -42,11 +45,26 @@ function statusClass(status: WorkspaceRow["status"]): string {
   }
 }
 
-export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickReference, onDeleteRow, onAddRow }: WorkspaceGridProps) {
+export function WorkspaceGrid({
+  board,
+  referenceColumnLabel,
+  referenceColumnLocked,
+  showPoseAndFaceSwapColumns,
+  onCommitRow,
+  onUploadReference,
+  onPickReference,
+  onDeleteRow,
+  onAddRow,
+}: WorkspaceGridProps) {
   const [posePromptSettingsRowId, setPosePromptSettingsRowId] = useState<string | null>(null);
   const autoSurfaceClass = "border-[#4e6b22] bg-[#314513]";
   const autoMessageClass = "text-[#dcf6a0]";
-  const gridColumns = "grid-cols-[56px_repeat(6,minmax(0,1fr))_96px]";
+  const gridColumns = showPoseAndFaceSwapColumns
+    ? "grid-cols-[56px_repeat(6,minmax(0,1fr))_96px]"
+    : referenceColumnLocked
+      ? "grid-cols-[56px_minmax(150px,0.58fr)_minmax(0,1.25fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_96px]"
+      : "grid-cols-[56px_repeat(4,minmax(0,1fr))_96px]";
+  const minGridWidth = showPoseAndFaceSwapColumns ? "min-w-[1536px]" : referenceColumnLocked ? "min-w-[980px]" : "min-w-[1120px]";
   const cellClass = "border-r border-white/8 px-3 py-3";
   const panelClass = "h-full rounded-xl border border-white/8 bg-[#202020] p-3";
   const stackedControlPanelClass = cx(panelClass, "flex flex-col gap-2");
@@ -60,14 +78,18 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
   return (
     <section className="h-full overflow-hidden bg-[#171717]">
       <div className="overflow-x-auto overflow-y-hidden">
-        <div className="min-w-[1536px]">
+        <div className={minGridWidth}>
           <div className={cx("grid border-b border-white/8 bg-[#212121] text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42", gridColumns)}>
             <div className="border-r border-white/8 px-3 py-3 text-center">#</div>
-            <div className="border-r border-white/8 px-3 py-3">Reference</div>
+            <div className="border-r border-white/8 px-3 py-3">{referenceColumnLabel}</div>
             <div className="border-r border-white/8 px-3 py-3">Prompt</div>
             <div className="border-r border-white/8 px-3 py-3">Outputs</div>
-            <div className="border-r border-white/8 px-3 py-3">Pose</div>
-            <div className="border-r border-white/8 px-3 py-3">Face Swap</div>
+            {showPoseAndFaceSwapColumns ? (
+              <>
+                <div className="border-r border-white/8 px-3 py-3">Pose</div>
+                <div className="border-r border-white/8 px-3 py-3">Face Swap</div>
+              </>
+            ) : null}
             <div className="border-r border-white/8 px-3 py-3">Status</div>
             <div className="px-3 py-3">Actions</div>
           </div>
@@ -88,74 +110,90 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
                 </div>
 
                 <div className={cellClass}>
-                  <div
-                    className={cx(
-                      "workspace-row-image-shell flex h-full flex-col rounded-xl border p-3",
-                      board.settings.autoPromptImage && "workspace-row-image-shell--auto",
-                      board.settings.autoPromptImage ? autoSurfaceClass : "border-white/8 bg-[#202020]",
-                    )}
-                  >
+                  {referenceColumnLocked ? (
+                    <div className="relative flex h-full min-h-[210px] items-center justify-center overflow-hidden rounded-xl border border-white/8 bg-[#202020]/70 p-3 text-center shadow-[inset_0_0_36px_rgba(255,255,255,0.035)]">
+                      <div className="absolute -inset-8 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.10),rgba(255,255,255,0.025)_42%,rgba(0,0,0,0.18)_72%)] blur-2xl" />
+                      <div className="absolute inset-0 bg-[#181818]/30 backdrop-blur-md" />
+                      <div className="relative inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/54 shadow-[0_14px_34px_rgba(0,0,0,0.24)]">
+                        <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
+                          <path
+                            fill="currentColor"
+                            d="M6.5 8V6.5a3.5 3.5 0 1 1 7 0V8h.5a1.5 1.5 0 0 1 1.5 1.5V16A1.5 1.5 0 0 1 14 17.5H6A1.5 1.5 0 0 1 4.5 16V9.5A1.5 1.5 0 0 1 6 8h.5Zm1.5 0h4V6.5a2 2 0 1 0-4 0V8Z"
+                          />
+                        </svg>
+                        Locked
+                      </div>
+                    </div>
+                  ) : (
                     <div
                       className={cx(
-                        "workspace-row-image-preview mb-3 aspect-[4/5] overflow-hidden rounded-lg border",
-                        board.settings.autoPromptImage && "workspace-row-image-preview--auto",
-                        board.settings.autoPromptImage ? "border-[#5f8628] bg-[#2f4513]" : "border-white/8 bg-[#181818]",
+                        "workspace-row-image-shell flex h-full flex-col rounded-xl border p-3",
+                        board.settings.autoPromptImage && "workspace-row-image-shell--auto",
+                        board.settings.autoPromptImage ? autoSurfaceClass : "border-white/8 bg-[#202020]",
                       )}
                     >
-                      {previewSrc ? (
-                        <img alt={row.reference?.label || row.label} className="h-full w-full object-cover" src={previewSrc} />
-                      ) : (
-                        <div
-                          className={cx(
-                            "workspace-row-image-label flex h-full items-center justify-center px-4 text-center text-xs uppercase tracking-[0.24em]",
-                            board.settings.autoPromptImage ? autoMessageClass : "text-white/26",
-                          )}
-                        >
-                          {board.settings.autoPromptImage ? "Auto image" : "Row reference"}
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-auto grid gap-2">
-                      <label
+                      <div
                         className={cx(
-                          theme.buttonSecondary + " h-9 rounded-lg border-white/8 bg-[#2b2b2b] px-3 py-0 text-center text-xs text-white/78 hover:bg-[#323232]",
-                          board.settings.autoPromptImage ? "cursor-not-allowed opacity-45" : "cursor-pointer",
+                          "workspace-row-image-preview mb-3 aspect-[4/5] overflow-hidden rounded-lg border",
+                          board.settings.autoPromptImage && "workspace-row-image-preview--auto",
+                          board.settings.autoPromptImage ? "border-[#5f8628] bg-[#2f4513]" : "border-white/8 bg-[#181818]",
                         )}
                       >
-                        Upload
-                        <input
-                          className="hidden"
-                          accept="image/*"
-                          disabled={board.settings.autoPromptImage}
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            if (file && !board.settings.autoPromptImage) {
-                              void onUploadReference(row, file);
-                            }
-                          }}
-                          type="file"
-                        />
-                      </label>
-                      <button
-                        className={theme.buttonSecondary + " h-9 rounded-lg border-white/8 bg-[#2b2b2b] px-3 py-0 text-xs text-white/78 hover:bg-[#323232]"}
-                        disabled={board.settings.autoPromptImage}
-                        onClick={() => onPickReference(row)}
-                        type="button"
-                      >
-                        Pick from gallery
-                      </button>
-                      {row.reference ? (
+                        {previewSrc ? (
+                          <img alt={row.reference?.label || row.label} className="h-full w-full object-cover" src={previewSrc} />
+                        ) : (
+                          <div
+                            className={cx(
+                              "workspace-row-image-label flex h-full items-center justify-center px-4 text-center text-xs uppercase tracking-[0.24em]",
+                              board.settings.autoPromptImage ? autoMessageClass : "text-white/26",
+                            )}
+                          >
+                            {board.settings.autoPromptImage ? "Auto image" : "Row reference"}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-auto grid gap-2">
+                        <label
+                          className={cx(
+                            theme.buttonSecondary + " h-9 rounded-lg border-white/8 bg-[#2b2b2b] px-3 py-0 text-center text-xs text-white/78 hover:bg-[#323232]",
+                            board.settings.autoPromptImage ? "cursor-not-allowed opacity-45" : "cursor-pointer",
+                          )}
+                        >
+                          Upload
+                          <input
+                            className="hidden"
+                            accept="image/*"
+                            disabled={board.settings.autoPromptImage}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (file && !board.settings.autoPromptImage) {
+                                void onUploadReference(row, file);
+                              }
+                            }}
+                            type="file"
+                          />
+                        </label>
                         <button
-                          className={theme.buttonDanger + " rounded-lg px-3 py-2 text-xs"}
+                          className={theme.buttonSecondary + " h-9 rounded-lg border-white/8 bg-[#2b2b2b] px-3 py-0 text-xs text-white/78 hover:bg-[#323232]"}
                           disabled={board.settings.autoPromptImage}
-                          onClick={() => void onCommitRow({ rowId: row.id, clearReference: true })}
+                          onClick={() => onPickReference(row)}
                           type="button"
                         >
-                          Clear ref
+                          Pick from gallery
                         </button>
-                      ) : null}
+                        {row.reference ? (
+                          <button
+                            className={theme.buttonDanger + " rounded-lg px-3 py-2 text-xs"}
+                            disabled={board.settings.autoPromptImage}
+                            onClick={() => void onCommitRow({ rowId: row.id, clearReference: true })}
+                            type="button"
+                          >
+                            Clear ref
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className={cellClass}>
@@ -200,49 +238,53 @@ export function WorkspaceGrid({ board, onCommitRow, onUploadReference, onPickRef
                   </div>
                 </div>
 
-                <div className={cellClass}>
-                  <div className={stackedControlPanelClass}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
-                    <div
-                      className={cx(
-                        "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                        poseMultiplierEnabled
-                          ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
-                          : "border-white/8 bg-[#222222] text-white/62",
-                      )}
-                    >
-                      {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
+                {showPoseAndFaceSwapColumns ? (
+                  <>
+                    <div className={cellClass}>
+                      <div className={stackedControlPanelClass}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
+                        <div
+                          className={cx(
+                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                            poseMultiplierEnabled
+                              ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
+                              : "border-white/8 bg-[#222222] text-white/62",
+                          )}
+                        >
+                          {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
+                        </div>
+                        {awaitingOutput ? (
+                          <div className={pendingJobClass}>
+                            Pending
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                    {awaitingOutput ? (
-                      <div className={pendingJobClass}>
-                        Pending
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
 
-                <div className={cellClass}>
-                  <div className={stackedControlPanelClass}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Swap</p>
-                    <button
-                      className={cx(
-                        "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                        row.faceSwap
-                          ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
-                          : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
-                      )}
-                      onClick={() => void onCommitRow({ rowId: row.id, faceSwap: !row.faceSwap })}
-                      type="button"
-                    >
-                      {row.faceSwap ? "On" : "Off"}
-                    </button>
-                    {awaitingOutput ? (
-                      <div className={pendingJobClass}>
-                        Pending
+                    <div className={cellClass}>
+                      <div className={stackedControlPanelClass}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Swap</p>
+                        <button
+                          className={cx(
+                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                            row.faceSwap
+                              ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
+                              : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
+                          )}
+                          onClick={() => void onCommitRow({ rowId: row.id, faceSwap: !row.faceSwap })}
+                          type="button"
+                        >
+                          {row.faceSwap ? "On" : "Off"}
+                        </button>
+                        {awaitingOutput ? (
+                          <div className={pendingJobClass}>
+                            Pending
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                </div>
+                    </div>
+                  </>
+                ) : null}
 
                 <div className={cellClass}>
                   <div className={cx(panelClass, "space-y-3")}>

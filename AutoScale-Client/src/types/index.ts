@@ -80,6 +80,7 @@ export interface ReferenceSelection {
 export interface BoardSettings {
   generationModel: string;
   resolution: string;
+  videoDurationSeconds: number | null;
   quality: string;
   aspectRatio: string;
   quantity: number;

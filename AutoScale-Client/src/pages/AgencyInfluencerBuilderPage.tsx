@@ -1,6 +1,7 @@
 import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 
+import playgroundReadyImage from "../assets/playground-ready.png";
 import { agencyBillingPlan } from "../lib/billing";
 import { cx } from "../lib/cx";
 import { uploadReferenceFile } from "../lib/uploads";
@@ -10,6 +11,7 @@ import {
   getAspectRatioOptionsForGenerationModel,
   getMaxQuantityForGenerationModel,
   getResolutionOptionsForGenerationModel,
+  imageGenerationModelOptions,
   normalizeAspectRatioForGenerationModel,
   normalizeQualityForGenerationModel,
   normalizePoseMultiplierGenerationModel,
@@ -41,11 +43,12 @@ function parseInfluencerCapacity(value: string): number {
 }
 
 function buildInitialSettings(): BoardSettings {
-  const generationModel = generationModelOptions[0];
+  const generationModel = imageGenerationModelOptions[0];
 
   return {
     generationModel,
     resolution: normalizeResolutionForGenerationModel(generationModel, "2k"),
+    videoDurationSeconds: null,
     quality: normalizeQualityForGenerationModel(generationModel, "medium"),
     aspectRatio: "auto",
     quantity: 4,
@@ -137,6 +140,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel, onCreated }
       ...current,
       generationModel: nextGenerationModel,
       resolution: normalizeResolutionForGenerationModel(nextGenerationModel, current.resolution),
+      videoDurationSeconds: null,
       quality: normalizeQualityForGenerationModel(nextGenerationModel, current.quality),
       aspectRatio: normalizeAspectRatioForGenerationModel(nextGenerationModel, current.aspectRatio),
       quantity: nextQuantity,
@@ -292,12 +296,12 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel, onCreated }
 
             {!draftReferences.length ? (
               <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[#1b1b1b] px-6 text-center">
-                <div>
-                  <p className="font-display text-2xl text-white">Playground is ready</p>
-                  <p className="mt-3 max-w-xl text-sm leading-7 text-white/56">
-                    Generated images for {name.trim() || "this draft influencer"} will appear here as a visual working wall.
-                  </p>
-                </div>
+                <img
+                  alt="Ready to bring your idea to life?"
+                  className="w-full max-w-[680px] select-none object-contain opacity-95"
+                  draggable={false}
+                  src={playgroundReadyImage}
+                />
               </div>
             ) : null}
           </div>
@@ -327,7 +331,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel, onCreated }
                 <label className="block space-y-2 sm:col-span-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/42">Worker model</span>
                   <select className="w-full rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm text-white outline-none focus:border-lime-300/25" onChange={(event) => updateGenerationModel(event.target.value)} value={settings.generationModel}>
-                    {generationModelOptions.map((option) => (
+                    {imageGenerationModelOptions.map((option) => (
                       <option key={option} value={option}>
                         {workerModelLabels[option]}
                       </option>

@@ -66,6 +66,7 @@ export const workspaceResolvers = {
         input: {
           generationModel: string;
           resolution: string;
+          videoDurationSeconds?: number | null;
           quality: string;
           aspectRatio: string;
           quantity: number;

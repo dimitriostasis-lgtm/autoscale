@@ -22,12 +22,20 @@ export const workerModelLabels: Record<string, string> = {
   kling_o1: "Kling O1",
   gpt_2: "GPT-2",
   sdxl: "SDXL",
+  sd_2_0: "SD 2.0",
+  sd_2_0_fast: "SD 2.0 Fast",
+  kling_3_0: "Kling 3.0",
+  kling_motion_control: "Kling Motion Control",
+  grok_imagine: "Grok Imagine",
 };
 
 export const resolutionLabels: Record<string, string> = {
   "1k": "1K",
   "2k": "2K",
   "4k": "4K",
+  "480p": "480p",
+  "720p": "720p",
+  "1080p": "1080p",
 };
 
 export const qualityLabels: Record<string, string> = {
@@ -36,11 +44,21 @@ export const qualityLabels: Record<string, string> = {
   high: "High",
 };
 
-export const generationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
-export const poseMultiplierGenerationModelOptions = generationModelOptions.filter((option) => option !== "sdxl");
+export const imageGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
+export const videoGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"] as const;
+export const videoNsfwGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "grok_imagine"] as const;
+export const generationModelOptions = [...imageGenerationModelOptions, ...videoGenerationModelOptions] as const;
+export const poseMultiplierGenerationModelOptions = imageGenerationModelOptions.filter((option) => option !== "sdxl");
 export const resolutionOptions = ["1k", "2k", "4k"] as const;
+export const videoResolutionOptions = ["480p", "720p", "1080p"] as const;
+export const workerResolutionOptions = [...videoResolutionOptions, ...resolutionOptions] as const;
 export const qualityOptions = ["low", "medium", "high"] as const;
 export const aspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
+export const videoDurationOptions = Array.from({ length: 13 }, (_, index) => index + 3);
+
+export function isVideoGenerationModel(generationModel: string): boolean {
+  return (videoGenerationModelOptions as readonly string[]).includes(generationModel);
+}
 
 export function getAspectRatioOptionsForGenerationModel(generationModel: string): readonly (typeof aspectRatioOptions)[number][] {
   return generationModel === "sdxl" ? aspectRatioOptions.filter((option) => option !== "auto") : aspectRatioOptions;
@@ -57,10 +75,14 @@ export function normalizeAspectRatioForGenerationModel(generationModel: string, 
 }
 
 export function getMaxQuantityForGenerationModel(generationModel: string): number {
+  if (isVideoGenerationModel(generationModel)) {
+    return 1;
+  }
+
   return generationModel === "sdxl" ? 20 : 4;
 }
 
-export function getResolutionOptionsForGenerationModel(generationModel: string): readonly (typeof resolutionOptions)[number][] {
+export function getResolutionOptionsForGenerationModel(generationModel: string): readonly (typeof workerResolutionOptions)[number][] {
   if (generationModel === "sdxl") {
     return ["1k", "2k"];
   }
@@ -73,25 +95,71 @@ export function getResolutionOptionsForGenerationModel(generationModel: string):
     return ["1k", "2k"];
   }
 
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return ["480p", "720p", "1080p"];
+  }
+
+  if (generationModel === "kling_3_0") {
+    return ["720p", "1080p", "4k"];
+  }
+
+  if (generationModel === "kling_motion_control") {
+    return ["720p", "1080p"];
+  }
+
+  if (generationModel === "grok_imagine") {
+    return ["480p", "720p"];
+  }
+
   return resolutionOptions;
 }
 
-export function normalizeResolutionForGenerationModel(generationModel: string, resolution: string): (typeof resolutionOptions)[number] {
+export function normalizeResolutionForGenerationModel(generationModel: string, resolution: string): (typeof workerResolutionOptions)[number] {
   const allowedResolutions = getResolutionOptionsForGenerationModel(generationModel);
 
-  if (allowedResolutions.includes(resolution as (typeof resolutionOptions)[number])) {
-    return resolution as (typeof resolutionOptions)[number];
+  if (allowedResolutions.includes(resolution as (typeof workerResolutionOptions)[number])) {
+    return resolution as (typeof workerResolutionOptions)[number];
   }
 
-  const requestedIndex = resolutionOptions.indexOf(resolution as (typeof resolutionOptions)[number]);
+  const requestedIndex = workerResolutionOptions.indexOf(resolution as (typeof workerResolutionOptions)[number]);
   if (requestedIndex !== -1) {
-    const upgradedResolution = allowedResolutions.find((option) => resolutionOptions.indexOf(option) >= requestedIndex);
+    const upgradedResolution = allowedResolutions.find((option) => workerResolutionOptions.indexOf(option) >= requestedIndex);
     if (upgradedResolution) {
       return upgradedResolution;
     }
   }
 
   return allowedResolutions[allowedResolutions.length - 1] || resolutionOptions[0];
+}
+
+export function getVideoDurationOptionsForGenerationModel(generationModel: string): readonly number[] {
+  if (generationModel === "kling_motion_control") {
+    return [];
+  }
+
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return videoDurationOptions.filter((option) => option >= 4);
+  }
+
+  if (generationModel === "kling_3_0" || generationModel === "grok_imagine") {
+    return videoDurationOptions;
+  }
+
+  return [];
+}
+
+export function normalizeVideoDurationForGenerationModel(generationModel: string, duration: number | null | undefined): number | null {
+  const allowedDurations = getVideoDurationOptionsForGenerationModel(generationModel);
+
+  if (!allowedDurations.length) {
+    return null;
+  }
+
+  if (typeof duration === "number" && allowedDurations.includes(duration)) {
+    return duration;
+  }
+
+  return allowedDurations[0] ?? null;
 }
 
 export function getQualityOptionsForGenerationModel(generationModel: string): readonly (typeof qualityOptions)[number][] {

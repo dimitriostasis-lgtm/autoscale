@@ -14,6 +14,7 @@ import {
   normalizePosePromptTemplates,
   normalizeQualityForGenerationModel,
   normalizeResolutionForGenerationModel,
+  normalizeVideoDurationForGenerationModel,
 } from "../types/domain.js";
 import { hashPassword } from "./auth.js";
 import type {
@@ -200,6 +201,10 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           ...board.settings,
           generationModel,
           resolution: normalizeResolutionForGenerationModel(generationModel, board.settings.resolution),
+          videoDurationSeconds: normalizeVideoDurationForGenerationModel(
+            generationModel,
+            (board.settings as { videoDurationSeconds?: unknown }).videoDurationSeconds as number | null | undefined,
+          ),
           quality: normalizeQualityForGenerationModel(generationModel, (board.settings as { quality?: unknown }).quality as string),
           aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, board.settings.aspectRatio),
           quantity,
@@ -242,6 +247,7 @@ function defaultBoardSettings(model: InfluencerModel): BoardSettings {
   return {
     generationModel: model.defaults.generationModel,
     resolution: model.defaults.resolution,
+    videoDurationSeconds: normalizeVideoDurationForGenerationModel(model.defaults.generationModel, null),
     quality: normalizeQualityForGenerationModel(model.defaults.generationModel, "medium"),
     aspectRatio: normalizeAspectRatioForGenerationModel(model.defaults.generationModel, model.defaults.aspectRatio),
     quantity: normalizeBoardQuantity(model.defaults.generationModel, model.defaults.quantity),
