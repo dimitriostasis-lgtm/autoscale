@@ -5,6 +5,7 @@ interface BoardTabItem {
   id: string;
   name: string;
   updatedAt: string;
+  layoutLabel?: string | null;
 }
 
 interface BoardTabsProps {
@@ -21,6 +22,7 @@ export function BoardTabs({ boards, activeBoardId, onSelect, onCreate, onDelete 
       <div className="flex min-h-[64px] flex-nowrap items-stretch gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1">
         {boards.map((board) => {
           const active = board.id === activeBoardId;
+          const layoutLabel = board.layoutLabel;
           return (
             <div
               key={board.id}
@@ -33,8 +35,13 @@ export function BoardTabs({ boards, activeBoardId, onSelect, onCreate, onDelete 
             >
               <button className="min-w-0 flex-1 text-left" onClick={() => onSelect(board.id)} type="button">
                 <span className="block truncate font-semibold text-white">{board.name}</span>
-                <span className="mt-1 block truncate text-[10px] uppercase tracking-[0.16em] text-white/34">
-                  Updated {new Date(board.updatedAt).toLocaleDateString()}
+                <span
+                  className={cx(
+                    "mt-1 block truncate text-[10px] uppercase tracking-[0.16em]",
+                    layoutLabel ? (active ? "font-bold text-lime-100/78" : "font-bold text-lime-100/54") : "text-white/34",
+                  )}
+                >
+                  {layoutLabel || `Updated ${new Date(board.updatedAt).toLocaleDateString()}`}
                 </span>
               </button>
               <button

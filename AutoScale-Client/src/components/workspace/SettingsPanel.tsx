@@ -53,6 +53,8 @@ export function SettingsPanel({
   const poseMultiplierAllowed = (isPoseMultiplierWorkspaceLayout || settings.quantity === 1) && !videoGenerationModel;
   const poseMultiplierEnabled = poseMultiplierAllowed && settings.poseMultiplierEnabled;
   const poseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
+  const showWorkerQualityControl = settings.generationModel === "gpt_2" && !isPoseMultiplierWorkspaceLayout;
+  const showPoseWorkerQualityControl = poseMultiplierEnabled && poseMultiplierGenerationModel === "gpt_2";
   const poseMultiplierResolution = normalizePoseMultiplierResolution(settings.poseMultiplierResolution, poseMultiplierGenerationModel, isNsfwPoseMultiplierLayout);
   const allowedPoseMultiplierResolutionOptions = getPoseMultiplierResolutionOptionsForGenerationModel(poseMultiplierGenerationModel, isNsfwPoseMultiplierLayout);
   const maxQuantity = getMaxQuantityForGenerationModel(settings.generationModel);
@@ -67,7 +69,7 @@ export function SettingsPanel({
     resolvedVideoDuration !== null && firstVideoDuration !== null && lastVideoDuration !== null && lastVideoDuration > firstVideoDuration
       ? ((resolvedVideoDuration - firstVideoDuration) / (lastVideoDuration - firstVideoDuration)) * 100
       : 0;
-  const allowedQualityOptions = getQualityOptionsForGenerationModel(settings.generationModel);
+  const allowedQualityOptions = getQualityOptionsForGenerationModel(showPoseWorkerQualityControl ? poseMultiplierGenerationModel : settings.generationModel);
   const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
   const promptAutomationLabel = generationKind === "image" || videoGenerationModel ? "Text Prompt Automation" : "Prompt automation";
   const promptImageAutomationLabel = videoGenerationModel
@@ -95,6 +97,37 @@ export function SettingsPanel({
   const poseMultiplierWorkspaceOptionLabel = isNsfwPoseMultiplierWorkspace(settings.generationModel, "POSE_MULTIPLIER", workspaceSafety)
     ? "NSFW Pose Multipler"
     : "Pose Multiplier Workspace";
+  const layoutMode = settings.sdxlWorkspaceMode ?? "DEFAULT";
+
+  function handleLayoutModeChange(nextSdxlWorkspaceMode: BoardSettings["sdxlWorkspaceMode"]) {
+    if (nextSdxlWorkspaceMode === layoutMode) {
+      return;
+    }
+
+    const nextIsPoseMultiplierWorkspaceLayout = nextSdxlWorkspaceMode === "POSE_MULTIPLIER";
+    const nextIsSdxlDefaultWorkspace = settings.generationModel === "sdxl" && !nextIsPoseMultiplierWorkspaceLayout;
+    const nextIsNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(settings.generationModel, nextSdxlWorkspaceMode, workspaceSafety);
+    const nextPoseMultiplierGenerationModel = nextIsNsfwPoseMultiplierLayout
+      ? "sdxl"
+      : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
+
+    onSettingsChange({
+      ...settings,
+      quantity: nextIsPoseMultiplierWorkspaceLayout ? 1 : settings.quantity,
+      poseMultiplierEnabled: nextIsPoseMultiplierWorkspaceLayout ? true : nextIsSdxlDefaultWorkspace ? false : settings.poseMultiplierEnabled,
+      poseMultiplier: nextIsPoseMultiplierWorkspaceLayout ? Math.max(2, settings.poseMultiplier) : settings.poseMultiplier,
+      aspectRatio: normalizeBoardAspectRatio(settings.generationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
+      poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
+      poseMultiplierResolution: normalizePoseMultiplierResolution(
+        settings.poseMultiplierResolution,
+        nextPoseMultiplierGenerationModel,
+        nextIsNsfwPoseMultiplierLayout,
+      ),
+      autoPromptImage: nextIsPoseMultiplierWorkspaceLayout ? false : settings.autoPromptImage,
+      sdxlWorkspaceMode: nextSdxlWorkspaceMode,
+      faceSwap: nextIsSdxlDefaultWorkspace ? false : settings.faceSwap,
+    });
+  }
 
   return (
     <section className="h-full bg-[#202020] text-white">
@@ -177,40 +210,58 @@ export function SettingsPanel({
             ) : null}
 
             {isPoseMultiplierWorkspaceLayout ? (
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-white/76">Pose Worker Model</span>
-                {isNsfwPoseMultiplierLayout ? (
-                  <select
-                    className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 disabled:cursor-not-allowed disabled:opacity-55"}
-                    disabled
-                    value="automatic"
-                  >
-                    <option value="automatic">AUTO</option>
-                  </select>
-                ) : (
-                  <select
-                    className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                    value={poseMultiplierGenerationModel}
-                    onChange={(event) => {
-                      const nextPoseMultiplierGenerationModel = event.target.value;
-                      onSettingsChange({
-                        ...settings,
-                        poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
-                        poseMultiplierResolution: normalizePoseMultiplierResolution(
-                          settings.poseMultiplierResolution,
-                          nextPoseMultiplierGenerationModel,
-                        ),
-                      });
-                    }}
-                  >
-                    {poseMultiplierGenerationModelOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {workerModelLabels[option]}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </label>
+              <>
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-white/76">Pose Worker Model</span>
+                  {isNsfwPoseMultiplierLayout ? (
+                    <select
+                      className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 disabled:cursor-not-allowed disabled:opacity-55"}
+                      disabled
+                      value="automatic"
+                    >
+                      <option value="automatic">AUTO</option>
+                    </select>
+                  ) : (
+                    <select
+                      className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                      value={poseMultiplierGenerationModel}
+                      onChange={(event) => {
+                        const nextPoseMultiplierGenerationModel = event.target.value;
+                        onSettingsChange({
+                          ...settings,
+                          poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
+                          poseMultiplierResolution: normalizePoseMultiplierResolution(
+                            settings.poseMultiplierResolution,
+                            nextPoseMultiplierGenerationModel,
+                          ),
+                        });
+                      }}
+                    >
+                      {poseMultiplierGenerationModelOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {workerModelLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </label>
+                {showPoseWorkerQualityControl ? (
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-white/76">Quality</span>
+                    <select
+                      className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                      value={settings.quality}
+                      onChange={(event) => onSettingsChange({ ...settings, quality: event.target.value })}
+                    >
+                      {allowedQualityOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {qualityLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </>
             ) : null}
 
             {isPoseMultiplierWorkspaceLayout ? (
@@ -230,7 +281,7 @@ export function SettingsPanel({
               </label>
             ) : null}
 
-            {settings.generationModel === "gpt_2" ? (
+            {showWorkerQualityControl ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Quality</span>
                 <select
@@ -380,41 +431,35 @@ export function SettingsPanel({
             {showPoseControls ? (
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
-                <label className="block space-y-2">
+                <div className="space-y-2">
                   <span className="text-sm font-semibold text-white/76">Layout</span>
-                  <select
-                    className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                    value={settings.sdxlWorkspaceMode ?? "DEFAULT"}
-                    onChange={(event) => {
-                      const nextSdxlWorkspaceMode = event.target.value as BoardSettings["sdxlWorkspaceMode"];
-                      const nextIsPoseMultiplierWorkspaceLayout = nextSdxlWorkspaceMode === "POSE_MULTIPLIER";
-                      const nextIsSdxlDefaultWorkspace = settings.generationModel === "sdxl" && !nextIsPoseMultiplierWorkspaceLayout;
-                      const nextIsNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(settings.generationModel, nextSdxlWorkspaceMode, workspaceSafety);
-                      const nextPoseMultiplierGenerationModel = nextIsNsfwPoseMultiplierLayout
-                        ? "sdxl"
-                        : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
-                      onSettingsChange({
-                        ...settings,
-                        quantity: nextIsPoseMultiplierWorkspaceLayout ? 1 : settings.quantity,
-                        poseMultiplierEnabled: nextIsPoseMultiplierWorkspaceLayout ? true : nextIsSdxlDefaultWorkspace ? false : settings.poseMultiplierEnabled,
-                        poseMultiplier: nextIsPoseMultiplierWorkspaceLayout ? Math.max(2, settings.poseMultiplier) : settings.poseMultiplier,
-                        aspectRatio: normalizeBoardAspectRatio(settings.generationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
-                        poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
-                        poseMultiplierResolution: normalizePoseMultiplierResolution(
-                          settings.poseMultiplierResolution,
-                          nextPoseMultiplierGenerationModel,
-                          nextIsNsfwPoseMultiplierLayout,
-                        ),
-                        autoPromptImage: nextIsPoseMultiplierWorkspaceLayout ? false : settings.autoPromptImage,
-                        sdxlWorkspaceMode: nextSdxlWorkspaceMode,
-                        faceSwap: nextIsSdxlDefaultWorkspace ? false : settings.faceSwap,
-                      });
-                    }}
-                  >
-                    <option value="DEFAULT">Default</option>
-                    <option value="POSE_MULTIPLIER">{poseMultiplierWorkspaceOptionLabel}</option>
-                  </select>
-                </label>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/8 bg-[#262626] p-1" role="group" aria-label="Layout">
+                    {[
+                      ["DEFAULT", "Default"],
+                      ["POSE_MULTIPLIER", poseMultiplierWorkspaceOptionLabel],
+                    ].map(([value, label]) => {
+                      const selected = layoutMode === value;
+
+                      return (
+                        <button
+                          key={value}
+                          aria-pressed={selected}
+                          className={
+                            selected
+                              ? "min-h-10 rounded-lg border border-[#4e6b22] bg-[#4d7311] px-2 py-2 text-center text-xs font-semibold leading-4 text-[#f4ffd8] transition hover:bg-[#598515]"
+                              : "min-h-10 rounded-lg border border-white/8 bg-[#202020] px-2 py-2 text-center text-xs font-semibold leading-4 text-white/68 transition hover:bg-[#2c2c2c] hover:text-white/84"
+                          }
+                          onClick={() => handleLayoutModeChange(value as BoardSettings["sdxlWorkspaceMode"])}
+                          type="button"
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {showPoseMultiplierSharedOptions ? (
+                  <>
                 {!isSdxlDefaultWorkspace ? (
                   <>
                 <div className="group/pose relative">
@@ -503,6 +548,22 @@ export function SettingsPanel({
                     </select>
                   </label>
                 ) : null}
+                {!isPoseMultiplierWorkspaceLayout && showPoseWorkerQualityControl ? (
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-white/76">Quality</span>
+                    <select
+                      className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                      value={settings.quality}
+                      onChange={(event) => onSettingsChange({ ...settings, quality: event.target.value })}
+                    >
+                      {allowedQualityOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {qualityLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
                 {!isPoseMultiplierWorkspaceLayout && poseMultiplierEnabled ? (
                   <label className="block space-y-2">
                     <span className="text-sm font-semibold text-white/76">Pose Multiplier Resolution</span>
@@ -518,6 +579,8 @@ export function SettingsPanel({
                       ))}
                     </select>
                   </label>
+                ) : null}
+                  </>
                 ) : null}
                   </>
                 ) : null}

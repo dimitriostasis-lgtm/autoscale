@@ -5,6 +5,10 @@ export const BOARD_TAB_FIELDS = gql`
     id
     name
     updatedAt
+    settings {
+      generationModel
+      sdxlWorkspaceMode
+    }
   }
 `;
 

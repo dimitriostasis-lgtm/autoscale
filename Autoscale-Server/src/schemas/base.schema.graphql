@@ -313,7 +313,7 @@ type Mutation {
   deleteInfluencerModel(influencerModelId: ID!): Boolean!
   setInfluencerModelAgencyAccess(influencerModelId: ID!, agencyIds: [ID!]!): InfluencerModel!
   ensureBoard(influencerModelId: ID!): WorkspaceBoard!
-  createBoard(influencerModelId: ID!, name: String): WorkspaceBoard!
+  createBoard(influencerModelId: ID!, name: String, sourceBoardId: ID): WorkspaceBoard!
   renameBoard(boardId: ID!, name: String!): WorkspaceBoard!
   deleteBoard(boardId: ID!): Boolean!
   addBoardRow(boardId: ID!): WorkspaceBoard!

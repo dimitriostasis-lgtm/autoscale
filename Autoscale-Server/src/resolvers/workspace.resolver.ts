@@ -27,9 +27,9 @@ export const workspaceResolvers = {
       ensureBoard(context.currentUser, args.influencerModelId),
     createBoard: async (
       _parent: unknown,
-      args: { influencerModelId: string; name?: string | null },
+      args: { influencerModelId: string; name?: string | null; sourceBoardId?: string | null },
       context: GraphQLContext,
-    ) => createBoard(context.currentUser, args.influencerModelId, args.name || undefined),
+    ) => createBoard(context.currentUser, args.influencerModelId, args.name || undefined, args.sourceBoardId || undefined),
     renameBoard: async (_parent: unknown, args: { boardId: string; name: string }, context: GraphQLContext) =>
       renameBoard(context.currentUser, args.boardId, args.name),
     deleteBoard: async (_parent: unknown, args: { boardId: string }, context: GraphQLContext) =>

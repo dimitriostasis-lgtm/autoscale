@@ -64,7 +64,10 @@ interface BoardUpdatedSubscriptionData {
   boardUpdated: WorkspaceBoard;
 }
 
-type WorkspaceBoardTab = Pick<WorkspaceBoard, "id" | "name" | "updatedAt">;
+type WorkspaceBoardTab = Pick<WorkspaceBoard, "id" | "name" | "updatedAt"> & {
+  settings?: Pick<BoardSettings, "generationModel" | "sdxlWorkspaceMode"> | null;
+  layoutLabel?: string | null;
+};
 
 type WorkspaceGenerationKind = "image" | "video" | "voice";
 type WorkspaceTableMode = Exclude<WorkspaceMode, "playground">;
@@ -285,10 +288,16 @@ function reorderGlobalReference(settings: BoardSettings, sourceReferenceId: stri
   return normalizeGlobalReferenceTray(moveReferenceToIndex(filledGlobalReferences(settings), sourceReferenceId, targetIndex));
 }
 
-function buildPositionNamedBoards(boards: WorkspaceBoardTab[]): WorkspaceBoardTab[] {
+function buildPositionNamedBoards(boards: WorkspaceBoardTab[], poseLayoutBoardIds: Record<string, boolean> = {}): WorkspaceBoardTab[] {
   return boards.map((board, index) => ({
     ...board,
     name: `Table ${index + 1}`,
+    layoutLabel:
+      (Object.prototype.hasOwnProperty.call(poseLayoutBoardIds, board.id)
+        ? poseLayoutBoardIds[board.id]
+        : isPoseMultiplierWorkspace(board.settings?.generationModel ?? "", board.settings?.sdxlWorkspaceMode))
+        ? "Pose Multiplier Layout"
+        : null,
   }));
 }
 
@@ -978,6 +987,7 @@ function PlaygroundSurface({
 export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelectMode }: ModelWorkspacePageProps) {
   const client = useApolloClient();
   const [pickerState, setPickerState] = useState<PickerState | null>(null);
+  const [poseLayoutBoardIds, setPoseLayoutBoardIds] = useState<Record<string, boolean>>({});
 
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<{ influencerModel: InfluencerModel | null }>(
     INFLUENCER_MODEL_QUERY,
@@ -1027,6 +1037,26 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     }
   }, [createBoardMutation, mode, modeBoards, model, modelLoading, onSelectBoard, refetchModel, requestedBoardBelongsToMode]);
 
+  useEffect(() => {
+    if (!model?.boards.length) {
+      return;
+    }
+
+    setPoseLayoutBoardIds((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      for (const modelBoard of model.boards) {
+        if (isPoseMultiplierWorkspace(modelBoard.settings?.generationModel ?? "", modelBoard.settings?.sdxlWorkspaceMode) && !next[modelBoard.id]) {
+          next[modelBoard.id] = true;
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [model?.boards]);
+
   const { data: boardData, loading: boardLoading, error: boardError, refetch: refetchBoard } = useQuery<{ workspaceBoard: WorkspaceBoard | null }>(
     BOARD_DETAIL_QUERY,
     {
@@ -1036,9 +1066,35 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     },
   );
 
-  const board = boardData?.workspaceBoard ?? null;
+  const loadedBoard = boardData?.workspaceBoard ?? null;
+  const board = loadedBoard?.id === activeBoardId ? loadedBoard : null;
+  const selectedBoardLoading = boardLoading || Boolean(activeBoardId && loadedBoard && loadedBoard.id !== activeBoardId);
   const boardErrorMessage = boardError?.message || null;
-  const positionedBoards = buildPositionNamedBoards(modeBoards);
+
+  useEffect(() => {
+    if (!board) {
+      return;
+    }
+
+    const isPoseLayout = isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode);
+    setPoseLayoutBoardIds((current) => (current[board.id] === isPoseLayout ? current : { ...current, [board.id]: isPoseLayout }));
+  }, [board]);
+
+  const positionedBoards = buildPositionNamedBoards(
+    modeBoards.map((modeBoard) =>
+      modeBoard.id === board?.id
+        ? {
+            ...modeBoard,
+            updatedAt: board.updatedAt,
+            settings: {
+              generationModel: board.settings.generationModel,
+              sdxlWorkspaceMode: board.settings.sdxlWorkspaceMode,
+            },
+        }
+        : modeBoard,
+    ),
+    poseLayoutBoardIds,
+  );
   const activeBoardLabel = positionedBoards.find((entry) => entry.id === activeBoardId)?.name ?? board?.name ?? "Workspace";
   const activeGenerationModelOptions = useMemo(
     () => resolveWorkspaceGenerationModels(mode, model?.allowedGenerationModels ?? []),
@@ -1080,10 +1136,15 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     if (!model) {
       return;
     }
+    const sourceBoardId =
+      board && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode)
+        ? board.id
+        : undefined;
     const { data } = await createBoardMutation({
       variables: {
         influencerModelId: model.id,
         name: buildBoardNameForWorkspaceMode(mode, modeBoards.length + 1),
+        sourceBoardId,
       },
     });
     const nextBoardId = data?.createBoard.id as string | undefined;
@@ -1143,7 +1204,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     clearAudioReference?: boolean;
     clearPosePromptTemplates?: boolean;
   }) {
-    if (!board) {
+    if (!board || board.id !== activeBoardId) {
       return;
     }
     await updateRowMutation({
@@ -1168,10 +1229,13 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   }
 
   const handleSettingsChange = useCallback(async (nextSettings: BoardSettings) => {
-    if (!board) {
+    if (!board || board.id !== activeBoardId) {
       return;
     }
     const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(nextSettings.generationModel, nextSettings.sdxlWorkspaceMode);
+    setPoseLayoutBoardIds((current) =>
+      current[board.id] === isPoseMultiplierWorkspaceLayout ? current : { ...current, [board.id]: isPoseMultiplierWorkspaceLayout },
+    );
 
     await updateSettingsMutation({
       variables: {
@@ -1207,8 +1271,8 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         },
       },
     });
-    await refetchBoard();
-  }, [board, refetchBoard, updateSettingsMutation]);
+    await Promise.all([refetchBoard(), refetchModel()]);
+  }, [activeBoardId, board, refetchBoard, refetchModel, updateSettingsMutation]);
 
   useEffect(() => {
     if (!board || activeGenerationModelOptions.length === 0) {
@@ -1338,7 +1402,6 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const completedRows = board?.rows.filter((row) => row.status === "SUCCEEDED").length ?? 0;
   const activeModeMeta = mode === "playground" ? null : workspaceModeMetaByMode[mode];
   const activeModeLabel = activeModeMeta ? (activeModeMeta.kind === "voice" ? activeModeMeta.menuLabel : `${activeModeMeta.menuLabel} / ${activeModeMeta.safetyLabel}`) : "Playground";
-
   return (
     <div className="generation-workspace space-y-4">
       <section className={theme.cardStrong + " overflow-hidden border-white/10 bg-[#171717]/92 shadow-[0_28px_80px_rgba(0,0,0,0.35)]"}>
@@ -1396,7 +1459,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
           />
         ) : (
         <div className="grid min-h-[68vh] gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
-          {boardLoading && !board ? (
+          {selectedBoardLoading && !board ? (
             <div className="xl:col-span-2 h-[50vh] animate-pulse bg-white/[0.03]" />
           ) : board ? (
             <>

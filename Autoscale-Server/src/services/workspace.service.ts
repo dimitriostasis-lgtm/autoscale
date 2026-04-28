@@ -13,7 +13,7 @@ import {
   normalizeResolutionForGenerationModel,
   normalizeVideoDurationForGenerationModel,
 } from "../types/domain.js";
-import type { AuthUser, ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../types/domain.js";
+import type { AuthUser, BoardSettings, ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../types/domain.js";
 
 import { publishBoardUpdate } from "./notifications.service.js";
 import {
@@ -60,6 +60,66 @@ function normalizeReference(selection: ReferenceSelection): ReferenceSelection {
   };
 }
 
+type BoardSettingsInput = Omit<
+  BoardSettings,
+  "generationModel" | "resolution" | "poseMultiplierResolution" | "videoDurationSeconds" | "quality" | "aspectRatio" | "sdxlWorkspaceMode" | "poseMultiplierGenerationModel" | "posePromptMode"
+> & {
+  generationModel: string;
+  resolution: string;
+  poseMultiplierResolution: string;
+  videoDurationSeconds?: number | null;
+  quality: string;
+  aspectRatio: string;
+  sdxlWorkspaceMode: string;
+  poseMultiplierGenerationModel: string;
+  posePromptMode: string;
+};
+
+function normalizeBoardSettingsForBoardName(boardName: string, input: BoardSettingsInput): BoardSettings {
+  const normalizedGenerationModel = input.generationModel as WorkspaceBoard["settings"]["generationModel"];
+  const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(normalizedGenerationModel, input.sdxlWorkspaceMode);
+  const isSdxlDefaultWorkspace = normalizedGenerationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+  const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(normalizedGenerationModel, input.sdxlWorkspaceMode, isImageNsfwWorkspaceBoardName(boardName));
+  const normalizedResolution = normalizeResolutionForGenerationModel(normalizedGenerationModel, input.resolution);
+  const normalizedVideoDurationSeconds = normalizeVideoDurationForGenerationModel(normalizedGenerationModel, input.videoDurationSeconds);
+  const normalizedQuality = normalizeQualityForGenerationModel(normalizedGenerationModel, input.quality);
+  const normalizedAspectRatio = normalizeBoardAspectRatio(normalizedGenerationModel, input.aspectRatio, input.sdxlWorkspaceMode);
+  const normalizedQuantity = isPoseMultiplierWorkspaceLayout ? 1 : Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
+  const normalizedPoseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(
+    input.poseMultiplierGenerationModel,
+    normalizedGenerationModel,
+  );
+  const nextPoseMultiplierGenerationModel = isNsfwPoseMultiplierLayout ? "sdxl" : normalizedPoseMultiplierGenerationModel;
+  const normalizedPoseMultiplierResolution = normalizePoseMultiplierResolution(
+    input.poseMultiplierResolution || input.resolution,
+    nextPoseMultiplierGenerationModel,
+    isNsfwPoseMultiplierLayout,
+  );
+  const normalizedPosePromptTemplates = normalizePosePromptTemplates(input.posePromptTemplates, input.posePromptTemplate);
+  const normalizedGlobalReferences = input.globalReferences.map((selection) => normalizeReference(selection));
+
+  return {
+    generationModel: normalizedGenerationModel,
+    resolution: normalizedResolution,
+    poseMultiplierResolution: normalizedPoseMultiplierResolution,
+    videoDurationSeconds: normalizedVideoDurationSeconds,
+    quality: normalizedQuality,
+    aspectRatio: normalizedAspectRatio,
+    quantity: normalizedQuantity,
+    sdxlWorkspaceMode: isPoseMultiplierWorkspaceLayout ? "POSE_MULTIPLIER" : "DEFAULT",
+    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace ? false : normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
+    poseMultiplier: Math.max(1, Math.min(4, input.poseMultiplier)),
+    poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
+    faceSwap: isSdxlDefaultWorkspace ? false : input.faceSwap,
+    autoPromptGen: input.autoPromptGen,
+    autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : input.autoPromptImage,
+    posePromptMode: input.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
+    posePromptTemplate: normalizedPosePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
+    posePromptTemplates: normalizedPosePromptTemplates,
+    globalReferences: normalizedGlobalReferences,
+  };
+}
+
 export async function ensureBoard(currentUser: AuthUser | null, influencerModelId: string) {
   const viewer = requireAuthenticatedUser(currentUser);
   const store = await updateStore((current) => {
@@ -97,13 +157,24 @@ export async function getWorkspaceBoard(currentUser: AuthUser | null, boardId: s
   return presentBoard(board, store);
 }
 
-export async function createBoard(currentUser: AuthUser | null, influencerModelId: string, name?: string) {
+export async function createBoard(currentUser: AuthUser | null, influencerModelId: string, name?: string, sourceBoardId?: string) {
   const viewer = requireAuthenticatedUser(currentUser);
 
   const store = await updateStore((current) => {
     const model = assertInfluencerAccess(current, viewer, influencerModelId);
     const existingCount = current.boards.filter((board) => board.influencerModelId === influencerModelId && board.ownerId === viewer.id).length;
     const board = createBoardSeed(model, viewer.id, name?.trim() || `Table ${existingCount + 1}`);
+    if (sourceBoardId) {
+      const sourceBoard = assertBoardAccess(current, viewer, sourceBoardId);
+      if (sourceBoard.influencerModelId !== influencerModelId) {
+        throw new Error("Source board does not belong to this model");
+      }
+      board.settings = normalizeBoardSettingsForBoardName(board.name, {
+        ...sourceBoard.settings,
+        globalReferences: board.settings.globalReferences,
+      });
+      board.rows = createDefaultRows(4, board.settings);
+    }
     current.boards.push(board);
     return current;
   });
@@ -259,71 +330,12 @@ export async function updateBoardRow(
 export async function updateBoardSettings(
   currentUser: AuthUser | null,
   boardId: string,
-  input: {
-    generationModel: string;
-    resolution: string;
-    poseMultiplierResolution: string;
-    videoDurationSeconds?: number | null;
-    quality: string;
-    aspectRatio: string;
-    quantity: number;
-    sdxlWorkspaceMode: string;
-    poseMultiplierEnabled: boolean;
-    poseMultiplier: number;
-    poseMultiplierGenerationModel: string;
-    faceSwap: boolean;
-    autoPromptGen: boolean;
-    autoPromptImage: boolean;
-    posePromptMode: string;
-    posePromptTemplate: string;
-    posePromptTemplates: string[];
-    globalReferences: ReferenceSelection[];
-  },
+  input: BoardSettingsInput,
 ) {
   const viewer = requireAuthenticatedUser(currentUser);
   const store = await updateStore((current) => {
     const board = assertBoardEdit(current, viewer, boardId);
-    const normalizedGenerationModel = input.generationModel as WorkspaceBoard["settings"]["generationModel"];
-    const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(normalizedGenerationModel, input.sdxlWorkspaceMode);
-    const isSdxlDefaultWorkspace = normalizedGenerationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
-    const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(normalizedGenerationModel, input.sdxlWorkspaceMode, isImageNsfwWorkspaceBoardName(board.name));
-    const normalizedResolution = normalizeResolutionForGenerationModel(normalizedGenerationModel, input.resolution);
-    const normalizedVideoDurationSeconds = normalizeVideoDurationForGenerationModel(normalizedGenerationModel, input.videoDurationSeconds);
-    const normalizedQuality = normalizeQualityForGenerationModel(normalizedGenerationModel, input.quality);
-    const normalizedAspectRatio = normalizeBoardAspectRatio(normalizedGenerationModel, input.aspectRatio, input.sdxlWorkspaceMode);
-    const normalizedQuantity = isPoseMultiplierWorkspaceLayout ? 1 : Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
-    const normalizedPoseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(
-      input.poseMultiplierGenerationModel,
-      normalizedGenerationModel,
-    );
-    const nextPoseMultiplierGenerationModel = isNsfwPoseMultiplierLayout ? "sdxl" : normalizedPoseMultiplierGenerationModel;
-    const normalizedPoseMultiplierResolution = normalizePoseMultiplierResolution(
-      input.poseMultiplierResolution || input.resolution,
-      nextPoseMultiplierGenerationModel,
-      isNsfwPoseMultiplierLayout,
-    );
-    const normalizedPosePromptTemplates = normalizePosePromptTemplates(input.posePromptTemplates, input.posePromptTemplate);
-    const normalizedGlobalReferences = input.globalReferences.map((selection) => normalizeReference(selection));
-    board.settings = {
-      generationModel: normalizedGenerationModel,
-      resolution: normalizedResolution,
-      poseMultiplierResolution: normalizedPoseMultiplierResolution,
-      videoDurationSeconds: normalizedVideoDurationSeconds,
-      quality: normalizedQuality,
-      aspectRatio: normalizedAspectRatio,
-      quantity: normalizedQuantity,
-      sdxlWorkspaceMode: isPoseMultiplierWorkspaceLayout ? "POSE_MULTIPLIER" : "DEFAULT",
-      poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace ? false : normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
-      poseMultiplier: Math.max(1, Math.min(4, input.poseMultiplier)),
-      poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
-      faceSwap: isSdxlDefaultWorkspace ? false : input.faceSwap,
-      autoPromptGen: input.autoPromptGen,
-      autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : input.autoPromptImage,
-      posePromptMode: input.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
-      posePromptTemplate: normalizedPosePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
-      posePromptTemplates: normalizedPosePromptTemplates,
-      globalReferences: normalizedGlobalReferences,
-    };
+    board.settings = normalizeBoardSettingsForBoardName(board.name, input);
     board.rows = board.rows.map((row) => ({
       ...row,
       poseMultiplier: board.settings.poseMultiplier,

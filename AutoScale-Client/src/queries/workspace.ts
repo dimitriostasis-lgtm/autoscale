@@ -132,8 +132,8 @@ export const ENSURE_BOARD_MUTATION = gql`
 `;
 
 export const CREATE_BOARD_MUTATION = gql`
-  mutation CreateBoard($influencerModelId: ID!, $name: String) {
-    createBoard(influencerModelId: $influencerModelId, name: $name) {
+  mutation CreateBoard($influencerModelId: ID!, $name: String, $sourceBoardId: ID) {
+    createBoard(influencerModelId: $influencerModelId, name: $name, sourceBoardId: $sourceBoardId) {
       id
       name
       updatedAt
