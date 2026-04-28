@@ -41,6 +41,7 @@ function normalizeRows(rows: WorkspaceRow[]): WorkspaceRow[] {
       orderIndex: index,
       label: row.label || `${index + 1}`,
       poseMultiplier: typeof row.poseMultiplier === "number" ? row.poseMultiplier : 1,
+      upscale: typeof row.upscale === "boolean" ? row.upscale : false,
       faceSwap: typeof row.faceSwap === "boolean" ? row.faceSwap : false,
       audioReference: row.audioReference ?? null,
     }));
@@ -78,13 +79,14 @@ type BoardSettingsInput = Omit<
 function normalizeBoardSettingsForBoardName(boardName: string, input: BoardSettingsInput): BoardSettings {
   const normalizedGenerationModel = input.generationModel as WorkspaceBoard["settings"]["generationModel"];
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(normalizedGenerationModel, input.sdxlWorkspaceMode);
-  const isSdxlDefaultWorkspace = normalizedGenerationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+  const isFaceSwapWorkspaceLayout = input.sdxlWorkspaceMode === "FACE_SWAP";
+  const isSdxlDefaultWorkspace = normalizedGenerationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout;
   const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(normalizedGenerationModel, input.sdxlWorkspaceMode, isImageNsfwWorkspaceBoardName(boardName));
   const normalizedResolution = normalizeResolutionForGenerationModel(normalizedGenerationModel, input.resolution);
   const normalizedVideoDurationSeconds = normalizeVideoDurationForGenerationModel(normalizedGenerationModel, input.videoDurationSeconds);
   const normalizedQuality = normalizeQualityForGenerationModel(normalizedGenerationModel, input.quality);
   const normalizedAspectRatio = normalizeBoardAspectRatio(normalizedGenerationModel, input.aspectRatio, input.sdxlWorkspaceMode);
-  const normalizedQuantity = isPoseMultiplierWorkspaceLayout ? 1 : Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
+  const normalizedQuantity = isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? 1 : Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
   const normalizedPoseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(
     input.poseMultiplierGenerationModel,
     normalizedGenerationModel,
@@ -106,13 +108,14 @@ function normalizeBoardSettingsForBoardName(boardName: string, input: BoardSetti
     quality: normalizedQuality,
     aspectRatio: normalizedAspectRatio,
     quantity: normalizedQuantity,
-    sdxlWorkspaceMode: isPoseMultiplierWorkspaceLayout ? "POSE_MULTIPLIER" : "DEFAULT",
-    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace ? false : normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
+    sdxlWorkspaceMode: isPoseMultiplierWorkspaceLayout ? "POSE_MULTIPLIER" : isFaceSwapWorkspaceLayout ? "FACE_SWAP" : "DEFAULT",
+    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace || isFaceSwapWorkspaceLayout ? false : normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
     poseMultiplier: Math.max(1, Math.min(4, input.poseMultiplier)),
     poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
-    faceSwap: isSdxlDefaultWorkspace ? false : input.faceSwap,
-    autoPromptGen: input.autoPromptGen,
-    autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : input.autoPromptImage,
+    upscale: isSdxlDefaultWorkspace ? input.upscale : false,
+    faceSwap: isFaceSwapWorkspaceLayout ? true : input.faceSwap,
+    autoPromptGen: isFaceSwapWorkspaceLayout ? false : input.autoPromptGen,
+    autoPromptImage: isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? false : input.autoPromptImage,
     posePromptMode: input.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
     posePromptTemplate: normalizedPosePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
     posePromptTemplates: normalizedPosePromptTemplates,
@@ -223,6 +226,7 @@ export async function addBoardRow(currentUser: AuthUser | null, boardId: string)
     }
     const [newRow] = createDefaultRows(1, {
       poseMultiplier: board.settings.poseMultiplier,
+      upscale: board.settings.upscale,
       faceSwap: board.settings.faceSwap,
     });
     newRow.orderIndex = board.rows.length;
@@ -268,6 +272,7 @@ export async function updateBoardRow(
     poseMultiplier?: number | null;
     posePromptTemplates?: string[] | null;
     faceSwap?: boolean | null;
+    upscale?: boolean | null;
     reference?: ReferenceSelection | null;
     audioReference?: ReferenceSelection | null;
     clearReference?: boolean | null;
@@ -301,7 +306,12 @@ export async function updateBoardRow(
       );
     }
     if (typeof input.faceSwap === "boolean") {
-      row.faceSwap = input.faceSwap;
+      row.faceSwap = board.settings.sdxlWorkspaceMode === "FACE_SWAP" ? true : input.faceSwap;
+    }
+    if (typeof input.upscale === "boolean") {
+      row.upscale = board.settings.sdxlWorkspaceMode !== "FACE_SWAP" && board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode)
+        ? input.upscale
+        : false;
     }
     if (input.clearReference) {
       row.reference = null;
@@ -339,6 +349,7 @@ export async function updateBoardSettings(
     board.rows = board.rows.map((row) => ({
       ...row,
       poseMultiplier: board.settings.poseMultiplier,
+      upscale: board.settings.upscale,
       faceSwap: board.settings.faceSwap,
       status: "IDLE",
       errorMessage: null,

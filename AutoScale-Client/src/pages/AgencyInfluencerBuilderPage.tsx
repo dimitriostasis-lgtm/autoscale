@@ -2,10 +2,11 @@ import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 
 import playgroundReadyImage from "../assets/playground-ready.png";
-import { agencyBillingPlan } from "../lib/billing";
+import { defaultAgencyBillingSettings } from "../lib/billing";
 import { cx } from "../lib/cx";
 import { uploadReferenceFile } from "../lib/uploads";
 import { CREATE_INFLUENCER_MODEL_MUTATION, INFLUENCER_MODELS_QUERY } from "../queries/model";
+import { AGENCIES_QUERY } from "../queries/user";
 import {
   generationModelOptions,
   getAspectRatioOptionsForGenerationModel,
@@ -21,7 +22,7 @@ import {
   theme,
   workerModelLabels,
 } from "../styles/theme";
-import type { BoardSettings, InfluencerModel, UserRecord } from "../types";
+import type { AgencyRecord, BoardSettings, InfluencerModel, UserRecord } from "../types";
 
 interface AgencyInfluencerBuilderPageProps {
   currentUser: UserRecord;
@@ -37,11 +38,6 @@ interface DraftReference {
 }
 
 const defaultPosePromptTemplate = "Keep the same framing and styling while varying the body pose for each multiplied shot.";
-
-function parseInfluencerCapacity(value: string): number {
-  const parsedValue = Number.parseInt(value, 10);
-  return Number.isFinite(parsedValue) ? parsedValue : 0;
-}
 
 function buildInitialSettings(): BoardSettings {
   const generationModel = imageGenerationModelOptions[0];
@@ -59,6 +55,7 @@ function buildInitialSettings(): BoardSettings {
     poseMultiplierEnabled: false,
     poseMultiplier: 1,
     poseMultiplierGenerationModel,
+    upscale: false,
     faceSwap: false,
     autoPromptGen: false,
     autoPromptImage: false,
@@ -119,8 +116,12 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel, onCreated }
     fetchPolicy: "cache-and-network",
     variables: { includeInactive: false },
   });
+  const { data: agenciesData } = useQuery<{ agencies: AgencyRecord[] }>(AGENCIES_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
 
-  const influencerCapacity = parseInfluencerCapacity(agencyBillingPlan.currentPlan);
+  const currentAgency = agenciesData?.agencies.find((agency) => agency.id === currentUser.agencyId) || null;
+  const influencerCapacity = currentAgency?.billingSettings.aiInfluencerAllowance ?? defaultAgencyBillingSettings.aiInfluencerAllowance;
   const ownedInfluencers = useMemo(
     () => (data?.influencerModels || []).filter((model) => model.assignedAgencyIds.includes(currentUser.agencyId || "")),
     [currentUser.agencyId, data?.influencerModels],
@@ -207,7 +208,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel, onCreated }
 
     if (!canCreate) {
       if (openInfluencerSlots <= 0) {
-        setNotice({ tone: "error", text: `${agencyBillingPlan.currentPlan} allowance is already fully used.` });
+        setNotice({ tone: "error", text: "AI influencer allowance is already fully used." });
       } else if (!hasCreativeBrief) {
         setNotice({ tone: "error", text: "Add a prompt, handoff notes, or a reference before creating the influencer." });
       }

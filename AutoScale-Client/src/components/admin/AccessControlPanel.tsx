@@ -2,7 +2,7 @@ import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState 
 
 import { AgencyDeleteModal } from "./AgencyDeleteModal";
 import { ProfileImageCropModal } from "./ProfileImageCropModal";
-import { agencyBillingPlan } from "../../lib/billing";
+import { agencyBillingPlan, defaultAgencyBillingSettings } from "../../lib/billing";
 import { cx } from "../../lib/cx";
 import { uploadReferenceFile } from "../../lib/uploads";
 import { InfluencerAvatar } from "../model/InfluencerAvatar";
@@ -12,16 +12,18 @@ import {
   resolutionOptions,
   theme,
 } from "../../styles/theme";
-import type { AgencyRecord, GeneratedAsset, InfluencerModel, ManagerPermissions, Role, UserAccessScope, UserRecord } from "../../types";
+import type { AgencyBillingSettings, AgencyRecord, GeneratedAsset, InfluencerModel, ManagerPermissions, PlatformNotification, Role, UserAccessScope, UserRecord } from "../../types";
 
 interface AccessControlPanelProps {
   currentUser: UserRecord;
   agencies: AgencyRecord[];
+  platformNotifications: PlatformNotification[];
   users: UserRecord[];
   models: InfluencerModel[];
   onCreateAgency: (name: string) => Promise<void>;
   onRenameAgency: (agencyId: string, name: string) => Promise<void>;
   onDeleteAgency: (agencyId: string) => Promise<void>;
+  onUpdateAgencyBillingSettings: (agencyId: string, input: AgencyBillingSettings) => Promise<void>;
   onCreateUser: (input: {
     name: string;
     email: string;
@@ -64,6 +66,7 @@ type NoticePlacement =
   | "global"
   | "agencyCreditPolicy"
   | "agencySettings"
+  | "agencyBillingSettings"
   | "createAccount"
   | "accountSettings"
   | "managerPermissions"
@@ -105,6 +108,8 @@ type ModelProfileDraft = Pick<ModelFormState, "avatarImageUrl" | "handle" | "nam
 type AvatarCropTarget = "create" | "edit";
 
 type CreditAccessMode = "AGENCY_POOL" | "USER_ALLOCATION";
+
+type AgencyBillingSettingsDraft = Record<keyof AgencyBillingSettings, string>;
 
 type PlatformAgencySort = "NAME" | "INFLUENCER_USAGE" | "ACCOUNTS";
 
@@ -407,9 +412,30 @@ function clampCreditAmount(value: string | undefined, maxCredits: number): numbe
   return Math.min(parseCreditAmount(value), Math.max(0, maxCredits));
 }
 
-function parseInfluencerCapacity(value: string): number {
-  const parsedValue = Number.parseInt(value, 10);
-  return Number.isFinite(parsedValue) ? parsedValue : 0;
+function buildAgencyBillingSettingsDraft(settings: AgencyBillingSettings): AgencyBillingSettingsDraft {
+  return {
+    monthlySubscriptionPrice: String(settings.monthlySubscriptionPrice),
+    includedMonthlyCredits: String(settings.includedMonthlyCredits),
+    aiInfluencerAllowance: String(settings.aiInfluencerAllowance),
+    workspaceTabAllowance: String(settings.workspaceTabAllowance),
+    parallelRowGenerations: String(settings.parallelRowGenerations),
+    teamSeatAllowance: String(settings.teamSeatAllowance),
+  };
+}
+
+function normalizeAgencyBillingSettingsDraft(draft: AgencyBillingSettingsDraft): AgencyBillingSettings {
+  return {
+    monthlySubscriptionPrice: Math.max(0, Number(draft.monthlySubscriptionPrice) || 0),
+    includedMonthlyCredits: Math.max(0, Number(draft.includedMonthlyCredits) || 0),
+    aiInfluencerAllowance: Math.max(0, Number(draft.aiInfluencerAllowance) || 0),
+    workspaceTabAllowance: Math.max(0, Number(draft.workspaceTabAllowance) || 0),
+    parallelRowGenerations: Math.max(0, Number(draft.parallelRowGenerations) || 0),
+    teamSeatAllowance: Math.max(0, Number(draft.teamSeatAllowance) || 0),
+  };
+}
+
+function resolveAgencyBillingSettings(agency: AgencyRecord | null | undefined): AgencyBillingSettings {
+  return agency?.billingSettings ?? defaultAgencyBillingSettings;
 }
 
 function resolveCreditPolicyStorageKey(agencyId: string): string {
@@ -619,11 +645,13 @@ function getRoleOptions(currentUser: UserRecord): Array<{ value: Role; label: st
 export function AccessControlPanel({
   currentUser,
   agencies,
+  platformNotifications,
   users,
   models,
   onCreateAgency,
   onRenameAgency,
   onDeleteAgency,
+  onUpdateAgencyBillingSettings,
   onCreateUser,
   onRenameUser,
   onCreateInfluencerModel,
@@ -659,6 +687,7 @@ export function AccessControlPanel({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [newAgencyName, setNewAgencyName] = useState("");
   const [agencyDrafts, setAgencyDrafts] = useState<Record<string, string>>({});
+  const [agencyBillingDrafts, setAgencyBillingDrafts] = useState<Record<string, AgencyBillingSettingsDraft>>({});
   const [agencyPendingDeletionId, setAgencyPendingDeletionId] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -750,6 +779,16 @@ export function AccessControlPanel({
         if (!next[agency.id]) {
           next[agency.id] = agency.name;
         }
+      }
+      return next;
+    });
+  }, [agencies]);
+
+  useEffect(() => {
+    setAgencyBillingDrafts((current) => {
+      const next = { ...current };
+      for (const agency of agencies) {
+        next[agency.id] = current[agency.id] ?? buildAgencyBillingSettingsDraft(resolveAgencyBillingSettings(agency));
       }
       return next;
     });
@@ -914,9 +953,9 @@ export function AccessControlPanel({
 
   const totalGalleryAssets = useMemo(() => models.reduce((sum, model) => sum + model.galleryCount, 0), [models]);
   const platformAgencyRows = useMemo(() => {
-    const influencerCapacity = parseInfluencerCapacity(agencyBillingPlan.currentPlan);
-
     return agencies.map((agency) => {
+      const billingSettings = resolveAgencyBillingSettings(agency);
+      const influencerCapacity = billingSettings.aiInfluencerAllowance;
       const assignedModels = models.filter((model) => model.isActive && model.assignedAgencyIds.includes(agency.id));
       const agencyDirectUsers = users.filter((user) => user.agencyId === agency.id && (user.role === "USER" || user.role === "AGENCY_MANAGER"));
       const directAssignmentCount = agencyDirectUsers.reduce((sum, user) => sum + user.assignedModelIds.length, 0);
@@ -925,6 +964,7 @@ export function AccessControlPanel({
       return {
         agency,
         assignedInfluencers: assignedModels.length,
+        billingSettings,
         influencerCapacity,
         activeAccounts: agency.activeCount,
         creditBalance: agencyBillingPlan.creditBalance,
@@ -991,6 +1031,7 @@ export function AccessControlPanel({
   }, [agencySettingsSearch, agencySettingsSort, platformAgencyRows]);
   const agencySummaryAgencyId = currentUser.agencyId || agencies[0]?.id || "";
   const agencySummaryAgency = agencies.find((agency) => agency.id === agencySummaryAgencyId) || null;
+  const currentAgencyBillingSettings = resolveAgencyBillingSettings(agencySummaryAgency);
   const agencySummaryUsers = useMemo(
     () => users.filter((user) => user.agencyId === agencySummaryAgencyId && user.role !== "PLATFORM_ADMIN"),
     [agencySummaryAgencyId, users],
@@ -1006,7 +1047,7 @@ export function AccessControlPanel({
     [agencySummaryAgency, agencySummaryUsers],
   );
   const agencyAvailableModels = useMemo(() => models.filter((model) => model.isActive && model.canAccess), [models]);
-  const agencyInfluencerCapacity = parseInfluencerCapacity(agencyBillingPlan.currentPlan);
+  const agencyInfluencerCapacity = currentAgencyBillingSettings.aiInfluencerAllowance;
   const agencyOpenInfluencerSlots = Math.max(0, agencyInfluencerCapacity - agencyAvailableModels.length);
   const agencyGalleryAssets = useMemo(
     () => agencyAvailableModels.reduce((sum, model) => sum + model.galleryCount, 0),
@@ -1282,6 +1323,38 @@ export function AccessControlPanel({
     }
 
     await executeAction(() => onRenameAgency(agency.id, nextName), `Renamed ${agency.name} to ${nextName}.`, "agencySettings");
+  }
+
+  function handleAgencyBillingDraftChange(
+    agencyId: string,
+    field: keyof AgencyBillingSettings,
+    value: string,
+  ): void {
+    setAgencyBillingDrafts((current) => ({
+      ...current,
+      [agencyId]: {
+        ...(current[agencyId] ?? buildAgencyBillingSettingsDraft(defaultAgencyBillingSettings)),
+        [field]: value,
+      },
+    }));
+  }
+
+  async function handleSaveAgencyBillingSettings(agency: AgencyRecord): Promise<void> {
+    const draft = agencyBillingDrafts[agency.id] ?? buildAgencyBillingSettingsDraft(resolveAgencyBillingSettings(agency));
+    const nextSettings = normalizeAgencyBillingSettingsDraft(draft);
+
+    const result = await executeAction(
+      () => onUpdateAgencyBillingSettings(agency.id, nextSettings),
+      `Updated billing settings for ${agency.name}.`,
+      "agencyBillingSettings",
+    );
+
+    if (result.ok) {
+      setAgencyBillingDrafts((current) => ({
+        ...current,
+        [agency.id]: buildAgencyBillingSettingsDraft(nextSettings),
+      }));
+    }
   }
 
   async function handleDeleteAgency(agency: AgencyRecord): Promise<void> {
@@ -2594,35 +2667,39 @@ export function AccessControlPanel({
           </div>
           </div>
 
-          <div className="max-h-[920px] overflow-y-auto bg-[color:var(--surface-card)] p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-h-[920px] overflow-y-auto bg-[color:var(--surface-card)] p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Account</p>
-              <h3 className="font-display mt-2 text-2xl text-white">{selectedUser.name}</h3>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
-                Platform admins can operate globally, agency admins stay inside their agency, and managers only receive the specific user-management actions granted to them.
+              <h3 className="font-display mt-1.5 text-2xl text-white">{selectedUser.name}</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/58">
+                Role and agency boundaries define what this account can manage.
               </p>
             </div>
-            <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
               <p className="text-xs uppercase tracking-[0.2em] text-white/44">Access scope</p>
-              <p className="mt-2 text-sm font-semibold text-white">{accessScopeLabel(selectedUser.accessScope)}</p>
+              <p className="mt-1.5 text-sm font-semibold text-white">{accessScopeLabel(selectedUser.accessScope)}</p>
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+          <div className="mt-4 grid gap-2 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-3">
               <p className="text-xs uppercase tracking-[0.18em] text-white/40">Email</p>
-              <p className="mt-2 text-sm font-semibold text-white">{selectedUser.email}</p>
+              <p className="mt-1.5 truncate text-sm font-semibold text-white">{selectedUser.email}</p>
             </div>
-            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-3">
               <p className="text-xs uppercase tracking-[0.18em] text-white/40">Last password reset</p>
-              <p className="mt-2 text-sm font-semibold text-white">{formatTimestamp(selectedUser.lastPasswordResetAt)}</p>
+              <p className="mt-1.5 text-sm font-semibold text-white">{formatTimestamp(selectedUser.lastPasswordResetAt)}</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/40">Created</p>
+              <p className="mt-1.5 text-sm font-semibold text-white">{formatTimestamp(selectedUser.createdAt)}</p>
             </div>
           </div>
 
-          <div className="mt-6 space-y-4 rounded-[28px] border border-white/8 bg-black/14 p-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block space-y-2 sm:col-span-2">
+          <div className="mt-4 space-y-3 rounded-[22px] border border-white/8 bg-black/14 p-4">
+            <div className="grid gap-3 lg:grid-cols-2">
+              <label className="block space-y-1.5 lg:col-span-2">
                 <span className="text-sm font-semibold text-white/80">Account name</span>
                 <input
                   className={theme.input}
@@ -2632,7 +2709,7 @@ export function AccessControlPanel({
                 />
               </label>
 
-              <label className="block space-y-2">
+              <label className="block space-y-1.5">
                 <span className="text-sm font-semibold text-white/80">Role</span>
                 <select
                   className={theme.input}
@@ -2661,7 +2738,7 @@ export function AccessControlPanel({
                 </select>
               </label>
 
-              <label className="block space-y-2">
+              <label className="block space-y-1.5">
                 <span className="text-sm font-semibold text-white/80">Agency</span>
                 <select
                   className={theme.input}
@@ -2688,12 +2765,12 @@ export function AccessControlPanel({
               </label>
 
               {accountDraft.role === "PLATFORM_ADMIN" ? (
-                <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-white/58 sm:col-span-2">
+                <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-white/58 lg:col-span-2">
                   Platform admin accounts always remain global and cannot be linked to a specific agency.
                 </div>
               ) : null}
 
-              <label className="block space-y-2">
+              <label className="block space-y-1.5">
                 <span className="text-sm font-semibold text-white/80">Status</span>
                 <select
                   className={theme.input}
@@ -2708,31 +2785,26 @@ export function AccessControlPanel({
                 </select>
               </label>
 
-              <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/40">Created</p>
-                <p className="mt-2 text-sm font-semibold text-white">{formatTimestamp(selectedUser.createdAt)}</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <button className={theme.buttonPrimary} disabled={!hasPendingAccountChanges} onClick={() => void handleApplyAccount()} type="button">
+                  Apply settings
+                </button>
+                <button className={theme.buttonSecondary} disabled={!canResetSelectedPassword} onClick={() => void handleResetPassword()} type="button">
+                  Reset password
+                </button>
               </div>
             </div>
 
-            {renderNotice("accountSettings", "mt-5")}
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button className={theme.buttonPrimary} disabled={!hasPendingAccountChanges} onClick={() => void handleApplyAccount()} type="button">
-                Apply settings
-              </button>
-              <button className={theme.buttonSecondary} disabled={!canResetSelectedPassword} onClick={() => void handleResetPassword()} type="button">
-                Reset password
-              </button>
-            </div>
+            {renderNotice("accountSettings", "mt-3")}
 
             {temporaryPassword?.userId === selectedUser.id ? (
-              <div className="rounded-3xl border border-lime-300/25 bg-lime-300/10 px-4 py-4 text-sm text-lime-100">
+              <div className="rounded-2xl border border-lime-300/25 bg-lime-300/10 px-4 py-3 text-sm text-lime-100">
                 Temporary password: <span className="font-semibold text-lime-50">{temporaryPassword.value}</span>
               </div>
             ) : null}
 
             {!canRenameSelected && !canChangeRole && !canToggleSelectedStatus ? (
-              <p className="text-sm leading-7 text-white/52">
+              <p className="text-sm leading-6 text-white/52">
                 This account is visible to you, but structural changes are outside your current role boundary.
               </p>
             ) : null}
@@ -2972,6 +3044,48 @@ export function AccessControlPanel({
 
       {isPlatformAdmin ? (
         <div className="space-y-6">
+          <section id="access-platform-notifications" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
+            <div className="border-b border-white/8 px-5 py-5 sm:px-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-white/42">Platform Notifications</p>
+                  <h3 className="font-display mt-2 text-2xl text-white">Follow-up requests</h3>
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-white/56">
+                    Billing follow-up requests from agency admins appear here as soon as they click the request button.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Requests</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{platformNotifications.length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="divide-y divide-white/8">
+              {platformNotifications.slice(0, 6).map((notification) => (
+                <div key={notification.id} className="grid gap-3 bg-[color:var(--surface-card)] px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-white">{notification.message}</p>
+                    <p className="mt-1 text-sm text-white/52">
+                      {notification.requesterName}
+                      {notification.requesterEmail ? ` - ${notification.requesterEmail}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <p className="text-sm font-semibold text-white">{notification.agencyName || "No agency"}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/42">{formatTimestamp(notification.createdAt)}</p>
+                  </div>
+                </div>
+              ))}
+
+              {!platformNotifications.length ? (
+                <div className="bg-[color:var(--surface-card)] px-5 py-8 text-sm text-white/52 sm:px-6">
+                  No follow-up requests yet.
+                </div>
+              ) : null}
+            </div>
+          </section>
+
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <section id="access-agency-settings" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
             <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6">
@@ -2980,7 +3094,7 @@ export function AccessControlPanel({
                   <p className="text-xs uppercase tracking-[0.22em] text-white/42">Agencies</p>
                   <h3 className="font-display mt-2 text-2xl text-white">Agency settings</h3>
                   <p className="mt-3 max-w-3xl text-sm leading-7 text-white/56">
-                    Create, rename, search, and remove agencies from one dense operations view.
+                    Create, rename, remove, and tune agency billing settings from one operations view.
                   </p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-right">
@@ -3007,6 +3121,7 @@ export function AccessControlPanel({
               </form>
 
               {renderNotice("agencySettings", "mt-4")}
+              {renderNotice("agencyBillingSettings", "mt-4")}
 
               <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px]">
                 <input
@@ -3036,6 +3151,7 @@ export function AccessControlPanel({
               <div className="divide-y divide-white/8">
                 {agencySettingsRows.map((row) => {
                   const agency = row.agency;
+                  const agencyBillingDraft = agencyBillingDrafts[agency.id] ?? buildAgencyBillingSettingsDraft(row.billingSettings);
                   const agencyScopedMembers = users.filter((user) => user.agencyId === agency.id && user.role !== "PLATFORM_ADMIN");
                   const retainedAdmins = users.filter((user) => user.agencyId === agency.id && user.role === "PLATFORM_ADMIN");
                   const deleteSummary = `${agencyScopedMembers.length} scoped account${agencyScopedMembers.length === 1 ? "" : "s"} affected${
@@ -3079,6 +3195,42 @@ export function AccessControlPanel({
                           Delete
                         </button>
                       </div>
+                      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 lg:col-span-5">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Billing Settings</p>
+                            <p className="mt-2 text-sm leading-6 text-white/52">
+                              Set the subscription details and limits shown in agency billing and enforced for agency-owned influencer capacity.
+                            </p>
+                          </div>
+                          <button className={theme.buttonSecondary} onClick={() => void handleSaveAgencyBillingSettings(agency)} type="button">
+                            Save billing
+                          </button>
+                        </div>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                          {[
+                            ["monthlySubscriptionPrice", "Monthly Subscription", "USD per month"],
+                            ["includedMonthlyCredits", "Included Monthly Credits", "USD credits per month"],
+                            ["aiInfluencerAllowance", "AI Influencer Allowance", "Per agency"],
+                            ["workspaceTabAllowance", "Workspace Tab Allowance", "Per employee"],
+                            ["parallelRowGenerations", "Parallel Row Generations", "Per seat"],
+                            ["teamSeatAllowance", "Team Seat Allowance", "Agency seats"],
+                          ].map(([field, label, hint]) => (
+                            <label key={field} className="block space-y-2">
+                              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/46">{label}</span>
+                              <input
+                                className={theme.input}
+                                min="0"
+                                onChange={(event) => handleAgencyBillingDraftChange(agency.id, field as keyof AgencyBillingSettings, event.target.value)}
+                                step="1"
+                                type="number"
+                                value={agencyBillingDraft[field as keyof AgencyBillingSettings]}
+                              />
+                              <span className="block text-xs text-white/42">{hint}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -3094,112 +3246,145 @@ export function AccessControlPanel({
 
           {canCreateAccounts ? (
             <section id="access-create-accounts" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-              <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6">
+              <div className="border-b border-white/8 px-5 py-4 sm:px-6 sm:py-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.22em] text-white/42">Provisioning</p>
-                    <h3 className="font-display mt-2 text-2xl text-white">Create platform accounts</h3>
-                    <p className="mt-3 max-w-3xl text-sm leading-7 text-white/56">
-                      Create the account, choose its role boundary, and place agency-scoped users in the correct agency before sending credentials.
+                    <h3 className="font-display mt-1.5 text-2xl text-white">Create platform accounts</h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-white/56">
+                      Add a user, assign the correct role boundary, and issue temporary credentials.
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/62">
-                    {users.length} existing accounts
-                  </span>
+                  <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/42">Directory size</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{users.length} existing accounts</p>
+                  </div>
                 </div>
               </div>
 
-              <form className="grid gap-px bg-white/8 lg:grid-cols-[minmax(0,1fr)_330px]" onSubmit={handleCreateUser}>
-                <div className="bg-[color:var(--surface-card)] p-5 sm:p-6">
-                  <p className="text-sm font-semibold text-white">Account identity</p>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <input className={theme.input} placeholder="Full name" value={createForm.name} onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))} />
-                    <input className={theme.input} placeholder="Email" value={createForm.email} onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))} />
-                    <input className={theme.input + " sm:col-span-2"} placeholder="Temporary password" value={createForm.password} onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))} />
-                  </div>
+              <form className="bg-[color:var(--surface-card)] p-5 sm:p-6" onSubmit={handleCreateUser}>
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-white/76">Full name</span>
+                      <input
+                        className={theme.input}
+                        placeholder="New account name"
+                        value={createForm.name}
+                        onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))}
+                      />
+                    </label>
 
-                  <div className="mt-5 rounded-3xl border border-white/8 bg-black/14 p-4">
-                    <p className="text-sm font-semibold text-white">Access scope</p>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <label className="block space-y-2">
-                        <span className="text-sm font-semibold text-white/72">Role</span>
-                        <select
-                          className={theme.input}
-                          value={createForm.role}
-                          onChange={(event) =>
-                            setCreateForm((current) => ({
-                              ...current,
-                              role: event.target.value as Role,
-                              agencyId:
-                                event.target.value === "PLATFORM_ADMIN"
-                                  ? ""
-                                  : isAgencyAdmin
-                                    ? currentUser.agencyId || ""
-                                    : current.agencyId || agencies[0]?.id || "",
-                            }))
-                          }
-                        >
-                          {roleOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-white/76">Email</span>
+                      <input
+                        className={theme.input}
+                        placeholder="email@company.com"
+                        value={createForm.email}
+                        onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))}
+                      />
+                    </label>
 
-                      <label className="block space-y-2">
-                        <span className="text-sm font-semibold text-white/72">Agency</span>
-                        <select
-                          className={theme.input}
-                          disabled={createForm.role === "PLATFORM_ADMIN" || isAgencyAdmin}
-                          value={createForm.role === "PLATFORM_ADMIN" ? "" : createForm.agencyId}
-                          onChange={(event) => setCreateForm((current) => ({ ...current, agencyId: event.target.value }))}
-                        >
-                          <option value="">Select agency</option>
-                          {agencies.map((agency) => (
-                            <option key={agency.id} value={agency.id}>
-                              {agency.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-white/76">Role</span>
+                      <select
+                        className={theme.input}
+                        value={createForm.role}
+                        onChange={(event) =>
+                          setCreateForm((current) => ({
+                            ...current,
+                            role: event.target.value as Role,
+                            agencyId:
+                              event.target.value === "PLATFORM_ADMIN"
+                                ? ""
+                                : isAgencyAdmin
+                                  ? currentUser.agencyId || ""
+                                  : current.agencyId || agencies[0]?.id || "",
+                          }))
+                        }
+                      >
+                        {roleOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-white/76">Agency</span>
+                      <select
+                        className={theme.input}
+                        disabled={createForm.role === "PLATFORM_ADMIN" || isAgencyAdmin}
+                        value={createForm.role === "PLATFORM_ADMIN" ? "" : createForm.agencyId}
+                        onChange={(event) => setCreateForm((current) => ({ ...current, agencyId: event.target.value }))}
+                      >
+                        <option value="">Select agency</option>
+                        {agencies.map((agency) => (
+                          <option key={agency.id} value={agency.id}>
+                            {agency.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block space-y-2 lg:col-span-2">
+                      <span className="text-sm font-semibold text-white/76">Temporary password</span>
+                      <input
+                        className={theme.input}
+                        placeholder="Set temporary password"
+                        type="password"
+                        value={createForm.password}
+                        onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))}
+                      />
+                    </label>
 
                     {isAgencyAdmin ? (
-                      <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/62">
+                      <p className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-white/62 lg:col-span-2">
                         New accounts will be created inside {currentUser.agencyName || "your agency"}.
-                      </div>
+                      </p>
                     ) : null}
                   </div>
-                </div>
 
-                <div className="bg-[color:var(--surface-card-strong)] p-5 sm:p-6">
-                  <p className="text-sm font-semibold text-white">Provisioning preview</p>
-                  <div className="mt-4 space-y-3">
-                    <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-white/42">Account</p>
-                      <p className="mt-2 truncate text-sm font-semibold text-white">{createForm.name || "Unnamed account"}</p>
-                      <p className="mt-1 truncate text-sm text-white/54">{createForm.email || "email@company.com"}</p>
+                  <aside className="rounded-[22px] border border-white/8 bg-black/14 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.18em] text-white/42">Preview</p>
+                        <p className="mt-2 text-base font-semibold text-white">{createForm.name || "Unnamed account"}</p>
+                        <p className="mt-1 truncate text-sm text-white/54">{createForm.email || "email@company.com"}</p>
+                      </div>
+                      <span className={cx("shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]", roleBadgeClass(createForm.role))}>
+                        {roleLabel(createForm.role)}
+                      </span>
                     </div>
-                    <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-white/42">Role boundary</p>
-                      <p className="mt-2 text-sm font-semibold text-white">{roleLabel(createForm.role)}</p>
-                      <p className="mt-1 text-sm text-white/54">
-                        {createForm.role === "PLATFORM_ADMIN"
-                          ? "Global platform access"
-                          : agencies.find((agency) => agency.id === createForm.agencyId)?.name || currentUser.agencyName || "No agency selected"}
-                      </p>
-                    </div>
-                    <div className="rounded-3xl border border-white/8 bg-black/14 p-4 text-sm leading-6 text-white/54">
-                      Temporary credentials can be reset later from the selected account panel.
-                    </div>
-                  </div>
 
-                  {renderNotice("createAccount", "mt-5")}
+                    <dl className="mt-5 space-y-3 border-t border-white/8 pt-4">
+                      <div>
+                        <dt className="text-xs uppercase tracking-[0.18em] text-white/38">Scope</dt>
+                        <dd className="mt-1 text-sm font-semibold text-white">
+                          {createForm.role === "PLATFORM_ADMIN"
+                            ? "Global platform"
+                            : agencies.find((agency) => agency.id === createForm.agencyId)?.name || currentUser.agencyName || "No agency selected"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-[0.18em] text-white/38">Credentials</dt>
+                        <dd className="mt-1 text-sm text-white/58">
+                          {createForm.password ? "Temporary password ready" : "Temporary password required"}
+                        </dd>
+                      </div>
+                    </dl>
 
-                  <button className={theme.buttonPrimary + " mt-5 w-full"} type="submit">
-                    Create account
-                  </button>
+                    <p className="mt-5 text-sm leading-6 text-white/52">
+                      Passwords can be reset later from the selected account panel.
+                    </p>
+
+                    {renderNotice("createAccount", "mt-4")}
+
+                    <button className={theme.buttonPrimary + " mt-4 w-full"} type="submit">
+                      Create account
+                    </button>
+                  </aside>
                 </div>
               </form>
             </section>

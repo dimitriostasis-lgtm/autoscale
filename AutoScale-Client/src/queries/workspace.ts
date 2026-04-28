@@ -30,6 +30,7 @@ export const BOARD_DETAIL_QUERY = gql`
         poseMultiplierEnabled
         poseMultiplier
         poseMultiplierGenerationModel
+        upscale
         faceSwap
         autoPromptGen
         autoPromptImage
@@ -63,6 +64,7 @@ export const BOARD_DETAIL_QUERY = gql`
         prompt
         poseMultiplier
         posePromptTemplates
+        upscale
         faceSwap
         status
         errorMessage
@@ -231,6 +233,7 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         poseMultiplierEnabled
         poseMultiplier
         poseMultiplierGenerationModel
+        upscale
         faceSwap
         autoPromptGen
         autoPromptImage
@@ -264,6 +267,7 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         prompt
         poseMultiplier
         posePromptTemplates
+        upscale
         faceSwap
         status
         errorMessage

@@ -15,17 +15,19 @@ import {
   CREATE_USER_MUTATION,
   DELETE_AGENCY_MUTATION,
   DELETE_USER_MUTATION,
+  PLATFORM_NOTIFICATIONS_QUERY,
   RENAME_AGENCY_MUTATION,
   RENAME_USER_MUTATION,
   RESET_USER_PASSWORD_MUTATION,
   SET_USER_ACTIVE_MUTATION,
   SET_USER_MODEL_ACCESS_MUTATION,
+  UPDATE_AGENCY_BILLING_SETTINGS_MUTATION,
   UPDATE_MANAGER_PERMISSIONS_MUTATION,
   UPDATE_USER_ORGANIZATION_MUTATION,
   UPDATE_USER_ROLE_MUTATION,
   USERS_QUERY,
 } from "../queries/user";
-import type { AgencyRecord, InfluencerModel, UserRecord } from "../types";
+import type { AgencyBillingSettings, AgencyRecord, InfluencerModel, PlatformNotification, UserRecord } from "../types";
 import { theme } from "../styles/theme";
 
 interface AdminPageProps {
@@ -45,6 +47,14 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
     fetchPolicy: "cache-and-network",
     variables: { includeInactive: currentUser.role === "PLATFORM_ADMIN" },
   });
+  const { data: notificationsData, refetch: refetchNotifications } = useQuery<{ platformNotifications: PlatformNotification[] }>(
+    PLATFORM_NOTIFICATIONS_QUERY,
+    {
+      fetchPolicy: "cache-and-network",
+      pollInterval: 15000,
+      skip: currentUser.role !== "PLATFORM_ADMIN",
+    },
+  );
 
   const [createAgencyMutation] = useMutation(CREATE_AGENCY_MUTATION);
   const [createUserMutation] = useMutation(CREATE_USER_MUTATION);
@@ -54,6 +64,7 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
   const [deleteInfluencerModelMutation] = useMutation(DELETE_INFLUENCER_MODEL_MUTATION);
   const [setInfluencerModelAgencyAccessMutation] = useMutation(SET_INFLUENCER_MODEL_AGENCY_ACCESS_MUTATION);
   const [renameAgencyMutation] = useMutation(RENAME_AGENCY_MUTATION);
+  const [updateAgencyBillingSettingsMutation] = useMutation(UPDATE_AGENCY_BILLING_SETTINGS_MUTATION);
   const [deleteAgencyMutation] = useMutation(DELETE_AGENCY_MUTATION);
   const [updateUserRoleMutation] = useMutation(UPDATE_USER_ROLE_MUTATION);
   const [setUserModelAccessMutation] = useMutation(SET_USER_MODEL_ACCESS_MUTATION);
@@ -70,7 +81,12 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
   }
 
   async function refreshData() {
-    await Promise.all([refetchUsers(), refetchAgencies(), refetchModels()]);
+    await Promise.all([
+      refetchUsers(),
+      refetchAgencies(),
+      refetchModels(),
+      currentUser.role === "PLATFORM_ADMIN" ? refetchNotifications() : Promise.resolve(),
+    ]);
   }
 
   async function refreshAll(includeSession = false) {
@@ -116,6 +132,10 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
         await deleteAgencyMutation({ variables: { agencyId } });
         await refreshAll(true);
       }}
+      onUpdateAgencyBillingSettings={async (agencyId, input: AgencyBillingSettings) => {
+        await updateAgencyBillingSettingsMutation({ variables: { agencyId, input } });
+        await refreshAll();
+      }}
       onDeleteUser={async (userId) => {
         await deleteUserMutation({ variables: { userId } });
         await refreshAll();
@@ -153,6 +173,7 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
         await updateUserRoleMutation({ variables: { userId, role } });
         await refreshAll(userId === currentUser.id);
       }}
+      platformNotifications={notificationsData?.platformNotifications || []}
       users={usersData?.users || []}
     />
   );

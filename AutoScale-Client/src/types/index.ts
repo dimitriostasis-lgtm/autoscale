@@ -10,6 +10,15 @@ export interface ManagerPermissions {
   canManageCredits: boolean;
 }
 
+export interface AgencyBillingSettings {
+  monthlySubscriptionPrice: number;
+  includedMonthlyCredits: number;
+  aiInfluencerAllowance: number;
+  workspaceTabAllowance: number;
+  parallelRowGenerations: number;
+  teamSeatAllowance: number;
+}
+
 export type GenerationStatus = "IDLE" | "QUEUED" | "GENERATING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "SKIPPED";
 
 export type ReferenceSourceType = "UPLOAD" | "ASSET";
@@ -37,11 +46,24 @@ export interface AgencyRecord {
   slug: string;
   name: string;
   createdAt: string;
+  billingSettings: AgencyBillingSettings;
   memberCount: number;
   adminCount: number;
   managerCount: number;
   userCount: number;
   activeCount: number;
+}
+
+export interface PlatformNotification {
+  id: string;
+  type: string;
+  agencyId: string | null;
+  agencyName: string | null;
+  requesterId: string;
+  requesterName: string;
+  requesterEmail: string | null;
+  message: string;
+  createdAt: string;
 }
 
 export interface GeneratedAsset {
@@ -85,10 +107,11 @@ export interface BoardSettings {
   quality: string;
   aspectRatio: string;
   quantity: number;
-  sdxlWorkspaceMode: "DEFAULT" | "POSE_MULTIPLIER";
+  sdxlWorkspaceMode: "DEFAULT" | "POSE_MULTIPLIER" | "FACE_SWAP";
   poseMultiplierEnabled: boolean;
   poseMultiplier: number;
   poseMultiplierGenerationModel: string;
+  upscale: boolean;
   faceSwap: boolean;
   autoPromptGen: boolean;
   autoPromptImage: boolean;
@@ -105,6 +128,7 @@ export interface WorkspaceRow {
   prompt: string;
   poseMultiplier: number;
   posePromptTemplates: string[] | null;
+  upscale: boolean;
   faceSwap: boolean;
   reference: ReferenceSelection | null;
   audioReference: ReferenceSelection | null;

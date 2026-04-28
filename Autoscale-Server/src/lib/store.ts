@@ -5,12 +5,14 @@ import { randomUUID } from "node:crypto";
 import { env } from "../config/env.js";
 import {
   DEFAULT_POSE_PROMPT_TEMPLATE,
+  DEFAULT_AGENCY_BILLING_SETTINGS,
   DEFAULT_MANAGER_PERMISSIONS,
   SUPPORTED_WORKER_GENERATION_MODELS,
   getMaxBoardQuantityForGenerationModel,
   isNsfwPoseMultiplierWorkspace,
   isPoseMultiplierWorkspace,
   normalizeBoardAspectRatio,
+  normalizeAgencyBillingSettings,
   normalizeOptionalPosePromptTemplates,
   normalizePoseMultiplierResolution,
   normalizePoseMultiplierGenerationModel,
@@ -62,12 +64,14 @@ function createDefaultAgencies(timestamp: string): Agency[] {
       slug: "northstar-creative",
       name: "Northstar Creative",
       createdAt: timestamp,
+      billingSettings: { ...DEFAULT_AGENCY_BILLING_SETTINGS },
     },
     {
       id: randomUUID(),
       slug: "lattice-social",
       name: "Lattice Social",
       createdAt: timestamp,
+      billingSettings: { ...DEFAULT_AGENCY_BILLING_SETTINGS },
     },
   ];
 }
@@ -134,6 +138,7 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
     .map((agency) => ({
       ...agency,
       createdAt: agency.createdAt || timestamp,
+      billingSettings: normalizeAgencyBillingSettings((agency as { billingSettings?: unknown }).billingSettings as Partial<Agency["billingSettings"]> | null | undefined),
     }));
   const agencies = normalizedAgencies.length ? normalizedAgencies : createDefaultAgencies(timestamp);
   const defaultDeliveryAgencyId = agencies[0]?.id || null;
@@ -197,10 +202,17 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
     boards: (rawStore.boards || []).map((board) => {
       const generationModel = normalizeWorkerGenerationModel(board.settings.generationModel);
       const quantity = normalizeBoardQuantity(generationModel, board.settings.quantity);
-      const requestedSdxlWorkspaceMode = (board.settings as { sdxlWorkspaceMode?: unknown }).sdxlWorkspaceMode === "POSE_MULTIPLIER" ? "POSE_MULTIPLIER" : "DEFAULT";
-      const sdxlWorkspaceMode = isPoseMultiplierWorkspace(generationModel, requestedSdxlWorkspaceMode) ? "POSE_MULTIPLIER" : "DEFAULT";
+      const rawSdxlWorkspaceMode = (board.settings as { sdxlWorkspaceMode?: unknown }).sdxlWorkspaceMode;
+      const requestedSdxlWorkspaceMode =
+        rawSdxlWorkspaceMode === "POSE_MULTIPLIER" || rawSdxlWorkspaceMode === "FACE_SWAP" ? rawSdxlWorkspaceMode : "DEFAULT";
+      const sdxlWorkspaceMode = isPoseMultiplierWorkspace(generationModel, requestedSdxlWorkspaceMode)
+        ? "POSE_MULTIPLIER"
+        : requestedSdxlWorkspaceMode === "FACE_SWAP"
+          ? "FACE_SWAP"
+          : "DEFAULT";
       const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode);
-      const isSdxlDefaultWorkspace = generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+      const isFaceSwapWorkspaceLayout = sdxlWorkspaceMode === "FACE_SWAP";
+      const isSdxlDefaultWorkspace = generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout;
       const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode, isImageNsfwWorkspaceBoardName(board.name));
       const poseMultiplierGenerationModel = isNsfwPoseMultiplierLayout
         ? "sdxl"
@@ -234,20 +246,21 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
             board.settings.aspectRatio,
             sdxlWorkspaceMode,
           ),
-            quantity: isPoseMultiplierWorkspaceLayout ? 1 : quantity,
+            quantity: isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? 1 : quantity,
           sdxlWorkspaceMode,
             poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout
               ? true
-              : isSdxlDefaultWorkspace
+              : isSdxlDefaultWorkspace || isFaceSwapWorkspaceLayout
                 ? false
               : quantity === 1 && typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
                 ? board.settings.poseMultiplierEnabled
               : false,
           poseMultiplier: typeof (board.settings as { poseMultiplier?: unknown }).poseMultiplier === "number" ? board.settings.poseMultiplier : 1,
           poseMultiplierGenerationModel,
-          faceSwap: isSdxlDefaultWorkspace ? false : typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
-          autoPromptGen: typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
-          autoPromptImage: typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
+          upscale: isSdxlDefaultWorkspace && typeof (board.settings as { upscale?: unknown }).upscale === "boolean" ? board.settings.upscale : false,
+          faceSwap: isFaceSwapWorkspaceLayout ? true : typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
+          autoPromptGen: isFaceSwapWorkspaceLayout ? false : typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
+          autoPromptImage: isFaceSwapWorkspaceLayout ? false : typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
           posePromptMode: (board.settings as { posePromptMode?: unknown }).posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
           posePromptTemplate: posePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
           posePromptTemplates,
@@ -261,11 +274,13 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
             (row as { posePromptTemplates?: unknown }).posePromptTemplates,
             posePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
           ),
-          faceSwap: typeof (row as { faceSwap?: unknown }).faceSwap === "boolean" ? row.faceSwap : false,
+          upscale: isSdxlDefaultWorkspace && typeof (row as { upscale?: unknown }).upscale === "boolean" ? row.upscale : false,
+          faceSwap: isFaceSwapWorkspaceLayout ? true : typeof (row as { faceSwap?: unknown }).faceSwap === "boolean" ? row.faceSwap : false,
         })),
       };
     }),
     assets: rawStore.assets || [],
+    platformNotifications: rawStore.platformNotifications || [],
   };
 }
 
@@ -285,6 +300,7 @@ function defaultBoardSettings(model: InfluencerModel): BoardSettings {
     poseMultiplierEnabled: false,
     poseMultiplier: 1,
     poseMultiplierGenerationModel,
+    upscale: false,
     faceSwap: false,
     autoPromptGen: false,
     autoPromptImage: false,
@@ -304,7 +320,7 @@ function defaultBoardSettings(model: InfluencerModel): BoardSettings {
   };
 }
 
-export function createDefaultRows(count = 4, defaults?: Pick<BoardSettings, "poseMultiplier" | "faceSwap">): WorkspaceRow[] {
+export function createDefaultRows(count = 4, defaults?: Pick<BoardSettings, "poseMultiplier" | "upscale" | "faceSwap">): WorkspaceRow[] {
   return Array.from({ length: count }, (_, index) => ({
     id: randomUUID(),
     orderIndex: index,
@@ -312,6 +328,7 @@ export function createDefaultRows(count = 4, defaults?: Pick<BoardSettings, "pos
     prompt: "",
     poseMultiplier: defaults?.poseMultiplier ?? 1,
     posePromptTemplates: null,
+    upscale: defaults?.upscale ?? false,
     faceSwap: defaults?.faceSwap ?? false,
     reference: null,
     audioReference: null,
@@ -641,6 +658,7 @@ async function createSeedData(): Promise<StoreData> {
     modelAccess,
     boards: [],
     assets: [],
+    platformNotifications: [],
   };
 }
 

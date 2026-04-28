@@ -46,7 +46,8 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const posePromptTemplates = Array.from({ length: 4 }, (_, index) => settings.posePromptTemplates[index] ?? settings.posePromptTemplate);
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(settings.generationModel, settings.sdxlWorkspaceMode);
-  const isSdxlDefaultWorkspace = settings.generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+  const isFaceSwapWorkspaceLayout = settings.sdxlWorkspaceMode === "FACE_SWAP";
+  const isSdxlDefaultWorkspace = settings.generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout;
   const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(settings.generationModel, settings.sdxlWorkspaceMode, workspaceSafety);
   const videoGenerationModel = isVideoGenerationModel(settings.generationModel);
   const visiblePosePromptCount = Math.max(1, Math.min(4, settings.poseMultiplier));
@@ -85,50 +86,15 @@ export function SettingsPanel({
       ? "Auto Image On"
       : "Auto Image Off";
   const isVoiceWorkspace = generationKind === "voice";
-  const showImageReferenceAutomation = !isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout;
-  const showPoseControls = generationKind === "image";
-  const showPoseMultiplierSharedOptions = showPoseControls && !isSdxlDefaultWorkspace;
-  const showFaceSwapControls = generationKind === "image" && !isSdxlDefaultWorkspace;
+  const showImageReferenceAutomation = !isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout;
+  const showPoseMultiplierSharedOptions = generationKind === "image" && !isSdxlDefaultWorkspace && !isFaceSwapWorkspaceLayout;
+  const showUpscaleControls = generationKind === "image" && isSdxlDefaultWorkspace;
+  const showFaceSwapControls = generationKind === "image";
   const showGlobalReferences = false;
   const promptAutomationLocked = settings.generationModel === "kling_motion_control";
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
   const poseWorkerModelControlLocked = poseWorkerModelLocked || isNsfwPoseMultiplierLayout;
-  const poseMultiplierWorkspaceOptionLabel = isNsfwPoseMultiplierWorkspace(settings.generationModel, "POSE_MULTIPLIER", workspaceSafety)
-    ? "NSFW Pose Multipler"
-    : "Pose Multiplier Workspace";
-  const layoutMode = settings.sdxlWorkspaceMode ?? "DEFAULT";
-
-  function handleLayoutModeChange(nextSdxlWorkspaceMode: BoardSettings["sdxlWorkspaceMode"]) {
-    if (nextSdxlWorkspaceMode === layoutMode) {
-      return;
-    }
-
-    const nextIsPoseMultiplierWorkspaceLayout = nextSdxlWorkspaceMode === "POSE_MULTIPLIER";
-    const nextIsSdxlDefaultWorkspace = settings.generationModel === "sdxl" && !nextIsPoseMultiplierWorkspaceLayout;
-    const nextIsNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(settings.generationModel, nextSdxlWorkspaceMode, workspaceSafety);
-    const nextPoseMultiplierGenerationModel = nextIsNsfwPoseMultiplierLayout
-      ? "sdxl"
-      : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
-
-    onSettingsChange({
-      ...settings,
-      quantity: nextIsPoseMultiplierWorkspaceLayout ? 1 : settings.quantity,
-      poseMultiplierEnabled: nextIsPoseMultiplierWorkspaceLayout ? true : nextIsSdxlDefaultWorkspace ? false : settings.poseMultiplierEnabled,
-      poseMultiplier: nextIsPoseMultiplierWorkspaceLayout ? Math.max(2, settings.poseMultiplier) : settings.poseMultiplier,
-      aspectRatio: normalizeBoardAspectRatio(settings.generationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
-      poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
-      poseMultiplierResolution: normalizePoseMultiplierResolution(
-        settings.poseMultiplierResolution,
-        nextPoseMultiplierGenerationModel,
-        nextIsNsfwPoseMultiplierLayout,
-      ),
-      autoPromptImage: nextIsPoseMultiplierWorkspaceLayout ? false : settings.autoPromptImage,
-      sdxlWorkspaceMode: nextSdxlWorkspaceMode,
-      faceSwap: nextIsSdxlDefaultWorkspace ? false : settings.faceSwap,
-    });
-  }
-
   return (
     <section className="h-full bg-[#202020] text-white">
       <div className="border-b border-white/8 px-5 py-4">
@@ -140,7 +106,7 @@ export function SettingsPanel({
 
       <div className="space-y-5 px-5 py-5">
           <div className="grid gap-4">
-            {!isPoseMultiplierWorkspaceLayout ? (
+            {!isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout ? (
             <label className="space-y-2">
               <span className="text-sm font-semibold text-white/76">Worker model</span>
               <select
@@ -177,7 +143,8 @@ export function SettingsPanel({
                     autoPromptImage: nextPoseMultiplierWorkspace ? false : settings.autoPromptImage,
                     poseMultiplierEnabled: nextPoseMultiplierWorkspace ? true : nextSdxlDefaultWorkspace ? false : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
                     poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
-                    faceSwap: nextSdxlDefaultWorkspace ? false : settings.faceSwap,
+                    upscale: nextSdxlDefaultWorkspace ? settings.upscale : false,
+                    faceSwap: settings.faceSwap,
                   });
                 }}
               >
@@ -192,7 +159,7 @@ export function SettingsPanel({
             </label>
               ) : null}
 
-              {!isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout ? (
+              {!isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Resolution</span>
                 <select
@@ -281,7 +248,7 @@ export function SettingsPanel({
               </label>
             ) : null}
 
-            {showWorkerQualityControl ? (
+            {showWorkerQualityControl && !isFaceSwapWorkspaceLayout ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Quality</span>
                 <select
@@ -298,7 +265,7 @@ export function SettingsPanel({
               </label>
             ) : null}
 
-            {!isVoiceWorkspace ? (
+            {!isVoiceWorkspace && !isFaceSwapWorkspaceLayout ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Aspect ratio</span>
                 <select
@@ -316,7 +283,7 @@ export function SettingsPanel({
               </label>
             ) : null}
 
-            {allowedVideoDurationOptions.length ? (
+            {allowedVideoDurationOptions.length && !isFaceSwapWorkspaceLayout ? (
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Duration</span>
                 <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-2 shadow-[var(--shadow-soft)]">
@@ -353,7 +320,7 @@ export function SettingsPanel({
               </div>
             ) : null}
 
-            {!videoGenerationModel && !isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout ? (
+            {!videoGenerationModel && !isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Quantity</span>
                 <select
@@ -377,6 +344,7 @@ export function SettingsPanel({
               </label>
             ) : null}
 
+            {!isFaceSwapWorkspaceLayout ? (
             <div className="space-y-2">
               <span className="text-sm font-semibold text-white/76">{promptAutomationLabel}</span>
               <button
@@ -401,6 +369,7 @@ export function SettingsPanel({
                 <p className="text-xs leading-5 text-white/48">Kling Motion Control does not support text prompts or text prompt automation.</p>
               ) : null}
             </div>
+            ) : null}
 
             {showImageReferenceAutomation ? (
               <div className="space-y-2">
@@ -428,38 +397,9 @@ export function SettingsPanel({
               </div>
             ) : null}
 
-            {showPoseControls ? (
+            {showPoseMultiplierSharedOptions ? (
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
-                <div className="space-y-2">
-                  <span className="text-sm font-semibold text-white/76">Layout</span>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/8 bg-[#262626] p-1" role="group" aria-label="Layout">
-                    {[
-                      ["DEFAULT", "Default"],
-                      ["POSE_MULTIPLIER", poseMultiplierWorkspaceOptionLabel],
-                    ].map(([value, label]) => {
-                      const selected = layoutMode === value;
-
-                      return (
-                        <button
-                          key={value}
-                          aria-pressed={selected}
-                          className={
-                            selected
-                              ? "min-h-10 rounded-lg border border-[#4e6b22] bg-[#4d7311] px-2 py-2 text-center text-xs font-semibold leading-4 text-[#f4ffd8] transition hover:bg-[#598515]"
-                              : "min-h-10 rounded-lg border border-white/8 bg-[#202020] px-2 py-2 text-center text-xs font-semibold leading-4 text-white/68 transition hover:bg-[#2c2c2c] hover:text-white/84"
-                          }
-                          onClick={() => handleLayoutModeChange(value as BoardSettings["sdxlWorkspaceMode"])}
-                          type="button"
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                {showPoseMultiplierSharedOptions ? (
-                  <>
                 {!isSdxlDefaultWorkspace ? (
                   <>
                 <div className="group/pose relative">
@@ -582,8 +522,6 @@ export function SettingsPanel({
                 ) : null}
                   </>
                 ) : null}
-                  </>
-                ) : null}
               </div>
             ) : null}
 
@@ -647,20 +585,44 @@ export function SettingsPanel({
             ) : null}
 
             {showFaceSwapControls ? (
-              <div className="space-y-2">
-                <span className="text-sm font-semibold text-white/76">Face swap</span>
-                <button
-                  className={
-                    settings.faceSwap
-                      ? "inline-flex w-full items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                      : "inline-flex w-full items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
-                  }
-                  onClick={() => onSettingsChange({ ...settings, faceSwap: !settings.faceSwap })}
-                  type="button"
-                >
-                  {settings.faceSwap ? "Enabled for all rows" : "Disabled for all rows"}
-                </button>
-              </div>
+              <>
+                {showUpscaleControls ? (
+                  <div className="space-y-2">
+                    <span className="text-sm font-semibold text-white/76">Upscale</span>
+                    <button
+                      className={
+                        settings.upscale
+                          ? "inline-flex w-full items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                          : "inline-flex w-full items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                      }
+                      onClick={() => onSettingsChange({ ...settings, upscale: !settings.upscale })}
+                      type="button"
+                    >
+                      {settings.upscale ? "Enabled for all rows" : "Disabled for all rows"}
+                    </button>
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold text-white/76">Face swap</span>
+                  <button
+                    className={
+                      isFaceSwapWorkspaceLayout || settings.faceSwap
+                        ? "inline-flex w-full items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                        : "inline-flex w-full items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                    }
+                    disabled={isFaceSwapWorkspaceLayout}
+                    onClick={() => {
+                      if (!isFaceSwapWorkspaceLayout) {
+                        onSettingsChange({ ...settings, faceSwap: !settings.faceSwap });
+                      }
+                    }}
+                    type="button"
+                  >
+                    {isFaceSwapWorkspaceLayout || settings.faceSwap ? "Enabled for all rows" : "Disabled for all rows"}
+                  </button>
+                </div>
+              </>
             ) : null}
 
           </div>

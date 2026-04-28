@@ -5,6 +5,7 @@ import {
   SUPPORTED_WORKER_ASPECT_RATIOS,
   SUPPORTED_WORKER_GENERATION_MODELS,
   SUPPORTED_WORKER_RESOLUTIONS,
+  DEFAULT_AGENCY_BILLING_SETTINGS,
   getAllowedAspectRatiosForGenerationModel,
   getAllowedResolutionsForGenerationModel,
   getMaxBoardQuantityForGenerationModel,
@@ -22,7 +23,6 @@ import {
 import { presentInfluencerModel } from "./presenters.js";
 
 const allowedGenerationModels: WorkerGenerationModel[] = [...SUPPORTED_WORKER_GENERATION_MODELS];
-const agencyInfluencerCapacity = 2;
 const allowedResolutions: WorkerResolution[] = [...SUPPORTED_WORKER_RESOLUTIONS];
 const allowedAspectRatios: WorkerAspectRatio[] = [...SUPPORTED_WORKER_ASPECT_RATIOS];
 const accentPairs = [
@@ -204,6 +204,8 @@ export async function createInfluencerModel(
     const ownerAgencyIds = agencyCreator ? [viewer.agencyId as string] : [];
 
     if (agencyCreator) {
+      const ownerAgency = current.agencies.find((agency) => agency.id === viewer.agencyId);
+      const agencyInfluencerCapacity = ownerAgency?.billingSettings.aiInfluencerAllowance ?? DEFAULT_AGENCY_BILLING_SETTINGS.aiInfluencerAllowance;
       const agencyModelCount = current.influencerModels.filter(
         (model) => model.isActive && model.agencyIds.includes(viewer.agencyId as string),
       ).length;

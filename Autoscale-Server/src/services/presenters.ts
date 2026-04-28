@@ -143,6 +143,7 @@ export function presentAgency(agency: Agency, store: StoreData, visibleUsers: St
     slug: agency.slug,
     name: agency.name,
     createdAt: agency.createdAt,
+    billingSettings: agency.billingSettings,
     memberCount: members.length,
     adminCount: members.filter((user) => user.role === "AGENCY_ADMIN").length,
     managerCount: members.filter((user) => user.role === "AGENCY_MANAGER").length,

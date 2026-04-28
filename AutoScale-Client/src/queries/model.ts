@@ -48,6 +48,7 @@ export const INFLUENCER_MODEL_FIELDS = gql`
       ownerId
       rows {
         id
+        upscale
         faceSwap
         poseMultiplier
         outputAssets {

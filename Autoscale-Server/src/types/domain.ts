@@ -10,6 +10,39 @@ export interface ManagerPermissions {
   canManageCredits: boolean;
 }
 
+export interface AgencyBillingSettings {
+  monthlySubscriptionPrice: number;
+  includedMonthlyCredits: number;
+  aiInfluencerAllowance: number;
+  workspaceTabAllowance: number;
+  parallelRowGenerations: number;
+  teamSeatAllowance: number;
+}
+
+export const DEFAULT_AGENCY_BILLING_SETTINGS: AgencyBillingSettings = {
+  monthlySubscriptionPrice: 7500,
+  includedMonthlyCredits: 1000,
+  aiInfluencerAllowance: 2,
+  workspaceTabAllowance: 9,
+  parallelRowGenerations: 8,
+  teamSeatAllowance: 4,
+};
+
+function normalizeAllowanceValue(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback;
+}
+
+export function normalizeAgencyBillingSettings(value: Partial<AgencyBillingSettings> | null | undefined): AgencyBillingSettings {
+  return {
+    monthlySubscriptionPrice: normalizeAllowanceValue(value?.monthlySubscriptionPrice, DEFAULT_AGENCY_BILLING_SETTINGS.monthlySubscriptionPrice),
+    includedMonthlyCredits: normalizeAllowanceValue(value?.includedMonthlyCredits, DEFAULT_AGENCY_BILLING_SETTINGS.includedMonthlyCredits),
+    aiInfluencerAllowance: normalizeAllowanceValue(value?.aiInfluencerAllowance, DEFAULT_AGENCY_BILLING_SETTINGS.aiInfluencerAllowance),
+    workspaceTabAllowance: normalizeAllowanceValue(value?.workspaceTabAllowance, DEFAULT_AGENCY_BILLING_SETTINGS.workspaceTabAllowance),
+    parallelRowGenerations: normalizeAllowanceValue(value?.parallelRowGenerations, DEFAULT_AGENCY_BILLING_SETTINGS.parallelRowGenerations),
+    teamSeatAllowance: normalizeAllowanceValue(value?.teamSeatAllowance, DEFAULT_AGENCY_BILLING_SETTINGS.teamSeatAllowance),
+  };
+}
+
 export const DEFAULT_MANAGER_PERMISSIONS: ManagerPermissions = {
   canSuspendUsers: true,
   canDeleteUsers: false,
@@ -300,6 +333,16 @@ export interface Agency {
   slug: string;
   name: string;
   createdAt: string;
+  billingSettings: AgencyBillingSettings;
+}
+
+export interface PlatformNotification {
+  id: string;
+  type: "BILLING_FOLLOW_UP_REQUEST";
+  agencyId: string | null;
+  requesterId: string;
+  message: string;
+  createdAt: string;
 }
 
 export interface InfluencerDefaults {
@@ -358,10 +401,11 @@ export interface BoardSettings {
   quality: WorkerQuality;
   aspectRatio: WorkerAspectRatio;
   quantity: number;
-  sdxlWorkspaceMode: "DEFAULT" | "POSE_MULTIPLIER";
+  sdxlWorkspaceMode: "DEFAULT" | "POSE_MULTIPLIER" | "FACE_SWAP";
   poseMultiplierEnabled: boolean;
   poseMultiplier: number;
   poseMultiplierGenerationModel: PoseMultiplierGenerationModel | "sdxl";
+  upscale: boolean;
   faceSwap: boolean;
   autoPromptGen: boolean;
   autoPromptImage: boolean;
@@ -378,6 +422,7 @@ export interface WorkspaceRow {
   prompt: string;
   poseMultiplier: number;
   posePromptTemplates: string[] | null;
+  upscale: boolean;
   faceSwap: boolean;
   reference: ReferenceSelection | null;
   audioReference: ReferenceSelection | null;
@@ -426,6 +471,7 @@ export interface StoreData {
   modelAccess: ModelAccessAssignment[];
   boards: WorkspaceBoard[];
   assets: GeneratedAsset[];
+  platformNotifications: PlatformNotification[];
 }
 
 export interface UploadRecord {

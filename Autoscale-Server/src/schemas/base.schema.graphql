@@ -20,6 +20,27 @@ type ManagerPermissions {
   canManageCredits: Boolean!
 }
 
+type AgencyBillingSettings {
+  monthlySubscriptionPrice: Int!
+  includedMonthlyCredits: Int!
+  aiInfluencerAllowance: Int!
+  workspaceTabAllowance: Int!
+  parallelRowGenerations: Int!
+  teamSeatAllowance: Int!
+}
+
+type PlatformNotification {
+  id: ID!
+  type: String!
+  agencyId: ID
+  agencyName: String
+  requesterId: ID!
+  requesterName: String!
+  requesterEmail: String
+  message: String!
+  createdAt: String!
+}
+
 enum GenerationStatus {
   IDLE
   QUEUED
@@ -58,6 +79,7 @@ type Agency {
   slug: String!
   name: String!
   createdAt: String!
+  billingSettings: AgencyBillingSettings!
   memberCount: Int!
   adminCount: Int!
   managerCount: Int!
@@ -97,6 +119,7 @@ type BoardSettings {
   poseMultiplierEnabled: Boolean!
   poseMultiplier: Float!
   poseMultiplierGenerationModel: String!
+  upscale: Boolean!
   faceSwap: Boolean!
   autoPromptGen: Boolean!
   autoPromptImage: Boolean!
@@ -134,6 +157,7 @@ type WorkspaceRow {
   prompt: String!
   poseMultiplier: Float!
   posePromptTemplates: [String!]
+  upscale: Boolean!
   faceSwap: Boolean!
   reference: ReferenceSelection
   audioReference: ReferenceSelection
@@ -210,6 +234,7 @@ input UpdateBoardRowInput {
   prompt: String
   poseMultiplier: Float
   posePromptTemplates: [String!]
+  upscale: Boolean
   faceSwap: Boolean
   reference: ReferenceSelectionInput
   audioReference: ReferenceSelectionInput
@@ -230,6 +255,7 @@ input BoardSettingsInput {
   poseMultiplierEnabled: Boolean!
   poseMultiplier: Float!
   poseMultiplierGenerationModel: String!
+  upscale: Boolean!
   faceSwap: Boolean!
   autoPromptGen: Boolean!
   autoPromptImage: Boolean!
@@ -257,6 +283,15 @@ input ManagerPermissionsInput {
   canResetPasswords: Boolean!
   canManageAssignments: Boolean!
   canManageCredits: Boolean!
+}
+
+input AgencyBillingSettingsInput {
+  monthlySubscriptionPrice: Int!
+  includedMonthlyCredits: Int!
+  aiInfluencerAllowance: Int!
+  workspaceTabAllowance: Int!
+  parallelRowGenerations: Int!
+  teamSeatAllowance: Int!
 }
 
 input InfluencerDefaultsInput {
@@ -291,6 +326,7 @@ type Query {
   workspaceBoard(boardId: ID!): WorkspaceBoard
   modelAssets(influencerModelId: ID!, limit: Int = 80): [GeneratedAsset!]!
   users: [User!]!
+  platformNotifications: [PlatformNotification!]!
 }
 
 type Mutation {
@@ -299,6 +335,8 @@ type Mutation {
   createAgency(name: String!): Agency!
   renameAgency(agencyId: ID!, name: String!): Agency!
   deleteAgency(agencyId: ID!): Boolean!
+  updateAgencyBillingSettings(agencyId: ID!, input: AgencyBillingSettingsInput!): Agency!
+  requestBillingFollowUp: PlatformNotification!
   createUser(input: CreateUserInput!): User!
   renameUser(userId: ID!, name: String!): User!
   updateUserRole(userId: ID!, role: Role!): User!

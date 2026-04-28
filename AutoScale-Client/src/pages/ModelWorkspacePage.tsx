@@ -144,7 +144,8 @@ function resolveWorkspaceGenerationModels(mode: WorkspaceMode, modelGenerationMo
 function normalizeSettingsForGenerationModel(settings: BoardSettings, generationModel: string, workspaceSafety: "SFW" | "NSFW" = "SFW"): BoardSettings {
   const nextSdxlWorkspaceMode = (imageGenerationModelOptions as readonly string[]).includes(generationModel) ? settings.sdxlWorkspaceMode ?? "DEFAULT" : "DEFAULT";
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(generationModel, nextSdxlWorkspaceMode);
-  const isSdxlDefaultWorkspace = generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+  const isFaceSwapWorkspaceLayout = nextSdxlWorkspaceMode === "FACE_SWAP";
+  const isSdxlDefaultWorkspace = generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout;
   const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(generationModel, nextSdxlWorkspaceMode, workspaceSafety);
   const quantity = isPoseMultiplierWorkspaceLayout ? 1 : Math.min(settings.quantity, getMaxQuantityForGenerationModel(generationModel));
   const promptUnsupported = generationModel === "kling_motion_control";
@@ -160,11 +161,12 @@ function normalizeSettingsForGenerationModel(settings: BoardSettings, generation
     aspectRatio: normalizeBoardAspectRatio(generationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
     quantity,
     sdxlWorkspaceMode: nextSdxlWorkspaceMode,
-    autoPromptGen: promptUnsupported ? false : settings.autoPromptGen,
-    autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : settings.autoPromptImage,
-    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace ? false : quantity === 1 ? settings.poseMultiplierEnabled : false,
+    autoPromptGen: promptUnsupported || isFaceSwapWorkspaceLayout ? false : settings.autoPromptGen,
+    autoPromptImage: isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? false : settings.autoPromptImage,
+    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace || isFaceSwapWorkspaceLayout ? false : quantity === 1 ? settings.poseMultiplierEnabled : false,
     poseMultiplierGenerationModel,
-    faceSwap: isSdxlDefaultWorkspace ? false : settings.faceSwap,
+    upscale: isSdxlDefaultWorkspace ? settings.upscale : false,
+    faceSwap: isFaceSwapWorkspaceLayout ? true : settings.faceSwap,
   };
 }
 
@@ -293,11 +295,13 @@ function buildPositionNamedBoards(boards: WorkspaceBoardTab[], poseLayoutBoardId
     ...board,
     name: `Table ${index + 1}`,
     layoutLabel:
-      (Object.prototype.hasOwnProperty.call(poseLayoutBoardIds, board.id)
-        ? poseLayoutBoardIds[board.id]
-        : isPoseMultiplierWorkspace(board.settings?.generationModel ?? "", board.settings?.sdxlWorkspaceMode))
-        ? "Pose Multiplier Layout"
-        : null,
+      board.settings?.sdxlWorkspaceMode === "FACE_SWAP"
+        ? "FaceSwap Layout"
+        : (Object.prototype.hasOwnProperty.call(poseLayoutBoardIds, board.id)
+            ? poseLayoutBoardIds[board.id]
+            : isPoseMultiplierWorkspace(board.settings?.generationModel ?? "", board.settings?.sdxlWorkspaceMode))
+          ? "Pose Multiplier Layout"
+          : null,
   }));
 }
 
@@ -578,7 +582,8 @@ function PlaygroundSurface({
       autoPromptGen: promptUnsupported ? false : settings.autoPromptGen,
       poseMultiplierEnabled: nextPoseMultiplierWorkspaceLayout ? true : nextSdxlDefaultWorkspace ? false : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
       poseMultiplierGenerationModel: nextNsfwPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
-      faceSwap: nextSdxlDefaultWorkspace ? false : settings.faceSwap,
+      upscale: nextSdxlDefaultWorkspace ? settings.upscale : false,
+      faceSwap: settings.faceSwap,
     });
   }
 
@@ -1137,7 +1142,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
       return;
     }
     const sourceBoardId =
-      board && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode)
+      board && board.settings.sdxlWorkspaceMode !== "FACE_SWAP" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode)
         ? board.id
         : undefined;
     const { data } = await createBoardMutation({
@@ -1198,6 +1203,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     poseMultiplier?: number;
     posePromptTemplates?: string[] | null;
     faceSwap?: boolean;
+    upscale?: boolean;
     reference?: ReferenceSelection;
     audioReference?: ReferenceSelection;
     clearReference?: boolean;
@@ -1216,6 +1222,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
           prompt: input.prompt,
           poseMultiplier: input.poseMultiplier,
           posePromptTemplates: input.posePromptTemplates,
+          upscale: input.upscale,
           faceSwap: input.faceSwap,
           reference: input.reference,
           audioReference: input.audioReference,
@@ -1233,6 +1240,10 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
       return;
     }
     const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(nextSettings.generationModel, nextSettings.sdxlWorkspaceMode);
+    const isFaceSwapWorkspaceLayout = nextSettings.sdxlWorkspaceMode === "FACE_SWAP";
+    const currentGenerationKind = mode === "playground" ? "image" : workspaceModeMetaByMode[mode].kind;
+    const voiceAutoPromptEnabled = currentGenerationKind === "voice" && nextSettings.autoPromptGen;
+    const shouldClearAudioReferences = voiceAutoPromptEnabled && !board.settings.autoPromptGen;
     setPoseLayoutBoardIds((current) =>
       current[board.id] === isPoseMultiplierWorkspaceLayout ? current : { ...current, [board.id]: isPoseMultiplierWorkspaceLayout },
     );
@@ -1252,9 +1263,10 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
           poseMultiplierEnabled: nextSettings.poseMultiplierEnabled,
           poseMultiplier: nextSettings.poseMultiplier,
           poseMultiplierGenerationModel: nextSettings.poseMultiplierGenerationModel,
-          faceSwap: nextSettings.faceSwap,
-          autoPromptGen: nextSettings.autoPromptGen,
-          autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : nextSettings.autoPromptImage,
+          upscale: nextSettings.generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout ? nextSettings.upscale : false,
+          faceSwap: isFaceSwapWorkspaceLayout ? true : nextSettings.faceSwap,
+          autoPromptGen: isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptGen,
+          autoPromptImage: isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptImage,
           posePromptMode: nextSettings.posePromptMode,
           posePromptTemplate: nextSettings.posePromptTemplate,
           posePromptTemplates: nextSettings.posePromptTemplates,
@@ -1271,8 +1283,24 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         },
       },
     });
+    if (shouldClearAudioReferences) {
+      const rowsWithAudioReferences = board.rows.filter((row) => row.audioReference);
+      await Promise.all(
+        rowsWithAudioReferences.map((row) =>
+          updateRowMutation({
+            variables: {
+              input: {
+                boardId: board.id,
+                rowId: row.id,
+                clearAudioReference: true,
+              },
+            },
+          }),
+        ),
+      );
+    }
     await Promise.all([refetchBoard(), refetchModel()]);
-  }, [activeBoardId, board, refetchBoard, refetchModel, updateSettingsMutation]);
+  }, [activeBoardId, board, mode, refetchBoard, refetchModel, updateRowMutation, updateSettingsMutation]);
 
   useEffect(() => {
     if (!board || activeGenerationModelOptions.length === 0) {
@@ -1316,6 +1344,43 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     await handleCommitRow({
       rowId: row.id,
       audioReference: buildUploadReference(0, file.name, upload),
+    });
+  }
+
+  function handleLayoutModeChange(nextSdxlWorkspaceMode: BoardSettings["sdxlWorkspaceMode"]) {
+    if (!board || nextSdxlWorkspaceMode === board.settings.sdxlWorkspaceMode) {
+      return;
+    }
+
+    const nextIsPoseMultiplierWorkspaceLayout = nextSdxlWorkspaceMode === "POSE_MULTIPLIER";
+    const nextIsFaceSwapWorkspaceLayout = nextSdxlWorkspaceMode === "FACE_SWAP";
+    const nextIsSdxlDefaultWorkspace = board.settings.generationModel === "sdxl" && !nextIsPoseMultiplierWorkspaceLayout && !nextIsFaceSwapWorkspaceLayout;
+    const nextIsNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(
+      board.settings.generationModel,
+      nextSdxlWorkspaceMode,
+      activeModeMeta?.safetyLabel ?? "SFW",
+    );
+    const nextPoseMultiplierGenerationModel = nextIsNsfwPoseMultiplierLayout
+      ? "sdxl"
+      : normalizePoseMultiplierGenerationModel(board.settings.poseMultiplierGenerationModel, board.settings.generationModel);
+
+    void handleSettingsChange({
+      ...board.settings,
+      quantity: nextIsPoseMultiplierWorkspaceLayout || nextIsFaceSwapWorkspaceLayout ? 1 : board.settings.quantity,
+      poseMultiplierEnabled: nextIsPoseMultiplierWorkspaceLayout ? true : nextIsSdxlDefaultWorkspace || nextIsFaceSwapWorkspaceLayout ? false : board.settings.poseMultiplierEnabled,
+      poseMultiplier: nextIsPoseMultiplierWorkspaceLayout ? Math.max(2, board.settings.poseMultiplier) : board.settings.poseMultiplier,
+      aspectRatio: normalizeBoardAspectRatio(board.settings.generationModel, board.settings.aspectRatio, nextSdxlWorkspaceMode),
+      poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
+      poseMultiplierResolution: normalizePoseMultiplierResolution(
+        board.settings.poseMultiplierResolution,
+        nextPoseMultiplierGenerationModel,
+        nextIsNsfwPoseMultiplierLayout,
+      ),
+      autoPromptGen: nextIsFaceSwapWorkspaceLayout ? false : board.settings.autoPromptGen,
+      autoPromptImage: nextIsPoseMultiplierWorkspaceLayout || nextIsFaceSwapWorkspaceLayout ? false : board.settings.autoPromptImage,
+      sdxlWorkspaceMode: nextSdxlWorkspaceMode,
+      upscale: nextIsSdxlDefaultWorkspace ? board.settings.upscale : false,
+      faceSwap: nextIsFaceSwapWorkspaceLayout ? true : board.settings.faceSwap,
     });
   }
 
@@ -1402,6 +1467,23 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const completedRows = board?.rows.filter((row) => row.status === "SUCCEEDED").length ?? 0;
   const activeModeMeta = mode === "playground" ? null : workspaceModeMetaByMode[mode];
   const activeModeLabel = activeModeMeta ? (activeModeMeta.kind === "voice" ? activeModeMeta.menuLabel : `${activeModeMeta.menuLabel} / ${activeModeMeta.safetyLabel}`) : "Playground";
+  const showBoardLayoutControl = Boolean(board && activeModeMeta?.kind === "image");
+  const activeLayoutMode = board?.settings.sdxlWorkspaceMode ?? "DEFAULT";
+  const isActiveFaceSwapLayout = board?.settings.sdxlWorkspaceMode === "FACE_SWAP";
+  const boardLayoutControl = showBoardLayoutControl ? (
+    <label className="flex items-center gap-2">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">Layout</span>
+      <select
+        className="h-11 w-[240px] rounded-xl border border-white/8 bg-[#2b2b2b] px-3 text-xs font-semibold text-white/82 outline-none transition hover:bg-[#313131] focus:border-[#4e6b22]"
+        onChange={(event) => handleLayoutModeChange(event.target.value as BoardSettings["sdxlWorkspaceMode"])}
+        value={activeLayoutMode}
+      >
+        <option value="DEFAULT">Default</option>
+        <option value="POSE_MULTIPLIER">Pose Multiplier Workspace</option>
+        <option value="FACE_SWAP">FaceSwap</option>
+      </select>
+    </label>
+  ) : null;
   return (
     <div className="generation-workspace space-y-4">
       <section className={theme.cardStrong + " overflow-hidden border-white/10 bg-[#171717]/92 shadow-[0_28px_80px_rgba(0,0,0,0.35)]"}>
@@ -1483,6 +1565,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                   onCreate={() => void handleCreateBoard()}
                   onDelete={(nextBoardId) => void handleDeleteBoard(nextBoardId)}
                   onSelect={onSelectBoard}
+                  rightAddon={boardLayoutControl}
                 />
 
                 <WorkspaceGrid
@@ -1490,8 +1573,11 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                   referenceColumnLabel={`${activeModeMeta?.kind ?? "image"} reference`}
                   referenceColumnLocked={(activeModeMeta?.kind ?? "image") === "voice"}
                   referenceMediaKind={(activeModeMeta?.kind ?? "image") === "video" ? "video" : "image"}
+                  audioReferenceLocked={(activeModeMeta?.kind ?? "image") === "voice" && board.settings.autoPromptGen}
                   showAudioReferenceColumn={(activeModeMeta?.kind ?? "image") === "voice"}
-                  showPoseAndFaceSwapColumns={(activeModeMeta?.kind ?? "image") === "image" && !(board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode))}
+                  showFaceSwapColumn={(activeModeMeta?.kind ?? "image") === "image"}
+                  showPoseColumn={(activeModeMeta?.kind ?? "image") === "image" && !isActiveFaceSwapLayout && !(board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode))}
+                  showUpscaleColumn={(activeModeMeta?.kind ?? "image") === "image" && !isActiveFaceSwapLayout && board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode)}
                   onAddRow={async () => {
                     await addRowMutation({ variables: { boardId: board.id } });
                     await refetchBoard();

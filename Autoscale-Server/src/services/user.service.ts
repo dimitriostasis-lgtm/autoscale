@@ -1,9 +1,13 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
-import { DEFAULT_MANAGER_PERMISSIONS } from "../types/domain.js";
+import {
+  DEFAULT_AGENCY_BILLING_SETTINGS,
+  DEFAULT_MANAGER_PERMISSIONS,
+  normalizeAgencyBillingSettings,
+} from "../types/domain.js";
 import { hashPassword } from "../lib/auth.js";
 import { readStore, updateStore } from "../lib/store.js";
-import type { AuthUser, ManagerPermissions, Role, StoreData, StoredUser } from "../types/domain.js";
+import type { AgencyBillingSettings, AuthUser, ManagerPermissions, PlatformNotification, Role, StoreData, StoredUser } from "../types/domain.js";
 
 import {
   canAccessAccountConsole,
@@ -186,6 +190,7 @@ export async function createAgency(currentUser: AuthUser | null, name: string) {
       slug,
       name: normalizedName,
       createdAt: new Date().toISOString(),
+      billingSettings: { ...DEFAULT_AGENCY_BILLING_SETTINGS },
     });
 
     return current;
@@ -194,6 +199,94 @@ export async function createAgency(currentUser: AuthUser | null, name: string) {
   const agency = [...store.agencies].reverse().find((entry) => entry.name === normalizedName);
   if (!agency) {
     throw new Error("Failed to create agency");
+  }
+
+  return presentAgency(agency, store, filterVisibleUsers(store, viewer));
+}
+
+function clampAgencyBillingSettings(input: AgencyBillingSettings): AgencyBillingSettings {
+  const normalized = normalizeAgencyBillingSettings(input);
+  return {
+    monthlySubscriptionPrice: Math.min(999999, normalized.monthlySubscriptionPrice),
+    includedMonthlyCredits: Math.min(999999, normalized.includedMonthlyCredits),
+    aiInfluencerAllowance: Math.min(999, normalized.aiInfluencerAllowance),
+    workspaceTabAllowance: Math.min(999, normalized.workspaceTabAllowance),
+    parallelRowGenerations: Math.min(999, normalized.parallelRowGenerations),
+    teamSeatAllowance: Math.min(999, normalized.teamSeatAllowance),
+  };
+}
+
+function presentPlatformNotification(notification: PlatformNotification, store: StoreData) {
+  const agency = notification.agencyId ? store.agencies.find((entry) => entry.id === notification.agencyId) || null : null;
+  const requester = store.users.find((entry) => entry.id === notification.requesterId) || null;
+
+  return {
+    ...notification,
+    agencyName: agency?.name || null,
+    requesterName: requester?.name || "Unknown user",
+    requesterEmail: requester?.email || null,
+  };
+}
+
+export async function listPlatformNotifications(currentUser: AuthUser | null) {
+  const viewer = requireAuthenticatedUser(currentUser);
+  assertPlatformAdmin(viewer);
+  const store = await readStore();
+
+  return [...store.platformNotifications]
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    .map((notification) => presentPlatformNotification(notification, store));
+}
+
+export async function requestBillingFollowUp(currentUser: AuthUser | null) {
+  const viewer = requireAuthenticatedUser(currentUser);
+  const timestamp = new Date().toISOString();
+
+  const store = await updateStore((current) => {
+    const agency = viewer.agencyId ? current.agencies.find((entry) => entry.id === viewer.agencyId) || null : null;
+    const message = `${viewer.name} requested a billing follow-up${agency ? ` for ${agency.name}` : ""}.`;
+    current.platformNotifications.unshift({
+      id: randomUUID(),
+      type: "BILLING_FOLLOW_UP_REQUEST",
+      agencyId: agency?.id || null,
+      requesterId: viewer.id,
+      message,
+      createdAt: timestamp,
+    });
+
+    return current;
+  });
+
+  const notification = store.platformNotifications.find((entry) => entry.createdAt === timestamp && entry.requesterId === viewer.id);
+  if (!notification) {
+    throw new Error("Failed to create follow-up notification");
+  }
+
+  return presentPlatformNotification(notification, store);
+}
+
+export async function updateAgencyBillingSettings(
+  currentUser: AuthUser | null,
+  agencyId: string,
+  input: AgencyBillingSettings,
+) {
+  const viewer = requireAuthenticatedUser(currentUser);
+  assertPlatformAdmin(viewer);
+  const nextSettings = clampAgencyBillingSettings(input);
+
+  const store = await updateStore((current) => {
+    const agency = current.agencies.find((entry) => entry.id === agencyId);
+    if (!agency) {
+      throw new Error("Agency not found");
+    }
+
+    agency.billingSettings = nextSettings;
+    return current;
+  });
+
+  const agency = store.agencies.find((entry) => entry.id === agencyId);
+  if (!agency) {
+    throw new Error("Agency not found");
   }
 
   return presentAgency(agency, store, filterVisibleUsers(store, viewer));

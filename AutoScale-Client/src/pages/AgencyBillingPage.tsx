@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useMutation, useQuery } from "@apollo/client/react";
 
-import { agencyBillingPlan, creditPurchaseOptions, paymentMethodOptions, planGlowStyle } from "../lib/billing";
+import { agencyBillingPlan, creditPurchaseOptions, defaultAgencyBillingSettings, paymentMethodOptions, planGlowStyle } from "../lib/billing";
 import { cx } from "../lib/cx";
+import { AGENCIES_QUERY, REQUEST_BILLING_FOLLOW_UP_MUTATION } from "../queries/user";
 import { theme } from "../styles/theme";
-import type { UserRecord } from "../types";
+import type { AgencyRecord, PlatformNotification, UserRecord } from "../types";
 
 interface AgencyBillingPageProps {
   currentUser: UserRecord;
@@ -217,6 +219,14 @@ const cryptoPaymentOptions = [
   { id: "sol", label: "Solana", symbol: "SOL", network: "Solana" },
 ];
 
+function formatBillingCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    maximumFractionDigits: 0,
+    style: "currency",
+  }).format(Math.max(0, Number(value) || 0));
+}
+
 function PaymentLogoStrip({ logos, compact = false }: { logos: PaymentLogoBadge[]; compact?: boolean }) {
   return (
     <div className={cx("flex flex-wrap", compact ? "gap-1.5" : "gap-2")}>
@@ -242,6 +252,18 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState(paymentMethodOptions[0].id);
   const [selectedCryptoPaymentId, setSelectedCryptoPaymentId] = useState(cryptoPaymentOptions[2].id);
   const [processorNotice, setProcessorNotice] = useState<string | null>(null);
+  const [followUpNotice, setFollowUpNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const { data: agenciesData } = useQuery<{ agencies: AgencyRecord[] }>(AGENCIES_QUERY, {
+    fetchPolicy: "cache-and-network",
+    pollInterval: 5000,
+  });
+  const [requestBillingFollowUpMutation] = useMutation<{ requestBillingFollowUp: PlatformNotification }>(
+    REQUEST_BILLING_FOLLOW_UP_MUTATION,
+  );
+  const currentAgency = agenciesData?.agencies.find((agency) => agency.id === currentUser.agencyId) || null;
+  const billingSettings = currentAgency?.billingSettings ?? defaultAgencyBillingSettings;
+  const monthlySubscriptionLabel = `${formatBillingCurrency(billingSettings.monthlySubscriptionPrice)}/month`;
+  const includedMonthlyCreditsLabel = `${formatBillingCurrency(billingSettings.includedMonthlyCredits)}/month credits included`;
   const selectedCreditPurchase = creditPurchaseOptions.find((option) => option.id === selectedCreditPurchaseId) || creditPurchaseOptions[0];
   const customCreditAmountValue = Math.max(0, Number(customCreditAmount) || 0);
   const selectedCreditAmount = selectedCreditPurchaseId === "custom" ? customCreditAmountValue : selectedCreditPurchase.amount;
@@ -257,6 +279,15 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
       : selectedPaymentMethod.id === "crypto"
         ? "Generate crypto payment test"
         : "Run local card test purchase";
+
+  async function handleRequestFollowUp(): Promise<void> {
+    try {
+      await requestBillingFollowUpMutation();
+      setFollowUpNotice({ tone: "success", text: "Thank you for your interest. We'll get in touch shortly." });
+    } catch {
+      setFollowUpNotice({ tone: "error", text: "We could not send the follow-up request. Please try again." });
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -294,21 +325,34 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
               </span>
             </div>
 
-            <div className="mt-5 rounded-[24px] border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-4 py-4">
+            <div className="mt-5 grid grid-cols-[4.75rem_minmax(0,1fr)] gap-3 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-3">
+              <div className="flex h-12 items-center justify-center rounded-xl bg-[color:var(--accent-soft)] px-2 text-center text-2xl font-bold tracking-tight text-[color:var(--accent-text)]">
+                {billingSettings.aiInfluencerAllowance}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[color:var(--text-strong)]">AI Influencer Allowance</p>
+                <p className="mt-1 text-xs leading-5 text-[color:var(--text-muted)]">
+                  Included AI influencer capacity for the Starter plan. The allowance renews annually; deletion swaps or influencer replacements require a
+                  one-time payment of $2,000 per influencer.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[24px] border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-4 py-4">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-text)]">Monthly subscription</p>
-                  <p className="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.currentPrice}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-text)]">Monthly Subscription</p>
+                  <p className="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text-strong)]">{monthlySubscriptionLabel}</p>
                 </div>
                 <p className="max-w-32 text-right text-xs font-semibold leading-5 text-[color:var(--text-muted)]">
-                  {agencyBillingPlan.includedCredit}
+                  {includedMonthlyCreditsLabel}
                 </p>
               </div>
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-2">
               <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 xl:col-span-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit balance</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit Balance</p>
                 <p className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
               </div>
               <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 xl:col-span-1">
@@ -317,13 +361,13 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
               </div>
               <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 sm:col-span-3 xl:col-span-2">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan allowance</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan Allowance</p>
                   <span className="rounded-full bg-[color:var(--surface-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--accent-text)]">
                     Starter
                   </span>
                 </div>
                 <p className="mt-2 text-sm font-semibold leading-6 text-[color:var(--text-strong)]">
-                  {agencyBillingPlan.influencerAllowance} AI influencers, {agencyBillingPlan.employeeAllowance} employees, and {agencyBillingPlan.parallelGenerationsPerUser} parallel generations per employee.
+                  {billingSettings.aiInfluencerAllowance} AI influencers, {billingSettings.teamSeatAllowance} seats, and {billingSettings.parallelRowGenerations} parallel row generations per seat.
                 </p>
               </div>
             </div>
@@ -332,30 +376,33 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
           <div className="relative z-10 border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan benefits</p>
-                <p className="mt-1 text-sm font-semibold text-[color:var(--text-strong)]">Capacity, tooling, and automation included</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan Benefits</p>
+                <p className="mt-1 text-sm font-semibold text-[color:var(--text-strong)]">Workspace capacity, tooling, and automation included</p>
               </div>
               <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--text-muted)]">
-                Team capacity
+                Team Capacity
               </span>
             </div>
             <div className="mt-4 grid gap-3">
               {[
                 [
-                  `${agencyBillingPlan.influencerAllowance}`,
-                  "AI influencer allowance",
-                  "Included AI influencer capacity on the Starter plan. The allowance renews annually; deletion swaps or influencer replacements require a one-off payment of $2,000 per influencer.",
+                  `${billingSettings.workspaceTabAllowance}`,
+                  "Workspace Tab Allowance",
+                  `${billingSettings.workspaceTabAllowance} workspace tabs per employee across image, video, and voice generation.`,
                 ],
                 [
-                  `${agencyBillingPlan.parallelGenerationsPerUser}`,
-                  "Parallel generations",
-                  "Per employee generation lanes. Image requests can include up to 4 outputs per generation, with higher quantities available for specific models.",
+                  `${billingSettings.parallelRowGenerations}`,
+                  "Parallel Row Generations",
+                  "Concurrent table generation rows for faster production. Image requests can include up to 4 outputs per table row, with higher quantities available for specific models.",
                 ],
-                [`${agencyBillingPlan.employeeAllowance}`, "Employee allowance", "Included seats for your agency team."],
-                ["3", "Tab allowance", "Per employee access across image, video, and voice generation."],
-                [`${agencyBillingPlan.dedicatedGpusPerEmployee}`, "Dedicated GPU", "Reserved GPU capacity per employee."],
-                ["Included", "Auto Plug In", "Included with the Starter plan."],
-                ["Included", "Auto Features", "Automation features are included with your plan."],
+                [`${billingSettings.teamSeatAllowance}`, "Team Seat Allowance", "Included seats for agency team members on this plan."],
+                [
+                  `${billingSettings.teamSeatAllowance}`,
+                  "Dedicated A6000 GPUs",
+                  "Reserved A6000 GPU capacity across the agency, with *1 dedicated GPU per employee.",
+                ],
+                ["Included", "Auto Plug-In", "Included with the Starter plan."],
+                ["Included", "Automation Features", "Workflow automation features are included with your plan."],
               ].map(([value, label, detail]) => {
                 const valueIsNumber = /^\d+$/.test(value);
                 return (
@@ -724,18 +771,19 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
             <div className="relative z-10 max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Upgrade Options</p>
               <h2 className="font-display mt-3 max-w-2xl text-3xl text-[color:var(--text-strong)] sm:text-4xl">
-                Enterprise AI generation infrastructure for agencies producing at scale
+                Scale AI generation around your agency workflow
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-                Tailored workflows, dedicated support, flexible capacity, advanced controls, and no training on your private agency data.
+                Request additional capacity, custom workflows, custom features, model and LoRA support, or scale-tier infrastructure based on your production needs.
+                Your generated AI influencer assets belong to your agency, with privacy protections across every plan.
               </p>
             </div>
 
             <div className="relative z-10 grid gap-3 md:grid-cols-3">
               {[
-                ["Security and compliance", "Private production environments, role-based access, and no model training on your data."],
-                ["Data and usage rights", "Your agency retains rights to generated outputs for publishing, editing, and commercial reuse."],
-                ["Admin control", "Centralized permissions, team governance, credit controls, and scalable workspace management."],
+                ["Custom Workflows", "Request workflow additions built around your agency's production process, approval flow, and output needs."],
+                ["Model and LoRA Support", "Add custom models, LoRAs, and specialized generation capabilities for campaigns that need a tighter creative fit."],
+                ["Scalable Operations", "Expand capacity, credits, team controls, and priority processing as your agency volume grows."],
               ].map(([title, description]) => (
                 <div
                   key={title}
@@ -762,15 +810,19 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
 
           <div className="flex flex-col justify-between gap-6 bg-[color:var(--surface-card-strong)] p-6 sm:p-8 xl:flex-[1_1_0%] xl:min-w-[320px]">
             <div>
-              <p className="text-sm font-semibold text-[color:var(--text-muted)]">Everything in {agencyBillingPlan.currentPlan}, plus:</p>
+              <p className="text-sm font-semibold text-[color:var(--text-muted)]">Add the exact capacity, automation, and production support your agency needs:</p>
               <div className="mt-4 grid gap-2">
                 {[
-                  "Unlimited team members",
-                  "Custom credit packages",
-                  "Dedicated model capacity",
-                  "Access to all available generation models",
-                  "Volume-based discounts",
-                  "Priority processing queue",
+                  "Additional AI influencer capacity",
+                  "Custom workflow requests",
+                  "Custom model and LoRA support",
+                  "Scale-tier generation capacity",
+                  "Faster GPU infrastructure options",
+                  "Custom AI agent deployment for 24/7 automated scaling",
+                  "OpenClaw, MCP and similar tool support",
+                  "Custom feature development",
+                  "Flexible credit packages",
+                  "Priority follow-up and implementation planning",
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-2 text-sm font-semibold text-[color:var(--text-strong)]">
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-[color:var(--accent-text)]">
@@ -785,12 +837,23 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
             </div>
 
             <div className="grid gap-2">
-              <button className={theme.buttonPrimary + " h-13 w-full rounded-xl text-sm"} type="button">
-                Contact sales
+              <button
+                className={theme.buttonPrimary + " h-13 w-full rounded-xl text-sm"}
+                onClick={() => void handleRequestFollowUp()}
+                type="button"
+              >
+                Request a Follow-Up
               </button>
-              <button className={theme.buttonSecondary + " h-13 w-full rounded-xl text-sm"} type="button">
-                Learn more
-              </button>
+              {followUpNotice ? (
+                <div
+                  className={cx(
+                    "rounded-2xl border px-4 py-3 text-sm font-semibold leading-6",
+                    followUpNotice.tone === "success" ? "border-lime-300/25 bg-lime-300/10 text-lime-100" : "border-rose-300/25 bg-rose-300/10 text-rose-100",
+                  )}
+                >
+                  {followUpNotice.text}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

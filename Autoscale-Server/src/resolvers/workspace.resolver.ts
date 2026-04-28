@@ -51,6 +51,7 @@ export const workspaceResolvers = {
           prompt?: string | null;
           poseMultiplier?: number | null;
           posePromptTemplates?: string[] | null;
+          upscale?: boolean | null;
           faceSwap?: boolean | null;
           reference?: ReferenceSelection | null;
           clearReference?: boolean | null;
@@ -75,6 +76,7 @@ export const workspaceResolvers = {
           poseMultiplierEnabled: boolean;
           poseMultiplier: number;
           poseMultiplierGenerationModel: string;
+          upscale: boolean;
           faceSwap: boolean;
           autoPromptGen: boolean;
           autoPromptImage: boolean;

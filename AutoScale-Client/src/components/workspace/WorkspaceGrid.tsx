@@ -7,13 +7,17 @@ interface WorkspaceGridProps {
   referenceColumnLabel: string;
   referenceColumnLocked: boolean;
   referenceMediaKind: "image" | "video";
-  showPoseAndFaceSwapColumns: boolean;
+  showFaceSwapColumn: boolean;
+  showPoseColumn: boolean;
+  showUpscaleColumn: boolean;
+  audioReferenceLocked: boolean;
   onCommitRow: (input: {
     rowId: string;
     label?: string;
     prompt?: string;
     poseMultiplier?: number;
     posePromptTemplates?: string[] | null;
+    upscale?: boolean;
     faceSwap?: boolean;
     reference?: ReferenceSelection;
     audioReference?: ReferenceSelection;
@@ -53,8 +57,11 @@ export function WorkspaceGrid({
   referenceColumnLabel,
   referenceColumnLocked,
   referenceMediaKind,
-  showPoseAndFaceSwapColumns,
+  showFaceSwapColumn,
+  showPoseColumn,
+  showUpscaleColumn,
   showAudioReferenceColumn,
+  audioReferenceLocked,
   onCommitRow,
   onUploadReference,
   onUploadAudioReference,
@@ -64,10 +71,11 @@ export function WorkspaceGrid({
   onAddRow,
 }: WorkspaceGridProps) {
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode);
+  const isFaceSwapWorkspaceLayout = board.settings.sdxlWorkspaceMode === "FACE_SWAP";
   const isVideoReference = referenceMediaKind === "video";
   const promptLocked = board.settings.generationModel === "kling_motion_control";
-  const showPromptColumn = !promptLocked;
-  const showOutputsColumn = !isPoseMultiplierWorkspaceLayout;
+  const showPromptColumn = !promptLocked && !isFaceSwapWorkspaceLayout;
+  const showOutputsColumn = !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout;
   const promptColumnLabel = isPoseMultiplierWorkspaceLayout ? "Pose Prompt" : "Prompt";
   const effectiveAutoPromptImage = board.settings.autoPromptImage && !isPoseMultiplierWorkspaceLayout;
   const referenceCopy = isVideoReference
@@ -91,10 +99,18 @@ export function WorkspaceGrid({
       };
   const autoSurfaceClass = "border-[#4e6b22] bg-[#314513]";
   const autoMessageClass = "text-[#dcf6a0]";
-  const gridColumns = showPoseAndFaceSwapColumns && isPoseMultiplierWorkspaceLayout
+  const controlColumnCount = [showPoseColumn, showUpscaleColumn, showFaceSwapColumn].filter(Boolean).length;
+  const showRowControlColumns = controlColumnCount > 0;
+  const gridColumns = isFaceSwapWorkspaceLayout
+    ? "grid-cols-[56px_minmax(260px,0.9fr)_minmax(180px,0.48fr)_minmax(0,0.7fr)_96px]"
+    : showPoseColumn && isPoseMultiplierWorkspaceLayout
     ? "grid-cols-[56px_repeat(5,minmax(0,1fr))_96px]"
-    : showPoseAndFaceSwapColumns
+    : showRowControlColumns && controlColumnCount === 3
+      ? "grid-cols-[56px_repeat(7,minmax(0,1fr))_96px]"
+    : showRowControlColumns && controlColumnCount === 2
       ? "grid-cols-[56px_repeat(6,minmax(0,1fr))_96px]"
+    : showRowControlColumns
+      ? "grid-cols-[56px_repeat(5,minmax(0,1fr))_96px]"
     : showAudioReferenceColumn
       ? "grid-cols-[56px_minmax(132px,0.5fr)_minmax(220px,0.85fr)_minmax(0,1.15fr)_minmax(0,1.05fr)_minmax(0,0.8fr)_96px]"
     : isVideoReference && !showPromptColumn
@@ -104,7 +120,23 @@ export function WorkspaceGrid({
     : referenceColumnLocked
       ? "grid-cols-[56px_minmax(150px,0.58fr)_minmax(0,1.25fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_96px]"
       : "grid-cols-[56px_repeat(4,minmax(0,1fr))_96px]";
-  const minGridWidth = showPoseAndFaceSwapColumns && isPoseMultiplierWorkspaceLayout ? "min-w-[1320px]" : showPoseAndFaceSwapColumns ? "min-w-[1536px]" : showAudioReferenceColumn ? "min-w-[1240px]" : isVideoReference ? "min-w-[1180px]" : referenceColumnLocked ? "min-w-[980px]" : "min-w-[1120px]";
+  const minGridWidth = isFaceSwapWorkspaceLayout
+    ? "min-w-[980px]"
+    : showPoseColumn && isPoseMultiplierWorkspaceLayout
+    ? "min-w-[1320px]"
+    : showRowControlColumns && controlColumnCount === 3
+      ? "min-w-[1660px]"
+      : showRowControlColumns && controlColumnCount === 2
+        ? "min-w-[1536px]"
+        : showRowControlColumns
+          ? "min-w-[1320px]"
+          : showAudioReferenceColumn
+            ? "min-w-[1240px]"
+            : isVideoReference
+              ? "min-w-[1180px]"
+              : referenceColumnLocked
+                ? "min-w-[980px]"
+                : "min-w-[1120px]";
   const cellClass = "border-r border-[color:var(--surface-border)] px-3 py-3";
   const panelClass = "h-full rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-3";
   const stackedControlPanelClass = cx(panelClass, "flex flex-col gap-2");
@@ -134,11 +166,14 @@ export function WorkspaceGrid({
             {showAudioReferenceColumn ? <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Audio Reference</div> : null}
             {showPromptColumn ? <div className="border-r border-[color:var(--surface-border)] px-3 py-3">{promptColumnLabel}</div> : null}
             {showOutputsColumn ? <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Outputs</div> : null}
-            {showPoseAndFaceSwapColumns ? (
-              <>
-                <div className="border-r border-[color:var(--surface-border)] px-3 py-3">{isPoseMultiplierWorkspaceLayout ? "Pose Multiplier" : "Pose"}</div>
-                <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Face Swap</div>
-              </>
+            {showPoseColumn ? (
+              <div className="border-r border-[color:var(--surface-border)] px-3 py-3">{isPoseMultiplierWorkspaceLayout ? "Pose Multiplier" : "Pose"}</div>
+            ) : null}
+            {showUpscaleColumn ? (
+              <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Upscale</div>
+            ) : null}
+            {showFaceSwapColumn ? (
+              <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Face Swap</div>
             ) : null}
             <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Status</div>
             <div className="px-3 py-3">Actions</div>
@@ -148,6 +183,7 @@ export function WorkspaceGrid({
             const previewSrc = row.reference?.asset?.url || row.reference?.assetUrl || row.reference?.uploadUrl || null;
             const audioReference = row.audioReference ?? null;
             const audioReferenceUrl = audioReference?.asset?.url || audioReference?.assetUrl || audioReference?.uploadUrl || null;
+            const promptLockedByAudioReference = showAudioReferenceColumn && Boolean(audioReference);
             const awaitingOutput = !row.outputAssets.length;
             const poseMultiplierEnabled = board.settings.poseMultiplierEnabled;
             return (
@@ -189,7 +225,10 @@ export function WorkspaceGrid({
                           "workspace-row-image-preview relative mb-3 flex items-center justify-center overflow-hidden rounded-lg border text-center",
                           isVideoReference
                             ? "mx-auto aspect-[9/16] w-full max-w-[122px] flex-none rounded-2xl px-3 py-4 shadow-[var(--shadow-soft)]"
-                            : "flex-1 px-4 py-5",
+                            : cx(
+                                "mx-auto w-full flex-none px-4 py-5 shadow-[var(--shadow-soft)]",
+                                isFaceSwapWorkspaceLayout ? "aspect-[3/4] max-w-[190px]" : "aspect-[4/5] max-w-[172px]",
+                              ),
                           effectiveAutoPromptImage && "workspace-row-image-preview--auto",
                           effectiveAutoPromptImage ? "border-[#5f8628] bg-[#2f4513]" : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)]",
                         )}
@@ -302,7 +341,12 @@ export function WorkspaceGrid({
 
                 {showAudioReferenceColumn ? (
                   <div className={cellClass}>
-                    <div className="flex h-full min-h-[188px] flex-col rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-3">
+                    <div
+                      className={cx(
+                        "relative flex h-full min-h-[188px] flex-col rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-3 transition",
+                        audioReferenceLocked && "pointer-events-none opacity-55 blur-[1px]",
+                      )}
+                    >
                       <div className="mb-3 flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-5 text-center">
                         <span
                           className={cx(
@@ -339,9 +383,10 @@ export function WorkspaceGrid({
                           <input
                             className="hidden"
                             accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.oga,.flac,.webm"
+                            disabled={audioReferenceLocked}
                             onChange={(event) => {
                               const file = event.target.files?.[0];
-                              if (file) {
+                              if (file && !audioReferenceLocked) {
                                 void onUploadAudioReference(row, file);
                               }
                               event.target.value = "";
@@ -351,6 +396,7 @@ export function WorkspaceGrid({
                         </label>
                         <button
                           className={theme.buttonSecondary + " h-9 rounded-lg border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-0 text-xs text-[color:var(--text-main)] hover:bg-[color:var(--surface-soft-hover)]"}
+                          disabled={audioReferenceLocked}
                           onClick={() => onPickAudioReference(row)}
                           type="button"
                         >
@@ -359,6 +405,7 @@ export function WorkspaceGrid({
                         {audioReference ? (
                           <button
                             className={theme.buttonDanger + " rounded-lg px-3 py-2 text-xs"}
+                            disabled={audioReferenceLocked}
                             onClick={() => void onCommitRow({ rowId: row.id, clearAudioReference: true })}
                             type="button"
                           >
@@ -377,6 +424,7 @@ export function WorkspaceGrid({
                         "workspace-row-prompt-shell h-full rounded-xl border p-3",
                         board.settings.autoPromptGen && "workspace-row-prompt-shell--auto",
                         board.settings.autoPromptGen ? autoSurfaceClass : "border-white/8 bg-[#202020]",
+                        promptLockedByAudioReference && "pointer-events-none opacity-55 blur-[1px]",
                       )}
                     >
                       {board.settings.autoPromptGen ? (
@@ -387,6 +435,7 @@ export function WorkspaceGrid({
                         <textarea
                           className="workspace-row-prompt-input h-full min-h-[188px] w-full resize-none rounded-lg border border-white/8 bg-[#222222] px-3 py-2 text-sm leading-6 text-white outline-none transition placeholder:text-white/34 focus:border-white/14 focus:bg-[#262626]"
                           defaultValue={row.prompt}
+                          disabled={promptLockedByAudioReference}
                           onBlur={(event) => {
                             if (event.target.value !== row.prompt) {
                               void onCommitRow({ rowId: row.id, prompt: event.target.value });
@@ -401,52 +450,82 @@ export function WorkspaceGrid({
 
                 {showOutputsColumn ? <div className={cellClass}>{renderOutputGrid(row, awaitingOutput)}</div> : null}
 
-                {showPoseAndFaceSwapColumns ? (
-                  <>
-                    <div className={cellClass}>
-                      <div className={stackedControlPanelClass}>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
-                        <div
-                          className={cx(
-                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                            poseMultiplierEnabled
-                              ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
-                              : "border-white/8 bg-[#222222] text-white/62",
-                          )}
-                        >
-                          {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
-                        </div>
-                        {isPoseMultiplierWorkspaceLayout ? renderOutputGrid(row, awaitingOutput, true) : awaitingOutput ? (
-                          <div className={pendingJobClass}>
-                            Pending
-                          </div>
-                        ) : null}
+                {showPoseColumn ? (
+                  <div className={cellClass}>
+                    <div className={stackedControlPanelClass}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
+                      <div
+                        className={cx(
+                          "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                          poseMultiplierEnabled
+                            ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
+                            : "border-white/8 bg-[#222222] text-white/62",
+                        )}
+                      >
+                        {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
                       </div>
+                      {isPoseMultiplierWorkspaceLayout ? renderOutputGrid(row, awaitingOutput, true) : awaitingOutput ? (
+                        <div className={pendingJobClass}>
+                          Pending
+                        </div>
+                      ) : null}
                     </div>
+                  </div>
+                ) : null}
 
-                    <div className={cellClass}>
-                      <div className={stackedControlPanelClass}>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Swap</p>
-                        <button
-                          className={cx(
-                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                            row.faceSwap
-                              ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
-                              : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
-                          )}
-                          onClick={() => void onCommitRow({ rowId: row.id, faceSwap: !row.faceSwap })}
+                {showUpscaleColumn ? (
+                  <div className={cellClass}>
+                    <div className={stackedControlPanelClass}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Upscale</p>
+                      <button
+                        className={cx(
+                          "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                          row.upscale
+                            ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
+                            : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
+                        )}
+                        onClick={() => void onCommitRow({ rowId: row.id, upscale: !row.upscale })}
+                        type="button"
+                      >
+                        {row.upscale ? "On" : "Off"}
+                      </button>
+                      {awaitingOutput ? (
+                        <div className={pendingJobClass}>
+                          Pending
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
+                {showFaceSwapColumn ? (
+                  <div className={cellClass}>
+                    <div className={stackedControlPanelClass}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Swap</p>
+                      <button
+                        className={cx(
+                          "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                          row.faceSwap
+                            ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
+                            : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
+                        )}
+                          disabled={isFaceSwapWorkspaceLayout}
+                          onClick={() => {
+                            if (!isFaceSwapWorkspaceLayout) {
+                              void onCommitRow({ rowId: row.id, faceSwap: !row.faceSwap });
+                            }
+                          }}
                           type="button"
                         >
-                          {row.faceSwap ? "On" : "Off"}
+                          {isFaceSwapWorkspaceLayout || row.faceSwap ? "On" : "Off"}
                         </button>
-                        {!isPoseMultiplierWorkspaceLayout && awaitingOutput ? (
-                          <div className={pendingJobClass}>
-                            Pending
-                          </div>
-                        ) : null}
-                      </div>
+                      {!isPoseMultiplierWorkspaceLayout && awaitingOutput ? (
+                        <div className={pendingJobClass}>
+                          Pending
+                        </div>
+                      ) : null}
                     </div>
-                  </>
+                  </div>
                 ) : null}
 
                 <div className={cellClass}>

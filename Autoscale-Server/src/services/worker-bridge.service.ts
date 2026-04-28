@@ -109,6 +109,7 @@ async function createWorkerJob(options: {
   videoDurationSeconds: number | null;
   aspectRatio: string;
   quantity: number;
+  upscale: boolean;
   globalReferences: FilePayload[];
   rowReference: FilePayload;
   isFirst: boolean;
@@ -123,6 +124,7 @@ async function createWorkerJob(options: {
   }
   formData.append("aspect_ratio", options.aspectRatio);
   formData.append("quantity", String(options.quantity));
+  formData.append("upscale", options.upscale ? "true" : "false");
   formData.append("headless", "false");
   formData.append("reference_mode", options.isFirst ? "replace" : "patch_slot");
   formData.append("reference_patch_indices", "[]");
@@ -296,6 +298,7 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         videoDurationSeconds,
         aspectRatio: board.settings.aspectRatio,
         quantity,
+        upscale: generationModel === "sdxl" && !poseMultiplierActive ? row.upscale : false,
         globalReferences,
         rowReference,
         isFirst: index === 0,

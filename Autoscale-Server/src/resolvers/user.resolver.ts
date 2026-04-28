@@ -7,20 +7,26 @@ import {
   deleteAgency,
   deleteUser,
   listAgencies,
+  listPlatformNotifications,
   listUsers,
   renameAgency,
   renameUser,
+  requestBillingFollowUp,
   resetUserPassword,
   setUserActive,
   setUserModelAccess,
+  updateAgencyBillingSettings,
   updateManagerPermissions,
   updateUserOrganization,
   updateUserRole,
 } from "../services/user.service.js";
+import type { AgencyBillingSettings } from "../types/domain.js";
 
 export const userResolvers = {
   Query: {
     agencies: async (_parent: unknown, _args: unknown, context: GraphQLContext) => listAgencies(context.currentUser),
+    platformNotifications: async (_parent: unknown, _args: unknown, context: GraphQLContext) =>
+      listPlatformNotifications(context.currentUser),
     users: async (_parent: unknown, _args: unknown, context: GraphQLContext) => listUsers(context.currentUser),
   },
   Mutation: {
@@ -33,6 +39,13 @@ export const userResolvers = {
     ) => renameAgency(context.currentUser, args.agencyId, args.name),
     deleteAgency: async (_parent: unknown, args: { agencyId: string }, context: GraphQLContext) =>
       deleteAgency(context.currentUser, args.agencyId),
+    updateAgencyBillingSettings: async (
+      _parent: unknown,
+      args: { agencyId: string; input: AgencyBillingSettings },
+      context: GraphQLContext,
+    ) => updateAgencyBillingSettings(context.currentUser, args.agencyId, args.input),
+    requestBillingFollowUp: async (_parent: unknown, _args: unknown, context: GraphQLContext) =>
+      requestBillingFollowUp(context.currentUser),
     createUser: async (
       _parent: unknown,
       args: { input: { name: string; email: string; password: string; role: Role; agencyId?: string | null } },

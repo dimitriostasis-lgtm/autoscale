@@ -26,57 +26,99 @@ export const USER_FIELDS = gql`
   }
 `;
 
+export const AGENCY_FIELDS = gql`
+  fragment AgencyFields on Agency {
+    id
+    slug
+    name
+    createdAt
+    billingSettings {
+      monthlySubscriptionPrice
+      includedMonthlyCredits
+      aiInfluencerAllowance
+      workspaceTabAllowance
+      parallelRowGenerations
+      teamSeatAllowance
+    }
+    memberCount
+    adminCount
+    managerCount
+    userCount
+    activeCount
+  }
+`;
+
 export const AGENCIES_QUERY = gql`
   query Agencies {
     agencies {
-      id
-      slug
-      name
-      createdAt
-      memberCount
-      adminCount
-      managerCount
-      userCount
-      activeCount
+      ...AgencyFields
     }
   }
+  ${AGENCY_FIELDS}
 `;
 
 export const CREATE_AGENCY_MUTATION = gql`
   mutation CreateAgency($name: String!) {
     createAgency(name: $name) {
-      id
-      slug
-      name
-      createdAt
-      memberCount
-      adminCount
-      managerCount
-      userCount
-      activeCount
+      ...AgencyFields
     }
   }
+  ${AGENCY_FIELDS}
 `;
 
 export const RENAME_AGENCY_MUTATION = gql`
   mutation RenameAgency($agencyId: ID!, $name: String!) {
     renameAgency(agencyId: $agencyId, name: $name) {
-      id
-      slug
-      name
-      createdAt
-      memberCount
-      adminCount
-      managerCount
-      userCount
-      activeCount
+      ...AgencyFields
     }
   }
+  ${AGENCY_FIELDS}
 `;
 
 export const DELETE_AGENCY_MUTATION = gql`
   mutation DeleteAgency($agencyId: ID!) {
     deleteAgency(agencyId: $agencyId)
+  }
+`;
+
+export const UPDATE_AGENCY_BILLING_SETTINGS_MUTATION = gql`
+  mutation UpdateAgencyBillingSettings($agencyId: ID!, $input: AgencyBillingSettingsInput!) {
+    updateAgencyBillingSettings(agencyId: $agencyId, input: $input) {
+      ...AgencyFields
+    }
+  }
+  ${AGENCY_FIELDS}
+`;
+
+export const PLATFORM_NOTIFICATIONS_QUERY = gql`
+  query PlatformNotifications {
+    platformNotifications {
+      id
+      type
+      agencyId
+      agencyName
+      requesterId
+      requesterName
+      requesterEmail
+      message
+      createdAt
+    }
+  }
+`;
+
+export const REQUEST_BILLING_FOLLOW_UP_MUTATION = gql`
+  mutation RequestBillingFollowUp {
+    requestBillingFollowUp {
+      id
+      type
+      agencyId
+      agencyName
+      requesterId
+      requesterName
+      requesterEmail
+      message
+      createdAt
+    }
   }
 `;
 

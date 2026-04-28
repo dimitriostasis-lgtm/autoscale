@@ -1,11 +1,22 @@
+import type { AgencyBillingSettings } from "../types";
+
+export const defaultAgencyBillingSettings: AgencyBillingSettings = {
+  monthlySubscriptionPrice: 7500,
+  includedMonthlyCredits: 1000,
+  aiInfluencerAllowance: 2,
+  workspaceTabAllowance: 9,
+  parallelRowGenerations: 8,
+  teamSeatAllowance: 4,
+};
+
 export const agencyBillingPlan = {
   creditBalance: 18400,
   currentPlan: "Starter",
   currentPrice: "$7,500/month",
   includedCredit: "$1,000/month credits included",
-  influencerAllowance: 2,
-  parallelGenerationsPerUser: 8,
-  employeeAllowance: 4,
+  influencerAllowance: defaultAgencyBillingSettings.aiInfluencerAllowance,
+  parallelGenerationsPerUser: defaultAgencyBillingSettings.parallelRowGenerations,
+  employeeAllowance: defaultAgencyBillingSettings.teamSeatAllowance,
   dedicatedGpusPerEmployee: 1,
   renewalDate: "May 1, 2026",
 };
@@ -19,9 +30,9 @@ export const upgradeOptions = [
     price: "$12,000/month",
     includedCredit: "$1,500/month credits included",
     parallelGenerationsPerUser: 12,
-    note: "Open more campaign lanes with double the current creator capacity and faster generation throughput.",
+    note: "Add more creator capacity and request workflow support as your agency production needs grow.",
     supportLabel: "Standard support",
-    featureHighlights: ["4 AI influencer capacity", "12 parallel generations per user", "More prompt testing flexibility", "Scale-ready agency workspace"],
+    featureHighlights: ["4 AI influencer capacity", "12 parallel row generations per user", "Workflow support options", "Scale-ready agency workspace"],
   },
   {
     id: "six-influencers",
@@ -32,9 +43,9 @@ export const upgradeOptions = [
     includedCredit: "$2,000/month credits included",
     parallelGenerationsPerUser: 16,
     featured: true,
-    note: "Run more briefs, campaign variants, and creator experiments at the same time without slowing the team down.",
+    note: "Run more briefs, campaign variants, and creator experiments with room for custom workflow additions.",
     supportLabel: "Priority support queue",
-    featureHighlights: ["6 AI influencer capacity", "16 parallel generations per user", "Higher campaign output", "Advanced workflow flexibility"],
+    featureHighlights: ["6 AI influencer capacity", "16 parallel row generations per user", "Higher campaign output", "Custom workflow flexibility"],
   },
   {
     id: "ten-influencers",
@@ -44,19 +55,19 @@ export const upgradeOptions = [
     price: "$25,000/month",
     includedCredit: "$5,000/month credits included",
     parallelGenerationsPerUser: 24,
-    note: "Scale your custom workflows with hosted scale-tier infrastructure and tailored solutions built around your needs.",
+    note: "Scale custom workflows, features, models, and LoRAs with infrastructure planned around your agency needs.",
     supportLabel: "Priority launch support",
-    featureHighlights: ["10 AI influencer capacity", "24 parallel generations per user", "Hosted scale-tier infrastructure", "Advanced generation capabilities"],
+    featureHighlights: ["10 AI influencer capacity", "24 parallel row generations per user", "Custom models and LoRAs", "Faster GPU infrastructure options"],
   },
   {
     id: "enterprise",
-    label: "Contact Us",
+    label: "Custom Plan",
     badge: "Enterprise",
-    ctaLabel: "Contact sales",
+    ctaLabel: "Request a follow-up",
     price: "Custom",
-    note: "Design a custom agency program around complex creator operations, bespoke volume, governance, and dedicated success needs.",
+    note: "Tell us what you need and we will follow up with a plan for custom workflows, features, models, LoRAs, capacity, and implementation support.",
     supportLabel: "Dedicated support",
-    featureHighlights: ["Custom AI influencer capacity", "Tailored workflow design", "Advanced capability access", "Dedicated success support"],
+    featureHighlights: ["Custom AI influencer capacity", "Custom workflows and features", "Custom models and LoRAs", "Faster GPU infrastructure options"],
   },
 ];
 
