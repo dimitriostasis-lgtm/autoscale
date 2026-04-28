@@ -29,8 +29,8 @@ import {
   getResolutionOptionsForGenerationModel,
   getVideoDurationOptionsForGenerationModel,
   imageGenerationModelOptions,
+  isNsfwPoseMultiplierWorkspace,
   isPoseMultiplierWorkspace,
-  isSdxlPoseMultiplierWorkspace,
   isVideoGenerationModel,
   normalizeBoardAspectRatio,
   normalizePoseMultiplierResolution,
@@ -138,19 +138,20 @@ function resolveWorkspaceGenerationModels(mode: WorkspaceMode, modelGenerationMo
   return modeGenerationModels.filter((generationModel) => modelGenerationModels.includes(generationModel));
 }
 
-function normalizeSettingsForGenerationModel(settings: BoardSettings, generationModel: string): BoardSettings {
+function normalizeSettingsForGenerationModel(settings: BoardSettings, generationModel: string, workspaceSafety: "SFW" | "NSFW" = "SFW"): BoardSettings {
   const nextSdxlWorkspaceMode = (imageGenerationModelOptions as readonly string[]).includes(generationModel) ? settings.sdxlWorkspaceMode ?? "DEFAULT" : "DEFAULT";
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(generationModel, nextSdxlWorkspaceMode);
-  const isSdxlPoseMultiplierLayout = isSdxlPoseMultiplierWorkspace(generationModel, nextSdxlWorkspaceMode);
+  const isSdxlDefaultWorkspace = generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+  const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(generationModel, nextSdxlWorkspaceMode, workspaceSafety);
   const quantity = isPoseMultiplierWorkspaceLayout ? 1 : Math.min(settings.quantity, getMaxQuantityForGenerationModel(generationModel));
   const promptUnsupported = generationModel === "kling_motion_control";
-  const poseMultiplierGenerationModel = isSdxlPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, generationModel);
+  const poseMultiplierGenerationModel = isNsfwPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, generationModel);
 
   return {
     ...settings,
     generationModel,
     resolution: normalizeResolutionForGenerationModel(generationModel, settings.resolution),
-    poseMultiplierResolution: normalizePoseMultiplierResolution(settings.poseMultiplierResolution ?? settings.resolution, poseMultiplierGenerationModel, isSdxlPoseMultiplierLayout),
+    poseMultiplierResolution: normalizePoseMultiplierResolution(settings.poseMultiplierResolution ?? settings.resolution, poseMultiplierGenerationModel, isNsfwPoseMultiplierLayout),
     videoDurationSeconds: normalizeVideoDurationForGenerationModel(generationModel, settings.videoDurationSeconds),
     quality: normalizeQualityForGenerationModel(generationModel, settings.quality),
     aspectRatio: normalizeBoardAspectRatio(generationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
@@ -158,8 +159,9 @@ function normalizeSettingsForGenerationModel(settings: BoardSettings, generation
     sdxlWorkspaceMode: nextSdxlWorkspaceMode,
     autoPromptGen: promptUnsupported ? false : settings.autoPromptGen,
     autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : settings.autoPromptImage,
-    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : quantity === 1 ? settings.poseMultiplierEnabled : false,
+    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace ? false : quantity === 1 ? settings.poseMultiplierEnabled : false,
     poseMultiplierGenerationModel,
+    faceSwap: isSdxlDefaultWorkspace ? false : settings.faceSwap,
   };
 }
 
@@ -552,7 +554,8 @@ function PlaygroundSurface({
     const promptUnsupported = nextGenerationModel === "kling_motion_control";
     const nextSdxlWorkspaceMode = (imageGenerationModelOptions as readonly string[]).includes(nextGenerationModel) ? settings.sdxlWorkspaceMode ?? "DEFAULT" : "DEFAULT";
     const nextPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode);
-    const nextSdxlPoseMultiplierLayout = isSdxlPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode);
+    const nextSdxlDefaultWorkspace = nextGenerationModel === "sdxl" && !nextPoseMultiplierWorkspaceLayout;
+    const nextNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode, "SFW");
 
     onSettingsChange({
       ...settings,
@@ -564,8 +567,9 @@ function PlaygroundSurface({
       quantity: nextPoseMultiplierWorkspaceLayout ? 1 : nextQuantity,
       sdxlWorkspaceMode: nextSdxlWorkspaceMode,
       autoPromptGen: promptUnsupported ? false : settings.autoPromptGen,
-      poseMultiplierEnabled: nextPoseMultiplierWorkspaceLayout ? true : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
-      poseMultiplierGenerationModel: nextSdxlPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
+      poseMultiplierEnabled: nextPoseMultiplierWorkspaceLayout ? true : nextSdxlDefaultWorkspace ? false : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
+      poseMultiplierGenerationModel: nextNsfwPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
+      faceSwap: nextSdxlDefaultWorkspace ? false : settings.faceSwap,
     });
   }
 
@@ -1214,7 +1218,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     const normalizedGenerationModel = activeGenerationModelOptions.includes(board.settings.generationModel)
       ? board.settings.generationModel
       : activeGenerationModelOptions[0];
-    const normalizedSettings = normalizeSettingsForGenerationModel(board.settings, normalizedGenerationModel);
+    const normalizedSettings = normalizeSettingsForGenerationModel(board.settings, normalizedGenerationModel, mode === "image-nsfw" ? "NSFW" : "SFW");
     const alreadyNormalized =
       normalizedSettings.generationModel === board.settings.generationModel &&
       normalizedSettings.resolution === board.settings.resolution &&
@@ -1233,7 +1237,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     }
 
     void handleSettingsChange(normalizedSettings);
-  }, [activeGenerationModelOptions, board, handleSettingsChange]);
+  }, [activeGenerationModelOptions, board, handleSettingsChange, mode]);
 
   async function handleUploadRowReference(row: WorkspaceRow, file: File) {
     const upload = await uploadReferenceFile(file);
@@ -1404,8 +1408,8 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                   onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
                   onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
                   poseWorkerModelLocked={mode === "image-nsfw"}
-                  promptPrefix={model.defaults.promptPrefix}
                   settings={board.settings}
+                  workspaceSafety={activeModeMeta?.safetyLabel ?? "SFW"}
                 />
               </div>
 
@@ -1424,7 +1428,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                   referenceColumnLocked={(activeModeMeta?.kind ?? "image") === "voice"}
                   referenceMediaKind={(activeModeMeta?.kind ?? "image") === "video" ? "video" : "image"}
                   showAudioReferenceColumn={(activeModeMeta?.kind ?? "image") === "voice"}
-                  showPoseAndFaceSwapColumns={(activeModeMeta?.kind ?? "image") === "image"}
+                  showPoseAndFaceSwapColumns={(activeModeMeta?.kind ?? "image") === "image" && !(board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode))}
                   onAddRow={async () => {
                     await addRowMutation({ variables: { boardId: board.id } });
                     await refetchBoard();

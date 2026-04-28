@@ -69,6 +69,10 @@ export function isSdxlPoseMultiplierWorkspace(generationModel: string, sdxlWorks
   return generationModel === "sdxl" && sdxlWorkspaceMode === "POSE_MULTIPLIER";
 }
 
+export function isNsfwPoseMultiplierWorkspace(generationModel: string, sdxlWorkspaceMode?: string | null, workspaceSafety?: "SFW" | "NSFW"): boolean {
+  return workspaceSafety === "NSFW" && (generationModel === "sdxl" || generationModel === "sd_4_5") && sdxlWorkspaceMode === "POSE_MULTIPLIER";
+}
+
 export function isPoseMultiplierWorkspace(generationModel: string, sdxlWorkspaceMode?: string | null): boolean {
   return (imageGenerationModelOptions as readonly string[]).includes(generationModel) && sdxlWorkspaceMode === "POSE_MULTIPLIER";
 }

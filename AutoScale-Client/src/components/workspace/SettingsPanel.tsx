@@ -7,8 +7,8 @@ import {
   getQualityOptionsForGenerationModel,
   getResolutionOptionsForGenerationModel,
   getVideoDurationOptionsForGenerationModel,
+  isNsfwPoseMultiplierWorkspace,
   isPoseMultiplierWorkspace,
-  isSdxlPoseMultiplierWorkspace,
   isVideoGenerationModel,
   normalizeBoardAspectRatio,
   normalizePoseMultiplierResolution,
@@ -27,8 +27,8 @@ interface SettingsPanelProps {
   settings: BoardSettings;
   allowedGenerationModels: string[];
   generationKind: "image" | "video" | "voice";
+  workspaceSafety?: "SFW" | "NSFW";
   poseWorkerModelLocked?: boolean;
-  promptPrefix: string;
   onSettingsChange: (nextSettings: BoardSettings) => void;
   onUploadReference: (slotIndex: number, file: File) => Promise<void> | void;
   onPickReference: (slotIndex: number) => void;
@@ -38,22 +38,23 @@ export function SettingsPanel({
   settings,
   allowedGenerationModels,
   generationKind,
+  workspaceSafety = "SFW",
   poseWorkerModelLocked = false,
-  promptPrefix,
   onSettingsChange,
   onUploadReference,
   onPickReference,
 }: SettingsPanelProps) {
   const posePromptTemplates = Array.from({ length: 4 }, (_, index) => settings.posePromptTemplates[index] ?? settings.posePromptTemplate);
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(settings.generationModel, settings.sdxlWorkspaceMode);
-  const isSdxlPoseMultiplierLayout = isSdxlPoseMultiplierWorkspace(settings.generationModel, settings.sdxlWorkspaceMode);
+  const isSdxlDefaultWorkspace = settings.generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+  const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(settings.generationModel, settings.sdxlWorkspaceMode, workspaceSafety);
   const videoGenerationModel = isVideoGenerationModel(settings.generationModel);
   const visiblePosePromptCount = Math.max(1, Math.min(4, settings.poseMultiplier));
   const poseMultiplierAllowed = (isPoseMultiplierWorkspaceLayout || settings.quantity === 1) && !videoGenerationModel;
   const poseMultiplierEnabled = poseMultiplierAllowed && settings.poseMultiplierEnabled;
   const poseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
-  const poseMultiplierResolution = normalizePoseMultiplierResolution(settings.poseMultiplierResolution, poseMultiplierGenerationModel, isSdxlPoseMultiplierLayout);
-  const allowedPoseMultiplierResolutionOptions = getPoseMultiplierResolutionOptionsForGenerationModel(poseMultiplierGenerationModel, isSdxlPoseMultiplierLayout);
+  const poseMultiplierResolution = normalizePoseMultiplierResolution(settings.poseMultiplierResolution, poseMultiplierGenerationModel, isNsfwPoseMultiplierLayout);
+  const allowedPoseMultiplierResolutionOptions = getPoseMultiplierResolutionOptionsForGenerationModel(poseMultiplierGenerationModel, isNsfwPoseMultiplierLayout);
   const maxQuantity = getMaxQuantityForGenerationModel(settings.generationModel);
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(settings.generationModel);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(settings.generationModel);
@@ -84,13 +85,16 @@ export function SettingsPanel({
   const isVoiceWorkspace = generationKind === "voice";
   const showImageReferenceAutomation = !isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout;
   const showPoseControls = generationKind === "image";
-  const showFaceSwapControls = generationKind === "image";
-  const showPromptContext = !isVoiceWorkspace;
+  const showPoseMultiplierSharedOptions = showPoseControls && !isSdxlDefaultWorkspace;
+  const showFaceSwapControls = generationKind === "image" && !isSdxlDefaultWorkspace;
   const showGlobalReferences = false;
   const promptAutomationLocked = settings.generationModel === "kling_motion_control";
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
-  const poseWorkerModelControlLocked = poseWorkerModelLocked || isSdxlPoseMultiplierLayout;
+  const poseWorkerModelControlLocked = poseWorkerModelLocked || isNsfwPoseMultiplierLayout;
+  const poseMultiplierWorkspaceOptionLabel = isNsfwPoseMultiplierWorkspace(settings.generationModel, "POSE_MULTIPLIER", workspaceSafety)
+    ? "NSFW Pose Multipler"
+    : "Pose Multiplier Workspace";
 
   return (
     <section className="h-full bg-[#202020] text-white">
@@ -115,9 +119,10 @@ export function SettingsPanel({
                   const nextQuantity = Math.min(settings.quantity, getMaxQuantityForGenerationModel(nextGenerationModel));
                   const nextSdxlWorkspaceMode = !nextVideoGenerationModel ? settings.sdxlWorkspaceMode ?? "DEFAULT" : "DEFAULT";
                   const nextPoseMultiplierWorkspace = isPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode);
-                  const nextSdxlPoseMultiplierWorkspace = isSdxlPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode);
+                  const nextSdxlDefaultWorkspace = nextGenerationModel === "sdxl" && !nextPoseMultiplierWorkspace;
+                  const nextNsfwPoseMultiplierWorkspace = isNsfwPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode, workspaceSafety);
                   const nextResolution = normalizeResolutionForGenerationModel(nextGenerationModel, settings.resolution);
-                  const nextPoseMultiplierGenerationModel = nextSdxlPoseMultiplierWorkspace
+                  const nextPoseMultiplierGenerationModel = nextNsfwPoseMultiplierWorkspace
                     ? "sdxl"
                     : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel);
                   const nextQuality = normalizeQualityForGenerationModel(nextGenerationModel, settings.quality);
@@ -128,7 +133,7 @@ export function SettingsPanel({
                     poseMultiplierResolution: normalizePoseMultiplierResolution(
                       settings.poseMultiplierResolution ?? nextResolution,
                       nextPoseMultiplierGenerationModel,
-                      nextSdxlPoseMultiplierWorkspace,
+                      nextNsfwPoseMultiplierWorkspace,
                     ),
                     videoDurationSeconds: normalizeVideoDurationForGenerationModel(nextGenerationModel, settings.videoDurationSeconds),
                     quality: nextQuality,
@@ -137,8 +142,9 @@ export function SettingsPanel({
                     sdxlWorkspaceMode: nextSdxlWorkspaceMode,
                     autoPromptGen: nextGenerationModel === "kling_motion_control" ? false : settings.autoPromptGen,
                     autoPromptImage: nextPoseMultiplierWorkspace ? false : settings.autoPromptImage,
-                    poseMultiplierEnabled: nextPoseMultiplierWorkspace ? true : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
+                    poseMultiplierEnabled: nextPoseMultiplierWorkspace ? true : nextSdxlDefaultWorkspace ? false : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
                     poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
+                    faceSwap: nextSdxlDefaultWorkspace ? false : settings.faceSwap,
                   });
                 }}
               >
@@ -173,7 +179,7 @@ export function SettingsPanel({
             {isPoseMultiplierWorkspaceLayout ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Pose Worker Model</span>
-                {isSdxlPoseMultiplierLayout ? (
+                {isNsfwPoseMultiplierLayout ? (
                   <select
                     className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5 disabled:cursor-not-allowed disabled:opacity-55"}
                     disabled
@@ -375,38 +381,42 @@ export function SettingsPanel({
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
                 <label className="block space-y-2">
-                  <span className="text-sm font-semibold text-white/76">{settings.generationModel === "sdxl" ? "SDXL layout" : "Pose Multiplier layout"}</span>
+                  <span className="text-sm font-semibold text-white/76">Layout</span>
                   <select
                     className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
                     value={settings.sdxlWorkspaceMode ?? "DEFAULT"}
                     onChange={(event) => {
                       const nextSdxlWorkspaceMode = event.target.value as BoardSettings["sdxlWorkspaceMode"];
                       const nextIsPoseMultiplierWorkspaceLayout = nextSdxlWorkspaceMode === "POSE_MULTIPLIER";
-                      const nextIsSdxlPoseMultiplierLayout = settings.generationModel === "sdxl" && nextIsPoseMultiplierWorkspaceLayout;
-                      const nextPoseMultiplierGenerationModel = nextIsSdxlPoseMultiplierLayout
+                      const nextIsSdxlDefaultWorkspace = settings.generationModel === "sdxl" && !nextIsPoseMultiplierWorkspaceLayout;
+                      const nextIsNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(settings.generationModel, nextSdxlWorkspaceMode, workspaceSafety);
+                      const nextPoseMultiplierGenerationModel = nextIsNsfwPoseMultiplierLayout
                         ? "sdxl"
                         : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, settings.generationModel);
                       onSettingsChange({
                         ...settings,
                         quantity: nextIsPoseMultiplierWorkspaceLayout ? 1 : settings.quantity,
-                        poseMultiplierEnabled: nextIsPoseMultiplierWorkspaceLayout ? true : settings.poseMultiplierEnabled,
+                        poseMultiplierEnabled: nextIsPoseMultiplierWorkspaceLayout ? true : nextIsSdxlDefaultWorkspace ? false : settings.poseMultiplierEnabled,
                         poseMultiplier: nextIsPoseMultiplierWorkspaceLayout ? Math.max(2, settings.poseMultiplier) : settings.poseMultiplier,
                         aspectRatio: normalizeBoardAspectRatio(settings.generationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
                         poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
                         poseMultiplierResolution: normalizePoseMultiplierResolution(
                           settings.poseMultiplierResolution,
                           nextPoseMultiplierGenerationModel,
-                          nextIsSdxlPoseMultiplierLayout,
+                          nextIsNsfwPoseMultiplierLayout,
                         ),
                         autoPromptImage: nextIsPoseMultiplierWorkspaceLayout ? false : settings.autoPromptImage,
                         sdxlWorkspaceMode: nextSdxlWorkspaceMode,
+                        faceSwap: nextIsSdxlDefaultWorkspace ? false : settings.faceSwap,
                       });
                     }}
                   >
                     <option value="DEFAULT">Default</option>
-                    <option value="POSE_MULTIPLIER">{settings.generationModel === "sdxl" ? "SDXL Pose Multiplier" : "Pose Multiplier Workspace"}</option>
+                    <option value="POSE_MULTIPLIER">{poseMultiplierWorkspaceOptionLabel}</option>
                   </select>
                 </label>
+                {!isSdxlDefaultWorkspace ? (
+                  <>
                 <div className="group/pose relative">
                   <button
                     className={
@@ -509,10 +519,12 @@ export function SettingsPanel({
                     </select>
                   </label>
                 ) : null}
+                  </>
+                ) : null}
               </div>
             ) : null}
 
-            {showPoseControls ? (
+            {showPoseMultiplierSharedOptions ? (
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Pose multiplier prompt mode</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -588,12 +600,6 @@ export function SettingsPanel({
               </div>
             ) : null}
 
-            {showPromptContext ? (
-              <div className="rounded-2xl border border-white/8 bg-[#262626] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/40">Default prompt context</p>
-                <p className="mt-3 text-sm leading-6 text-white/58">{promptPrefix}</p>
-              </div>
-            ) : null}
           </div>
 
           {showGlobalReferences ? (

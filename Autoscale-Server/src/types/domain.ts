@@ -251,6 +251,14 @@ export function isSdxlPoseMultiplierWorkspace(
   return generationModel === "sdxl" && sdxlWorkspaceMode === "POSE_MULTIPLIER";
 }
 
+export function isNsfwPoseMultiplierWorkspace(
+  generationModel: WorkerGenerationModel | string,
+  sdxlWorkspaceMode: string | null | undefined,
+  isNsfwWorkspace: boolean,
+): boolean {
+  return isNsfwWorkspace && (generationModel === "sdxl" || generationModel === "sd_4_5") && sdxlWorkspaceMode === "POSE_MULTIPLIER";
+}
+
 export function isPoseMultiplierWorkspace(
   generationModel: WorkerGenerationModel | string,
   sdxlWorkspaceMode: string | null | undefined,

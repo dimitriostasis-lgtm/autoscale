@@ -8,6 +8,7 @@ import {
   DEFAULT_MANAGER_PERMISSIONS,
   SUPPORTED_WORKER_GENERATION_MODELS,
   getMaxBoardQuantityForGenerationModel,
+  isNsfwPoseMultiplierWorkspace,
   isPoseMultiplierWorkspace,
   normalizeBoardAspectRatio,
   normalizeOptionalPosePromptTemplates,
@@ -34,6 +35,10 @@ import type {
 
 function cloneData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function isImageNsfwWorkspaceBoardName(name: string): boolean {
+  return name.startsWith("__autoscale_workspace_nsfw__:");
 }
 
 function nowIso(): string {
@@ -195,8 +200,9 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
       const requestedSdxlWorkspaceMode = (board.settings as { sdxlWorkspaceMode?: unknown }).sdxlWorkspaceMode === "POSE_MULTIPLIER" ? "POSE_MULTIPLIER" : "DEFAULT";
       const sdxlWorkspaceMode = isPoseMultiplierWorkspace(generationModel, requestedSdxlWorkspaceMode) ? "POSE_MULTIPLIER" : "DEFAULT";
       const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode);
-      const isSdxlPoseMultiplierLayout = sdxlWorkspaceMode === "POSE_MULTIPLIER" && generationModel === "sdxl";
-      const poseMultiplierGenerationModel = isSdxlPoseMultiplierLayout
+      const isSdxlDefaultWorkspace = generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout;
+      const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode, isImageNsfwWorkspaceBoardName(board.name));
+      const poseMultiplierGenerationModel = isNsfwPoseMultiplierLayout
         ? "sdxl"
         : normalizePoseMultiplierGenerationModel(
             (board.settings as { poseMultiplierGenerationModel?: unknown }).poseMultiplierGenerationModel,
@@ -216,7 +222,7 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           poseMultiplierResolution: normalizePoseMultiplierResolution(
             ((board.settings as { poseMultiplierResolution?: unknown }).poseMultiplierResolution as string | undefined) ?? board.settings.resolution,
             poseMultiplierGenerationModel,
-            isSdxlPoseMultiplierLayout,
+            isNsfwPoseMultiplierLayout,
           ),
           videoDurationSeconds: normalizeVideoDurationForGenerationModel(
             generationModel,
@@ -232,12 +238,14 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           sdxlWorkspaceMode,
             poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout
               ? true
+              : isSdxlDefaultWorkspace
+                ? false
               : quantity === 1 && typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
                 ? board.settings.poseMultiplierEnabled
               : false,
           poseMultiplier: typeof (board.settings as { poseMultiplier?: unknown }).poseMultiplier === "number" ? board.settings.poseMultiplier : 1,
           poseMultiplierGenerationModel,
-          faceSwap: typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
+          faceSwap: isSdxlDefaultWorkspace ? false : typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
           autoPromptGen: typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
           autoPromptImage: typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
           posePromptMode: (board.settings as { posePromptMode?: unknown }).posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",

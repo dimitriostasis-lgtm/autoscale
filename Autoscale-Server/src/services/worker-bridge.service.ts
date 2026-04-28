@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "../config/env.js";
 import { readStore, updateStore } from "../lib/store.js";
 import { saveGeneratedFile, toAbsoluteStoragePath } from "../lib/storage.js";
-import { isSdxlPoseMultiplierWorkspace, normalizePoseMultiplierResolution, normalizeResolutionForGenerationModel, normalizeVideoDurationForGenerationModel } from "../types/domain.js";
+import { isNsfwPoseMultiplierWorkspace, normalizePoseMultiplierResolution, normalizeResolutionForGenerationModel, normalizeVideoDurationForGenerationModel } from "../types/domain.js";
 import type { AuthUser, GeneratedAsset, GenerationStatus, ReferenceSelection, StoreData } from "../types/domain.js";
 
 import { publishAssetCreated, publishBoardUpdate } from "./notifications.service.js";
@@ -279,9 +279,13 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
       const rowReference = await readSelectionFile(row.reference, initialStore);
       const poseMultiplierActive = board.settings.poseMultiplierEnabled && row.poseMultiplier > 1;
       const generationModel = poseMultiplierActive ? board.settings.poseMultiplierGenerationModel : board.settings.generationModel;
-      const isSdxlPoseMultiplierLayout = isSdxlPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode);
+      const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(
+        board.settings.generationModel,
+        board.settings.sdxlWorkspaceMode,
+        board.name.startsWith("__autoscale_workspace_nsfw__:"),
+      );
       const resolution = poseMultiplierActive
-        ? normalizePoseMultiplierResolution(board.settings.poseMultiplierResolution, generationModel, isSdxlPoseMultiplierLayout)
+        ? normalizePoseMultiplierResolution(board.settings.poseMultiplierResolution, generationModel, isNsfwPoseMultiplierLayout)
         : normalizeResolutionForGenerationModel(generationModel, board.settings.resolution);
       const videoDurationSeconds = normalizeVideoDurationForGenerationModel(generationModel, board.settings.videoDurationSeconds);
       const quantity = poseMultiplierActive ? Math.max(1, Math.min(4, row.poseMultiplier)) : board.settings.quantity;
