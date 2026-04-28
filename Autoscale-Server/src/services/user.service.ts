@@ -363,7 +363,7 @@ export async function deleteAgency(currentUser: AuthUser | null, agencyId: strin
 
 export async function createUser(
   currentUser: AuthUser | null,
-  input: { name: string; email: string; password: string; role: Role; agencyId?: string | null },
+  input: { name: string; email: string; password: string; role: Role; agencyId?: string | null; managerPermissions?: ManagerPermissions | null },
 ) {
   const viewer = requireAuthenticatedUser(currentUser);
   assertConsoleAccess(viewer);
@@ -395,7 +395,7 @@ export async function createUser(
       role: input.role,
       agencyId: nextAgencyId,
       managedAgencyIds: input.role === "AGENCY_MANAGER" && nextAgencyId ? [nextAgencyId] : [],
-      managerPermissions: defaultManagerPermissionsForRole(input.role),
+      managerPermissions: input.role === "AGENCY_MANAGER" ? normalizeManagerPermissions(input.managerPermissions) : defaultManagerPermissionsForRole(input.role),
       passwordHash: await hashPassword(input.password),
       isActive: true,
       createdAt: new Date().toISOString(),

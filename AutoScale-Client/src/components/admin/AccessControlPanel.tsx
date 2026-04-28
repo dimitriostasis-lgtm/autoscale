@@ -30,6 +30,7 @@ interface AccessControlPanelProps {
     password: string;
     role: Role;
     agencyId?: string | null;
+    managerPermissions?: ManagerPermissions | null;
   }) => Promise<void>;
   onRenameUser: (userId: string, name: string) => Promise<void>;
   onUpdateRole: (userId: string, role: Role) => Promise<void>;
@@ -175,6 +176,14 @@ const defaultManagerPermissions: ManagerPermissions = {
   canManageAssignments: false,
   canManageCredits: false,
 };
+
+const managerPermissionOptions: Array<{ key: keyof ManagerPermissions; label: string }> = [
+  { key: "canSuspendUsers", label: "Can suspend users" },
+  { key: "canDeleteUsers", label: "Can delete users" },
+  { key: "canResetPasswords", label: "Can reset passwords" },
+  { key: "canManageAssignments", label: "Can manage influencer assignments" },
+  { key: "canManageCredits", label: "Can manage agency credits" },
+];
 
 const influencerCreationDefaults = {
   generationModel: generationModelOptions[0],
@@ -696,6 +705,7 @@ export function AccessControlPanel({
     role: "USER" as Role,
     agencyId: isAgencyAdmin ? currentUser.agencyId || "" : agencies[0]?.id || "",
   });
+  const [createManagerPermissionDraft, setCreateManagerPermissionDraft] = useState<ManagerPermissions>(defaultManagerPermissions);
   const [modelForm, setModelForm] = useState<ModelFormState>({
     name: "",
     handle: "",
@@ -1214,6 +1224,41 @@ export function AccessControlPanel({
     return className ? <div className={className}>{content}</div> : content;
   }
 
+  function renderCreateManagerPermissionControls(className?: string) {
+    if (createForm.role !== "AGENCY_MANAGER") {
+      return null;
+    }
+
+    return (
+      <div className={cx("rounded-[24px] border border-white/8 bg-black/14 p-4", className)}>
+        <div>
+          <p className="text-sm font-semibold text-white">Manager permissions</p>
+          <p className="mt-2 text-sm leading-6 text-white/54">
+            Choose what this manager can do for users inside {currentUser.agencyName || "their agency"} from their first sign-in.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {managerPermissionOptions.map(({ key, label }) => (
+            <label key={key} className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/72">
+              <span>{label}</span>
+              <input
+                checked={createManagerPermissionDraft[key]}
+                onChange={(event) =>
+                  setCreateManagerPermissionDraft((current) => ({
+                    ...current,
+                    [key]: event.target.checked,
+                  }))
+                }
+                type="checkbox"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   async function executeAction<T>(
     action: () => Promise<T>,
     successText?: string,
@@ -1399,6 +1444,7 @@ export function AccessControlPanel({
           password: createForm.password,
           role: createForm.role,
           agencyId: nextAgencyId,
+          managerPermissions: createForm.role === "AGENCY_MANAGER" ? createManagerPermissionDraft : null,
         }),
       `Created ${nextName}.`,
       "createAccount",
@@ -1412,6 +1458,7 @@ export function AccessControlPanel({
         role: "USER",
         agencyId: isAgencyAdmin ? currentUser.agencyId || "" : agencies[0]?.id || "",
       });
+      setCreateManagerPermissionDraft(defaultManagerPermissions);
     }
   }
 
@@ -2389,7 +2436,7 @@ export function AccessControlPanel({
             </div>
           </div>
 
-          <div className="border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-6 py-6 sm:px-7 sm:py-7">
+          <div id="access-agency-credit-control" className="scroll-mt-32 border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-6 py-6 sm:px-7 sm:py-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--text-muted)]">Credit Controls</p>
@@ -2550,7 +2597,13 @@ export function AccessControlPanel({
       ) : null}
 
       <section id="access-directory" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-        <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7">
+        <div
+          className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7"
+          style={{
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 16%, transparent) 0%, transparent 52%), linear-gradient(180deg, rgba(255,255,255,0.045), transparent 100%)",
+          }}
+        >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Access control</p>
@@ -2562,11 +2615,11 @@ export function AccessControlPanel({
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
+              <div className="rounded-3xl border border-white/8 bg-black/16 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/44">Visible accounts</p>
                 <p className="mt-2 text-3xl font-semibold text-white">{filteredUsers.length}</p>
               </div>
-              <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
+              <div className="rounded-3xl border border-white/8 bg-black/16 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/44">Selected scope</p>
                 <p className="mt-2 text-sm font-semibold text-white">{accessScopeLabel(selectedUser.accessScope)}</p>
               </div>
@@ -2575,7 +2628,7 @@ export function AccessControlPanel({
         </div>
 
         <div className="grid gap-px bg-white/8 xl:grid-cols-[1.02fr_1.08fr]">
-          <div className="max-h-[920px] overflow-y-auto bg-[color:var(--surface-card-strong)] p-5 sm:p-6">
+          <div className="max-h-[1180px] overflow-y-auto bg-[color:var(--surface-card-strong)] p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Directory</p>
@@ -2667,7 +2720,7 @@ export function AccessControlPanel({
           </div>
           </div>
 
-          <div className="max-h-[920px] overflow-y-auto bg-[color:var(--surface-card)] p-4 sm:p-5">
+          <div className="max-h-[1180px] overflow-y-auto bg-[color:var(--surface-card)] p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Account</p>
@@ -2822,13 +2875,7 @@ export function AccessControlPanel({
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {[
-                  ["canSuspendUsers", "Can suspend users"],
-                  ["canDeleteUsers", "Can delete users"],
-                  ["canResetPasswords", "Can reset passwords"],
-                  ["canManageAssignments", "Can manage influencer assignments"],
-                  ["canManageCredits", "Can manage agency credits"],
-                ].map(([key, label]) => (
+                {managerPermissionOptions.map(({ key, label }) => (
                   <label
                     key={key}
                     className={cx(
@@ -2838,7 +2885,7 @@ export function AccessControlPanel({
                   >
                     <span>{label}</span>
                     <input
-                      checked={managerPermissionDraft[key as keyof ManagerPermissions]}
+                      checked={managerPermissionDraft[key]}
                       className={!canEditManagerPermissions ? "cursor-not-allowed" : undefined}
                       disabled={!canEditManagerPermissions}
                       onChange={(event) =>
@@ -3328,6 +3375,8 @@ export function AccessControlPanel({
                       </select>
                     </label>
 
+                    {renderCreateManagerPermissionControls("lg:col-span-2")}
+
                     <label className="block space-y-2 lg:col-span-2">
                       <span className="text-sm font-semibold text-white/76">Temporary password</span>
                       <input
@@ -3373,6 +3422,14 @@ export function AccessControlPanel({
                           {createForm.password ? "Temporary password ready" : "Temporary password required"}
                         </dd>
                       </div>
+                      {createForm.role === "AGENCY_MANAGER" ? (
+                        <div>
+                          <dt className="text-xs uppercase tracking-[0.18em] text-white/38">Manager permissions</dt>
+                          <dd className="mt-1 text-sm text-white/58">
+                            {managerPermissionOptions.filter(({ key }) => createManagerPermissionDraft[key]).length} enabled
+                          </dd>
+                        </div>
+                      ) : null}
                     </dl>
 
                     <p className="mt-5 text-sm leading-6 text-white/52">
@@ -3748,27 +3805,166 @@ export function AccessControlPanel({
       ) : null}
 
       {isAgencyAdmin ? (
-        <section id="access-create-accounts" className={theme.cardStrong + " glass-panel scroll-mt-32 p-6"}>
-          <p className="text-xs uppercase tracking-[0.22em] text-white/42">Provisioning</p>
-          <h3 className="font-display mt-2 text-2xl text-white">Create agency accounts</h3>
-          <p className="mt-3 text-sm leading-7 text-white/56">
-            Agency admins can create users and managers in their own agency only. Agency creation and influencer-model management remain platform-admin-only.
-          </p>
+        <section id="access-create-accounts" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
+          <div
+            className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 16%, transparent) 0%, transparent 52%), linear-gradient(180deg, rgba(255,255,255,0.045), transparent 100%)",
+            }}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-white/42">Provisioning</p>
+                <h3 className="font-display mt-2 text-3xl text-white">Create agency accounts</h3>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
+                  Add teammates to {currentUser.agencyName || "your agency"} with the right day-one access.
+                </p>
+              </div>
 
-          <form className="mt-5 grid gap-4 xl:grid-cols-[1fr_1fr_1fr_220px]" onSubmit={handleCreateUser}>
-            <input className={theme.input} placeholder="Full name" value={createForm.name} onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))} />
-            <input className={theme.input} placeholder="Email" value={createForm.email} onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))} />
-            <input className={theme.input} placeholder="Temporary password" value={createForm.password} onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))} />
-            <div className="space-y-4">
-              <select className={theme.input} value={createForm.role} onChange={(event) => setCreateForm((current) => ({ ...current, role: event.target.value as Role }))}>
-                <option value="USER">User</option>
-                <option value="AGENCY_MANAGER">Agency Manager</option>
-              </select>
-              {renderNotice("createAccount")}
-              <button className={theme.buttonPrimary + " w-full"} type="submit">
+              <div className="grid w-full gap-2 text-right sm:w-auto sm:grid-cols-3">
+                {[
+                  ["Agency", currentUser.agencyName || "Assigned"],
+                  ["Active", agencySummaryCounts.activeCount.toLocaleString()],
+                  ["Managers", agencySummaryCounts.managerCount.toLocaleString()],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-white/8 bg-black/16 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">{label}</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <form className="grid gap-px bg-white/8 lg:grid-cols-[minmax(0,1fr)_340px]" onSubmit={handleCreateUser}>
+            <div className="bg-[color:var(--surface-card)] p-5 sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold text-white/76">Full name</span>
+                  <input
+                    className={theme.input}
+                    placeholder="New teammate"
+                    value={createForm.name}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))}
+                  />
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold text-white/76">Email</span>
+                  <input
+                    className={theme.input}
+                    placeholder="name@agency.com"
+                    type="email"
+                    value={createForm.email}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))}
+                  />
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-sm font-semibold text-white/76">Temporary password</span>
+                  <input
+                    className={theme.input}
+                    placeholder="Set temporary password"
+                    type="password"
+                    value={createForm.password}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))}
+                  />
+                </label>
+
+                <div className="space-y-2">
+                  <span className="block text-sm font-semibold text-white/76">Agency</span>
+                  <div className="flex min-h-[46px] items-center rounded-2xl border border-white/8 bg-white/[0.035] px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white">{currentUser.agencyName || "Your agency"}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.14em] text-white/38">Locked scope</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-sm font-semibold text-white/76">Role</p>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["USER", "User", "Workspace access"],
+                    ["AGENCY_MANAGER", "Agency Manager", "Team oversight"],
+                  ].map(([value, label, hint]) => {
+                    const selected = createForm.role === value;
+
+                    return (
+                      <button
+                        key={value}
+                        className={cx(
+                          "rounded-2xl border px-4 py-3 text-left transition",
+                          selected
+                            ? "border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_42%,transparent)]"
+                            : "border-white/8 bg-white/[0.03] text-white/66 hover:border-white/16 hover:bg-white/[0.05]",
+                        )}
+                        onClick={() => setCreateForm((current) => ({ ...current, role: value as Role }))}
+                        type="button"
+                      >
+                        <span className="block text-sm font-semibold">{label}</span>
+                        <span className="mt-1 block text-xs uppercase tracking-[0.14em] opacity-60">{hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {renderCreateManagerPermissionControls("mt-5")}
+            </div>
+
+            <aside className="bg-[color:var(--surface-card-strong)] p-5 sm:p-6">
+              <div className="rounded-[24px] border border-white/8 bg-black/14 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-base font-semibold text-white">
+                    {buildProfileInitials(createForm.name)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-white">{createForm.name || "New account"}</p>
+                    <p className="mt-1 truncate text-sm text-white/52">{createForm.email || "name@agency.com"}</p>
+                  </div>
+                </div>
+
+                <dl className="mt-5 space-y-3 border-t border-white/8 pt-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-xs uppercase tracking-[0.16em] text-white/38">Role</dt>
+                    <dd className={cx("rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", roleBadgeClass(createForm.role))}>
+                      {roleLabel(createForm.role)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-white/38">Scope</dt>
+                    <dd className="mt-1 truncate text-sm font-semibold text-white">{currentUser.agencyName || "Your agency"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-white/38">Credentials</dt>
+                    <dd className="mt-1 text-sm text-white/58">
+                      {createForm.password ? "Temporary password ready" : "Temporary password required"}
+                    </dd>
+                  </div>
+                  {createForm.role === "AGENCY_MANAGER" ? (
+                    <div>
+                      <dt className="text-xs uppercase tracking-[0.16em] text-white/38">Manager permissions</dt>
+                      <dd className="mt-1 text-sm text-white/58">
+                        {managerPermissionOptions.filter(({ key }) => createManagerPermissionDraft[key]).length} enabled
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </div>
+
+              {renderNotice("createAccount", "mt-4")}
+
+              <button className={theme.buttonPrimary + " mt-4 w-full"} type="submit">
                 Create account
               </button>
-            </div>
+
+              <p className="mt-4 text-sm leading-6 text-white/48">
+                Managers can receive assignment, password, suspension, deletion, or credit permissions from the selected account panel.
+              </p>
+            </aside>
           </form>
         </section>
       ) : null}

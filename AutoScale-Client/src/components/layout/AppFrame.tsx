@@ -60,14 +60,14 @@ function accessJumpOptions(currentUser: UserRecord): AccessJumpOption[] {
 
   if (currentUser.role === "AGENCY_ADMIN") {
     return [
-      { id: "access-agency-summary", label: "Agency summary and credits" },
+      { id: "access-agency-credit-control", label: "Agency Credit Control" },
       ...options,
       { id: "access-create-accounts", label: "Create agency accounts" },
     ];
   }
 
   if (currentUser.role === "AGENCY_MANAGER" && currentUser.managerPermissions?.canManageCredits) {
-    return [{ id: "access-agency-summary", label: "Agency summary and credits" }, ...options];
+    return [{ id: "access-agency-credit-control", label: "Agency Credit Control" }, ...options];
   }
 
   return options;
@@ -117,14 +117,17 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
     setIsAccessMenuOpen(false);
     onNavigate({ name: "admin", sectionId });
 
-    window.setTimeout(() => {
+    const scrollToSection = () => {
       if (!sectionId) {
         window.scrollTo({ behavior: "smooth", top: 0 });
         return;
       }
 
       document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
+    };
+
+    window.setTimeout(scrollToSection, 80);
+    window.setTimeout(scrollToSection, 240);
   }
 
   return (

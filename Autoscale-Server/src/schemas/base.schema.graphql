@@ -271,6 +271,7 @@ input CreateUserInput {
   password: String!
   role: Role!
   agencyId: ID
+  managerPermissions: ManagerPermissionsInput
 }
 
 input UpdateUserOrganizationInput {
