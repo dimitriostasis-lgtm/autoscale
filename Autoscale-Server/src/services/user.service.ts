@@ -363,7 +363,15 @@ export async function deleteAgency(currentUser: AuthUser | null, agencyId: strin
 
 export async function createUser(
   currentUser: AuthUser | null,
-  input: { name: string; email: string; password: string; role: Role; agencyId?: string | null; managerPermissions?: ManagerPermissions | null },
+  input: {
+    name: string;
+    email: string;
+    password: string;
+    role: Role;
+    agencyId?: string | null;
+    managerPermissions?: ManagerPermissions | null;
+    influencerModelIds?: string[] | null;
+  },
 ) {
   const viewer = requireAuthenticatedUser(currentUser);
   assertConsoleAccess(viewer);
@@ -388,6 +396,30 @@ export async function createUser(
       assertAgencyAdminCreateRole(viewer, input.role, nextAgencyId);
     }
 
+    const requestedInfluencerModelIds = input.role === "USER" ? Array.from(new Set(input.influencerModelIds ?? [])) : [];
+    const validInfluencerModelIds = new Set(current.influencerModels.map((model) => model.id));
+    const cleanedInfluencerModelIds = requestedInfluencerModelIds.filter((id) => validInfluencerModelIds.has(id));
+
+    if (nextAgencyId && cleanedInfluencerModelIds.length) {
+      for (const influencerModelId of cleanedInfluencerModelIds) {
+        const model = current.influencerModels.find((entry) => entry.id === influencerModelId);
+        if (!model) {
+          continue;
+        }
+
+        if (model.agencyIds.includes(nextAgencyId)) {
+          continue;
+        }
+
+        if (isPlatformAdmin(viewer) && model.agencyIds.length === 0) {
+          model.agencyIds = [nextAgencyId];
+          continue;
+        }
+
+        throw new Error("One or more influencer models are not enabled for this user's agency");
+      }
+    }
+
     const createdUser: StoredUser = {
       id: randomUUID(),
       email: normalizedEmail,
@@ -403,6 +435,15 @@ export async function createUser(
     };
 
     current.users.push(createdUser);
+    current.modelAccess.push(
+      ...cleanedInfluencerModelIds.map((influencerModelId) => ({
+        id: randomUUID(),
+        userId: createdUser.id,
+        influencerModelId,
+        grantedById: viewer.id,
+        createdAt: new Date().toISOString(),
+      })),
+    );
     return current;
   });
 

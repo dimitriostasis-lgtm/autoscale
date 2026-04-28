@@ -31,6 +31,7 @@ interface AccessControlPanelProps {
     role: Role;
     agencyId?: string | null;
     managerPermissions?: ManagerPermissions | null;
+    influencerModelIds?: string[] | null;
   }) => Promise<void>;
   onRenameUser: (userId: string, name: string) => Promise<void>;
   onUpdateRole: (userId: string, role: Role) => Promise<void>;
@@ -184,6 +185,11 @@ const managerPermissionOptions: Array<{ key: keyof ManagerPermissions; label: st
   { key: "canManageAssignments", label: "Can manage influencer assignments" },
   { key: "canManageCredits", label: "Can manage agency credits" },
 ];
+
+const sectionHeaderGlowStyle = {
+  background:
+    "linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 16%, transparent) 0%, transparent 52%), linear-gradient(180deg, rgba(255,255,255,0.045), transparent 100%)",
+};
 
 const influencerCreationDefaults = {
   generationModel: generationModelOptions[0],
@@ -706,6 +712,7 @@ export function AccessControlPanel({
     agencyId: isAgencyAdmin ? currentUser.agencyId || "" : agencies[0]?.id || "",
   });
   const [createManagerPermissionDraft, setCreateManagerPermissionDraft] = useState<ManagerPermissions>(defaultManagerPermissions);
+  const [createAssignmentDraft, setCreateAssignmentDraft] = useState<string[]>([]);
   const [modelForm, setModelForm] = useState<ModelFormState>({
     name: "",
     handle: "",
@@ -1133,6 +1140,39 @@ export function AccessControlPanel({
   );
   const agencyCreditUnallocatedBalance = Math.max(0, agencyBillingPlan.creditBalance - agencyCreditAllocationTotal);
   const assignableModels = useMemo(() => models.filter((model) => model.isActive), [models]);
+  const createAssignableModels = useMemo(() => {
+    if (createForm.role !== "USER" || !createForm.agencyId) {
+      return [];
+    }
+
+    return models
+      .filter((model) => {
+        if (!model.isActive) {
+          return false;
+        }
+
+        return model.assignedAgencyIds.includes(createForm.agencyId) || (isPlatformAdmin && model.assignedAgencyIds.length === 0);
+      })
+      .sort((left, right) => {
+        const leftOwned = left.assignedAgencyIds.includes(createForm.agencyId);
+        const rightOwned = right.assignedAgencyIds.includes(createForm.agencyId);
+
+        if (leftOwned !== rightOwned) {
+          return leftOwned ? -1 : 1;
+        }
+
+        return left.name.localeCompare(right.name);
+      });
+  }, [createForm.agencyId, createForm.role, isPlatformAdmin, models]);
+
+  useEffect(() => {
+    const availableIds = new Set(createAssignableModels.map((model) => model.id));
+    setCreateAssignmentDraft((current) => {
+      const next = current.filter((modelId) => availableIds.has(modelId));
+      return next.length === current.length ? current : next;
+    });
+  }, [createAssignableModels]);
+
   const selectedUserAgencyIds = useMemo(() => (selectedUser ? resolveUserAgencyIds(selectedUser) : []), [selectedUser]);
   const selectedUserPrimaryAgencyId = selectedUser?.agencyId || selectedUserAgencyIds[0] || "";
   const selectedUserAgencyNames = useMemo(() => {
@@ -1255,6 +1295,103 @@ export function AccessControlPanel({
             </label>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  function renderCreateInfluencerAccessControls(className?: string) {
+    if (createForm.role !== "USER") {
+      return null;
+    }
+
+    const selectedAgencyName = agencies.find((agency) => agency.id === createForm.agencyId)?.name || currentUser.agencyName || "";
+    const unassignedAvailableCount = createAssignableModels.filter((model) => model.assignedAgencyIds.length === 0).length;
+    const selectedUnassignedCount = createAssignmentDraft.filter((modelId) => {
+      const model = createAssignableModels.find((entry) => entry.id === modelId);
+      return model ? model.assignedAgencyIds.length === 0 : false;
+    }).length;
+
+    return (
+      <div className={cx("rounded-[24px] border border-white/8 bg-black/14 p-4 sm:p-5", className)}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">Influencer access</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/54">
+              Grant the influencer profiles this user should be able to open as soon as the account is created.
+              {selectedAgencyName ? ` Showing models available to ${selectedAgencyName}.` : ""}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/62">
+              {createAssignmentDraft.length} selected
+            </span>
+            {isPlatformAdmin && unassignedAvailableCount ? (
+              <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-100/78">
+                {unassignedAvailableCount} unassigned available
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {createAssignableModels.length ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {createAssignableModels.map((model) => {
+              const selected = createAssignmentDraft.includes(model.id);
+              const ownedBySelectedAgency = createForm.agencyId ? model.assignedAgencyIds.includes(createForm.agencyId) : false;
+              const unassignedModel = model.assignedAgencyIds.length === 0;
+
+              return (
+                <button
+                  key={model.id}
+                  className={cx(
+                    "rounded-2xl border px-4 py-3 text-left transition",
+                    selected
+                      ? "border-lime-300/35 bg-lime-300/12"
+                      : unassignedModel
+                        ? "border-amber-300/18 bg-amber-300/[0.06] hover:border-amber-300/28 hover:bg-amber-300/[0.09]"
+                        : "border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]",
+                  )}
+                  onClick={() => setCreateAssignmentDraft((current) => toggleId(current, model.id))}
+                  type="button"
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-white">{model.name}</span>
+                      <span className="mt-1 block text-xs uppercase tracking-[0.16em] text-white/44">{model.handle}</span>
+                    </span>
+                    <span
+                      className={cx(
+                        "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                        selected ? "bg-lime-300/14 text-lime-100" : "bg-white/[0.06] text-white/48",
+                      )}
+                    >
+                      {selected ? "Granted" : "Add"}
+                    </span>
+                  </span>
+                  <span className="mt-3 block text-xs font-semibold uppercase tracking-[0.14em] text-white/46">
+                    {ownedBySelectedAgency
+                      ? `Owned by ${selectedAgencyName || "selected agency"}`
+                      : unassignedModel
+                        ? `Will assign to ${selectedAgencyName || "selected agency"}`
+                        : "Unavailable"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-4 text-sm leading-6 text-white/52">
+            {createForm.agencyId
+              ? "No active influencer profiles are owned by this agency yet. Assign influencer ownership first, then grant direct user access."
+              : "Select an agency to see owned influencer profiles and unassigned profiles that can be attached during account creation."}
+          </div>
+        )}
+
+        {isPlatformAdmin && selectedUnassignedCount ? (
+          <p className="mt-4 rounded-2xl border border-amber-300/18 bg-amber-300/[0.08] px-4 py-3 text-sm leading-6 text-amber-100/76">
+            {selectedUnassignedCount} unassigned influencer{selectedUnassignedCount === 1 ? "" : "s"} will be assigned to {selectedAgencyName || "the selected agency"} before access is granted.
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -1445,6 +1582,7 @@ export function AccessControlPanel({
           role: createForm.role,
           agencyId: nextAgencyId,
           managerPermissions: createForm.role === "AGENCY_MANAGER" ? createManagerPermissionDraft : null,
+          influencerModelIds: createForm.role === "USER" ? createAssignmentDraft : null,
         }),
       `Created ${nextName}.`,
       "createAccount",
@@ -1459,6 +1597,7 @@ export function AccessControlPanel({
         agencyId: isAgencyAdmin ? currentUser.agencyId || "" : agencies[0]?.id || "",
       });
       setCreateManagerPermissionDraft(defaultManagerPermissions);
+      setCreateAssignmentDraft([]);
     }
   }
 
@@ -1785,7 +1924,7 @@ export function AccessControlPanel({
 
       {isPlatformAdmin ? (
         <section id="access-platform-sales" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-          <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7">
+          <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-white/42">Platform revenue</p>
@@ -2160,7 +2299,7 @@ export function AccessControlPanel({
 
       {isPlatformAdmin ? (
         <section id="access-agency-performance" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-          <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7">
+          <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
             <p className="text-xs uppercase tracking-[0.22em] text-white/42">Overview</p>
             <h2 className="font-display mt-2 text-3xl text-white">Platform summary</h2>
             <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
@@ -2344,7 +2483,7 @@ export function AccessControlPanel({
 
       {canManageAgencyCreditPolicy ? (
         <section id="access-agency-summary" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-          <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7">
+          <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
             <p className="text-xs uppercase tracking-[0.22em] text-white/42">Overview</p>
             <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -2436,67 +2575,132 @@ export function AccessControlPanel({
             </div>
           </div>
 
-          <div id="access-agency-credit-control" className="scroll-mt-32 border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-6 py-6 sm:px-7 sm:py-7">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+          <div
+            id="access-agency-credit-control"
+            className="scroll-mt-32 border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-6 py-6 sm:px-7 sm:py-7"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 10%, var(--surface-card)) 0%, var(--surface-card) 42%), linear-gradient(180deg, color-mix(in srgb, var(--text-strong) 5%, transparent), transparent 38%)",
+            }}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--text-muted)]">Credit Controls</p>
-                <h3 className="font-display mt-2 text-2xl text-[color:var(--text-strong)]">User spend and allocation</h3>
+                <h3 className="font-display mt-2 text-3xl text-[color:var(--text-strong)]">User spend and allocation</h3>
                 <p className="mt-3 max-w-4xl text-sm leading-7 text-[color:var(--text-muted)]">
-                  Estimated spend is based on generated outputs in this agency. Agency admins can keep one shared credit pool or allocate caps to users and managers.
+                  Pick one credit policy for the agency, then review spend and allocation caps for each user or manager.
                 </p>
               </div>
-              <div className="grid gap-3 text-right sm:grid-cols-3">
-                <div className="rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Agency pool</p>
-                  <p className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">{formatCreditCount(agencyBillingPlan.creditBalance)}</p>
-                </div>
-                <div className="rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Spent estimate</p>
-                  <p className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">{formatCreditCount(agencyEstimatedCreditsSpent)}</p>
-                </div>
-                <div className="rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Unallocated</p>
-                  <p className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">{formatCreditCount(agencyCreditUnallocatedBalance)}</p>
-                </div>
+
+              <div className="rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Active policy</p>
+                <p className="mt-2 text-sm font-semibold text-[color:var(--text-strong)]">
+                  {agencyCreditAccessMode === "AGENCY_POOL" ? "Shared agency pool" : "Per-user allocations"}
+                </p>
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
               {[
-                ["AGENCY_POOL", "Use shared agency credits", "Users draw from the agency balance without individual caps."],
-                ["USER_ALLOCATION", "Allocate credits by user", "Set user and manager credit caps from the agency balance."],
-              ].map(([mode, label, description]) => {
-                const selected = agencyCreditAccessMode === mode;
-                return (
-                  <button
-                    key={mode}
-                    className={cx(
-                      "rounded-3xl border px-4 py-4 text-left transition",
-                      selected
-                        ? "border-[color:var(--border-strong)] bg-[color:var(--accent-soft)]"
-                        : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] hover:bg-[color:var(--surface-soft-hover)]",
-                    )}
-                    onClick={() => handleCreditAccessModeChange(mode as CreditAccessMode)}
-                    type="button"
-                  >
-                    <span className="block text-sm font-semibold text-[color:var(--text-strong)]">{label}</span>
-                    <span className="mt-2 block text-sm leading-6 text-[color:var(--text-muted)]">{description}</span>
-                  </button>
-                );
-              })}
+                ["Agency pool", formatCreditCount(agencyBillingPlan.creditBalance), "Monthly credit balance"],
+                ["Spent estimate", formatCreditCount(agencyEstimatedCreditsSpent), "Based on generated outputs"],
+                ["Unallocated", formatCreditCount(agencyCreditUnallocatedBalance), "Remaining after user caps"],
+              ].map(([label, value, hint]) => (
+                <div key={label} className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-5 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">{label}</p>
+                  <p className="mt-3 text-2xl font-semibold tracking-tight text-[color:var(--text-strong)]">{value}</p>
+                  <p className="mt-2 text-sm text-[color:var(--text-muted)]">{hint}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-[28px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)]">
-              <div className="grid gap-px bg-[color:var(--surface-border)] lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr]">
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Account</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Available balance</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Spent</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Outputs</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Last use</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit access</div>
+            <div className="mt-6 rounded-[28px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[color:var(--text-strong)]">Credit policy</p>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[color:var(--text-muted)]">
+                    This is the main switch for agency spending. Shared pool is simplest; per-user allocations creates explicit caps.
+                  </p>
+                </div>
+                <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
+                  Choose one
+                </span>
               </div>
 
-              <div className="max-h-[420px] divide-y divide-[color:var(--surface-border)] overflow-y-auto">
+              <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                {[
+                  {
+                    mode: "AGENCY_POOL" as CreditAccessMode,
+                    label: "Shared agency pool",
+                    status: "No individual caps",
+                    description: "Every eligible user draws from the same agency balance. Best when the team shares one operating budget.",
+                  },
+                  {
+                    mode: "USER_ALLOCATION" as CreditAccessMode,
+                    label: "Per-user allocations",
+                    status: "Set spending caps",
+                    description: "Give each user or manager a specific credit cap. Unallocated credits stay in the admin reserve.",
+                  },
+                ].map(({ mode, label, status, description }) => {
+                  const selected = agencyCreditAccessMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      aria-pressed={selected}
+                      className={cx(
+                        "rounded-[24px] border px-5 py-5 text-left transition",
+                        selected
+                          ? "border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_42%,transparent)]"
+                          : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] hover:bg-[color:var(--surface-soft-hover)]",
+                      )}
+                      onClick={() => handleCreditAccessModeChange(mode)}
+                      type="button"
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-base font-semibold text-[color:var(--text-strong)]">{label}</span>
+                        <span
+                          className={cx(
+                            "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]",
+                            selected
+                              ? "border-[color:var(--accent-main)] bg-[color:var(--accent-main)] text-[color:var(--accent-foreground)]"
+                              : "border-[color:var(--surface-border)] text-[color:var(--text-muted)]",
+                          )}
+                        >
+                          {selected ? "Selected" : status}
+                        </span>
+                      </span>
+                      <span className="mt-3 block text-sm leading-6 text-[color:var(--text-muted)]">{description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6 overflow-hidden rounded-[28px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)]">
+              <div className="flex flex-wrap items-start justify-between gap-3 bg-[color:var(--surface-card)] px-5 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-[color:var(--text-strong)]">Account credit access</p>
+                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">
+                    {agencyCreditAccessMode === "AGENCY_POOL"
+                      ? "All eligible users currently share the agency balance."
+                      : "Enter allocation caps for users and managers below."}
+                  </p>
+                </div>
+                <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
+                  {agencyCreditUsageRows.length} account{agencyCreditUsageRows.length === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <div className="hidden gap-px bg-[color:var(--surface-border)] text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)] lg:grid lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr]">
+                <div className="bg-[color:var(--surface-card)] px-4 py-3">Account</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3">{agencyCreditAccessMode === "AGENCY_POOL" ? "Policy" : "Allocation cap"}</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3">Spent</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3">Outputs</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3">Last use</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3">Credit status</div>
+              </div>
+
+              <div className="max-h-[560px] divide-y divide-[color:var(--surface-border)] overflow-y-auto">
                 {agencyCreditUsageRows.map((row) => {
                   const canReceiveAllocation = row.user.role === "USER" || row.user.role === "AGENCY_MANAGER";
                   const maxAllocationForUser = canReceiveAllocation
@@ -2516,55 +2720,81 @@ export function AccessControlPanel({
                   const hasAgencyPoolAccess = agencyCreditAccessMode === "AGENCY_POOL";
                   const availableCredits = canReceiveAllocation ? allocatedCredits : agencyCreditUnallocatedBalance;
                   return (
-                    <div key={row.user.id} className="grid gap-3 bg-[color:var(--surface-card)] px-4 py-4 lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr] lg:items-center">
+                    <div
+                      key={row.user.id}
+                      className="grid gap-4 bg-[color:var(--surface-card)] px-4 py-4 lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr] lg:items-center"
+                    >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{row.user.name}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{roleLabel(row.user.role)}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[color:var(--text-strong)]">{hasAgencyPoolAccess ? "Agency balance" : formatCreditCount(availableCredits)}</p>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">
+                          {agencyCreditAccessMode === "AGENCY_POOL" ? "Policy" : "Allocation cap"}
+                        </p>
+                        {agencyCreditAccessMode === "USER_ALLOCATION" && canReceiveAllocation ? (
+                          <label className="block space-y-2">
+                            <span className="sr-only">Credit allocation for {row.user.name}</span>
+                            <input
+                              className={theme.input}
+                              max={maxAllocationForUser}
+                              min="0"
+                              onChange={(event) => handleCreditAllocationChange(row.user.id, event.target.value)}
+                              step="100"
+                              type="number"
+                              value={creditAllocationDrafts[row.user.id] ?? "0"}
+                            />
+                          </label>
+                        ) : (
+                          <p className="text-sm font-semibold text-[color:var(--text-strong)]">
+                            {hasAgencyPoolAccess ? "Shared pool" : formatCreditCount(availableCredits)}
+                          </p>
+                        )}
                         <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
-                          {hasAgencyPoolAccess ? "Shared pool" : canReceiveAllocation ? "Allocated balance" : "Admin reserve"}
+                          {hasAgencyPoolAccess ? "Agency balance" : canReceiveAllocation ? "Available cap" : "Admin reserve"}
                         </p>
                       </div>
-                      <p className="text-sm font-semibold text-[color:var(--text-strong)]">{formatCreditCount(row.estimatedCredits)}</p>
-                      <p className="text-sm text-[color:var(--text-main)]">
-                        {row.outputCount.toLocaleString()} output{row.outputCount === 1 ? "" : "s"} / {row.modelCount.toLocaleString()} model{row.modelCount === 1 ? "" : "s"}
-                      </p>
-                      <p className="text-sm text-[color:var(--text-main)]">{formatTimestamp(row.lastGeneratedAt)}</p>
-                      {agencyCreditAccessMode === "USER_ALLOCATION" && canReceiveAllocation ? (
-                        <label className="block space-y-2">
-                          <span className="sr-only">Credit allocation for {row.user.name}</span>
-                          <input
-                            className={theme.input}
-                            max={maxAllocationForUser}
-                            min="0"
-                            onChange={(event) => handleCreditAllocationChange(row.user.id, event.target.value)}
-                            step="100"
-                            type="number"
-                            value={creditAllocationDrafts[row.user.id] ?? "0"}
-                          />
-                        </label>
-                      ) : (
+                      <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Spent</p>
+                        <p className="text-sm font-semibold text-[color:var(--text-strong)]">{formatCreditCount(row.estimatedCredits)}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Outputs</p>
+                        <p className="text-sm text-[color:var(--text-main)]">
+                          {row.outputCount.toLocaleString()} output{row.outputCount === 1 ? "" : "s"} / {row.modelCount.toLocaleString()} model{row.modelCount === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Last use</p>
+                        <p className="text-sm text-[color:var(--text-main)]">{formatTimestamp(row.lastGeneratedAt)}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Credit status</p>
                         <span className="inline-flex w-fit rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
-                          {agencyCreditAccessMode === "AGENCY_POOL" ? "Agency pool" : "Admin pool"}
+                          {agencyCreditAccessMode === "AGENCY_POOL" ? "Shared access" : canReceiveAllocation ? "Cap editable" : "Admin reserve"}
                         </span>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
+
+                {!agencyCreditUsageRows.length ? (
+                  <div className="bg-[color:var(--surface-card)] px-5 py-10 text-center text-sm text-[color:var(--text-muted)]">
+                    No agency credit activity yet.
+                  </div>
+                ) : null}
               </div>
             </div>
 
             {renderNotice("agencyCreditPolicy", "mt-5")}
 
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button className={theme.buttonPrimary} onClick={handleApplyCreditPolicy} type="button">
-                Apply credit policy
-              </button>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-4">
               <p className="text-sm text-[color:var(--text-muted)]">
                 Managers only see and manage this section when an agency admin grants the credit-management permission.
               </p>
+              <button className={theme.buttonPrimary} onClick={handleApplyCreditPolicy} type="button">
+                Apply credit policy
+              </button>
             </div>
           </div>
 
@@ -2597,13 +2827,7 @@ export function AccessControlPanel({
       ) : null}
 
       <section id="access-directory" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-        <div
-          className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7"
-          style={{
-            background:
-              "linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 16%, transparent) 0%, transparent 52%), linear-gradient(180deg, rgba(255,255,255,0.045), transparent 100%)",
-          }}
-        >
+        <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Access control</p>
@@ -3092,7 +3316,7 @@ export function AccessControlPanel({
       {isPlatformAdmin ? (
         <div className="space-y-6">
           <section id="access-platform-notifications" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-            <div className="border-b border-white/8 px-5 py-5 sm:px-6">
+            <div className="border-b border-white/8 px-5 py-5 sm:px-6" style={sectionHeaderGlowStyle}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-white/42">Platform Notifications</p>
@@ -3133,9 +3357,9 @@ export function AccessControlPanel({
             </div>
           </section>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+          <div className="space-y-6">
           <section id="access-agency-settings" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-            <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6">
+            <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6" style={sectionHeaderGlowStyle}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-white/42">Agencies</p>
@@ -3186,8 +3410,8 @@ export function AccessControlPanel({
               </div>
             </div>
 
-            <div className="max-h-[620px] overflow-y-auto">
-              <div className="sticky top-0 z-10 hidden grid-cols-[minmax(180px,1fr)_190px_170px_minmax(190px,0.9fr)_150px] gap-px bg-white/8 text-xs font-semibold uppercase tracking-[0.16em] text-white/42 lg:grid">
+            <div className="max-h-[860px] overflow-y-auto">
+              <div className="sticky top-0 z-10 hidden grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] gap-px bg-white/8 text-xs font-semibold uppercase tracking-[0.16em] text-white/42 lg:grid">
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Agency</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Roster</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Influencers</div>
@@ -3206,7 +3430,7 @@ export function AccessControlPanel({
                   }`;
 
                   return (
-                    <div key={agency.id} className="grid gap-4 bg-[color:var(--surface-card)] px-4 py-4 text-sm transition hover:bg-[color:var(--surface-soft-hover)] lg:grid-cols-[minmax(180px,1fr)_190px_170px_minmax(190px,0.9fr)_150px] lg:items-center">
+                    <div key={agency.id} className="grid gap-4 bg-[color:var(--surface-card)] px-4 py-4 text-sm transition hover:bg-[color:var(--surface-soft-hover)] lg:grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] lg:items-center">
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-white">{agency.name}</p>
                         <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-white/42">{agency.slug}</p>
@@ -3293,16 +3517,16 @@ export function AccessControlPanel({
 
           {canCreateAccounts ? (
             <section id="access-create-accounts" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-              <div className="border-b border-white/8 px-5 py-4 sm:px-6 sm:py-5">
+              <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6" style={sectionHeaderGlowStyle}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.22em] text-white/42">Provisioning</p>
-                    <h3 className="font-display mt-1.5 text-2xl text-white">Create platform accounts</h3>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-white/56">
-                      Add a user, assign the correct role boundary, and issue temporary credentials.
+                    <h3 className="font-display mt-2 text-3xl text-white">Create platform accounts</h3>
+                    <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
+                      Create platform-wide admins or agency-scoped accounts. For user accounts, choose an agency first, then grant influencer access below.
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
+                  <div className="rounded-2xl border border-white/8 bg-black/16 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                     <p className="text-xs uppercase tracking-[0.18em] text-white/42">Directory size</p>
                     <p className="mt-1 text-sm font-semibold text-white">{users.length} existing accounts</p>
                   </div>
@@ -3430,6 +3654,14 @@ export function AccessControlPanel({
                           </dd>
                         </div>
                       ) : null}
+                      {createForm.role === "USER" ? (
+                        <div>
+                          <dt className="text-xs uppercase tracking-[0.18em] text-white/38">Influencer access</dt>
+                          <dd className="mt-1 text-sm text-white/58">
+                            {createAssignmentDraft.length} direct grant{createAssignmentDraft.length === 1 ? "" : "s"}
+                          </dd>
+                        </div>
+                      ) : null}
                     </dl>
 
                     <p className="mt-5 text-sm leading-6 text-white/52">
@@ -3443,17 +3675,22 @@ export function AccessControlPanel({
                     </button>
                   </aside>
                 </div>
+                {renderCreateInfluencerAccessControls("mt-5")}
               </form>
             </section>
           ) : null}
           </div>
 
-          <section id="access-influencer-profiles" className={theme.cardStrong + " glass-panel max-h-[980px] scroll-mt-32 overflow-y-auto p-6 sm:p-7"}>
-            <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencers</p>
-            <h3 className="font-display mt-2 text-2xl text-white">Influencer profile setup</h3>
-            <p className="mt-3 text-sm leading-7 text-white/56">
-              Only the platform administrator can create and manage AI influencer models. Every new profile ships with the full generation toolset by default, while agency ownership is controlled here and updates access immediately for agency admins.
-            </p>
+          <section id="access-influencer-profiles" className={theme.cardStrong + " glass-panel max-h-[980px] scroll-mt-32 overflow-y-auto p-0"}>
+            <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
+              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencers</p>
+              <h3 className="font-display mt-2 text-3xl text-white">Influencer profile setup</h3>
+              <p className="mt-3 max-w-4xl text-sm leading-7 text-white/56">
+                Only the platform administrator can create and manage AI influencer models. Every new profile ships with the full generation toolset by default, while agency ownership is controlled here and updates access immediately for agency admins.
+              </p>
+            </div>
+
+            <div className="p-6 sm:p-7">
 
             <form className="mt-6 overflow-hidden rounded-[28px] border border-white/8 bg-white/[0.03]" onSubmit={handleCreateInfluencer}>
               <div className="grid gap-px bg-white/8 xl:grid-cols-[minmax(0,1.1fr)_360px]">
@@ -3800,19 +4037,14 @@ export function AccessControlPanel({
                 </div>
               )}
             </div>
+            </div>
           </section>
         </div>
       ) : null}
 
       {isAgencyAdmin ? (
         <section id="access-create-accounts" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-          <div
-            className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6"
-            style={{
-              background:
-                "linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 16%, transparent) 0%, transparent 52%), linear-gradient(180deg, rgba(255,255,255,0.045), transparent 100%)",
-            }}
-          >
+          <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6" style={sectionHeaderGlowStyle}>
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-white/42">Provisioning</p>
@@ -3913,6 +4145,7 @@ export function AccessControlPanel({
               </div>
 
               {renderCreateManagerPermissionControls("mt-5")}
+              {renderCreateInfluencerAccessControls("mt-5")}
             </div>
 
             <aside className="bg-[color:var(--surface-card-strong)] p-5 sm:p-6">
@@ -3949,6 +4182,14 @@ export function AccessControlPanel({
                       <dt className="text-xs uppercase tracking-[0.16em] text-white/38">Manager permissions</dt>
                       <dd className="mt-1 text-sm text-white/58">
                         {managerPermissionOptions.filter(({ key }) => createManagerPermissionDraft[key]).length} enabled
+                      </dd>
+                    </div>
+                  ) : null}
+                  {createForm.role === "USER" ? (
+                    <div>
+                      <dt className="text-xs uppercase tracking-[0.16em] text-white/38">Influencer access</dt>
+                      <dd className="mt-1 text-sm text-white/58">
+                        {createAssignmentDraft.length} direct grant{createAssignmentDraft.length === 1 ? "" : "s"}
                       </dd>
                     </div>
                   ) : null}

@@ -272,6 +272,7 @@ input CreateUserInput {
   role: Role!
   agencyId: ID
   managerPermissions: ManagerPermissionsInput
+  influencerModelIds: [ID!]
 }
 
 input UpdateUserOrganizationInput {

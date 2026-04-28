@@ -49,7 +49,6 @@ function accessJumpOptions(currentUser: UserRecord): AccessJumpOption[] {
 
   if (currentUser.role === "PLATFORM_ADMIN") {
     return [
-      { id: "access-platform-sales", label: "Weekly sales" },
       { id: "access-agency-performance", label: "Agency performance" },
       ...options,
       { id: "access-agency-settings", label: "Agency settings" },
