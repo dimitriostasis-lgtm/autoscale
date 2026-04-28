@@ -118,20 +118,22 @@ export function SettingsPanel({
               </select>
             </label>
 
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Resolution</span>
-              <select
-                className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                value={settings.resolution}
-                onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
-              >
-                {allowedResolutionOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {resolutionLabels[option]}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!isVoiceWorkspace ? (
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Resolution</span>
+                <select
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  value={settings.resolution}
+                  onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
+                >
+                  {allowedResolutionOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {resolutionLabels[option]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
             {settings.generationModel === "gpt_2" ? (
               <label className="space-y-2">
@@ -150,20 +152,22 @@ export function SettingsPanel({
               </label>
             ) : null}
 
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">Aspect ratio</span>
-              <select
-                className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                value={normalizeAspectRatioForGenerationModel(settings.generationModel, settings.aspectRatio)}
-                onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
-              >
-                {allowedAspectRatioOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!isVoiceWorkspace ? (
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Aspect ratio</span>
+                <select
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  value={normalizeAspectRatioForGenerationModel(settings.generationModel, settings.aspectRatio)}
+                  onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
+                >
+                  {allowedAspectRatioOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
             {allowedVideoDurationOptions.length ? (
               <div className="space-y-2">
@@ -202,7 +206,7 @@ export function SettingsPanel({
               </div>
             ) : null}
 
-            {!videoGenerationModel ? (
+            {!videoGenerationModel && !isVoiceWorkspace ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Quantity</span>
                 <select

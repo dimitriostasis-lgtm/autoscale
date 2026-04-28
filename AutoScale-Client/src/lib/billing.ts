@@ -1,9 +1,12 @@
 export const agencyBillingPlan = {
   creditBalance: 18400,
-  currentPlan: "2 AI influencers",
+  currentPlan: "Starter",
   currentPrice: "$7,500/month",
   includedCredit: "$1,000/month credits included",
+  influencerAllowance: 2,
   parallelGenerationsPerUser: 8,
+  employeeAllowance: 4,
+  dedicatedGpusPerEmployee: 1,
   renewalDate: "May 1, 2026",
 };
 

@@ -2316,27 +2316,27 @@ export function AccessControlPanel({
             </div>
           </div>
 
-          <div className="border-t border-white/8 bg-black/12 px-6 py-6 sm:px-7 sm:py-7">
+          <div className="border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-6 py-6 sm:px-7 sm:py-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-white/42">Credit Controls</p>
-                <h3 className="font-display mt-2 text-2xl text-white">User spend and allocation</h3>
-                <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
+                <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--text-muted)]">Credit Controls</p>
+                <h3 className="font-display mt-2 text-2xl text-[color:var(--text-strong)]">User spend and allocation</h3>
+                <p className="mt-3 max-w-4xl text-sm leading-7 text-[color:var(--text-muted)]">
                   Estimated spend is based on generated outputs in this agency. Agency admins can keep one shared credit pool or allocate caps to users and managers.
                 </p>
               </div>
               <div className="grid gap-3 text-right sm:grid-cols-3">
-                <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Agency pool</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatCreditCount(agencyBillingPlan.creditBalance)}</p>
+                <div className="rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Agency pool</p>
+                  <p className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">{formatCreditCount(agencyBillingPlan.creditBalance)}</p>
                 </div>
-                <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Spent estimate</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatCreditCount(agencyEstimatedCreditsSpent)}</p>
+                <div className="rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Spent estimate</p>
+                  <p className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">{formatCreditCount(agencyEstimatedCreditsSpent)}</p>
                 </div>
-                <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Unallocated</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatCreditCount(agencyCreditUnallocatedBalance)}</p>
+                <div className="rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Unallocated</p>
+                  <p className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">{formatCreditCount(agencyCreditUnallocatedBalance)}</p>
                 </div>
               </div>
             </div>
@@ -2352,29 +2352,31 @@ export function AccessControlPanel({
                     key={mode}
                     className={cx(
                       "rounded-3xl border px-4 py-4 text-left transition",
-                      selected ? "border-lime-300/35 bg-lime-300/12" : "border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]",
+                      selected
+                        ? "border-[color:var(--border-strong)] bg-[color:var(--accent-soft)]"
+                        : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] hover:bg-[color:var(--surface-soft-hover)]",
                     )}
                     onClick={() => handleCreditAccessModeChange(mode as CreditAccessMode)}
                     type="button"
                   >
-                    <span className="block text-sm font-semibold text-white">{label}</span>
-                    <span className="mt-2 block text-sm leading-6 text-white/56">{description}</span>
+                    <span className="block text-sm font-semibold text-[color:var(--text-strong)]">{label}</span>
+                    <span className="mt-2 block text-sm leading-6 text-[color:var(--text-muted)]">{description}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-[28px] border border-white/8 bg-white/[0.03]">
-              <div className="grid gap-px bg-white/8 lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr]">
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Account</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Available balance</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Spent</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Outputs</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Last use</div>
-                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Credit access</div>
+            <div className="mt-5 overflow-hidden rounded-[28px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)]">
+              <div className="grid gap-px bg-[color:var(--surface-border)] lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr]">
+                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Account</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Available balance</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Spent</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Outputs</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Last use</div>
+                <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit access</div>
               </div>
 
-              <div className="max-h-[420px] divide-y divide-white/8 overflow-y-auto">
+              <div className="max-h-[420px] divide-y divide-[color:var(--surface-border)] overflow-y-auto">
                 {agencyCreditUsageRows.map((row) => {
                   const canReceiveAllocation = row.user.role === "USER" || row.user.role === "AGENCY_MANAGER";
                   const maxAllocationForUser = canReceiveAllocation
@@ -2394,22 +2396,22 @@ export function AccessControlPanel({
                   const hasAgencyPoolAccess = agencyCreditAccessMode === "AGENCY_POOL";
                   const availableCredits = canReceiveAllocation ? allocatedCredits : agencyCreditUnallocatedBalance;
                   return (
-                    <div key={row.user.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr] lg:items-center">
+                    <div key={row.user.id} className="grid gap-3 bg-[color:var(--surface-card)] px-4 py-4 lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr] lg:items-center">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{row.user.name}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/42">{roleLabel(row.user.role)}</p>
+                        <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{row.user.name}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{roleLabel(row.user.role)}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white">{hasAgencyPoolAccess ? "Agency balance" : formatCreditCount(availableCredits)}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-white/38">
+                        <p className="text-sm font-semibold text-[color:var(--text-strong)]">{hasAgencyPoolAccess ? "Agency balance" : formatCreditCount(availableCredits)}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                           {hasAgencyPoolAccess ? "Shared pool" : canReceiveAllocation ? "Allocated balance" : "Admin reserve"}
                         </p>
                       </div>
-                      <p className="text-sm font-semibold text-white">{formatCreditCount(row.estimatedCredits)}</p>
-                      <p className="text-sm text-white/62">
+                      <p className="text-sm font-semibold text-[color:var(--text-strong)]">{formatCreditCount(row.estimatedCredits)}</p>
+                      <p className="text-sm text-[color:var(--text-main)]">
                         {row.outputCount.toLocaleString()} output{row.outputCount === 1 ? "" : "s"} / {row.modelCount.toLocaleString()} model{row.modelCount === 1 ? "" : "s"}
                       </p>
-                      <p className="text-sm text-white/62">{formatTimestamp(row.lastGeneratedAt)}</p>
+                      <p className="text-sm text-[color:var(--text-main)]">{formatTimestamp(row.lastGeneratedAt)}</p>
                       {agencyCreditAccessMode === "USER_ALLOCATION" && canReceiveAllocation ? (
                         <label className="block space-y-2">
                           <span className="sr-only">Credit allocation for {row.user.name}</span>
@@ -2424,7 +2426,7 @@ export function AccessControlPanel({
                           />
                         </label>
                       ) : (
-                        <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/62">
+                        <span className="inline-flex w-fit rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
                           {agencyCreditAccessMode === "AGENCY_POOL" ? "Agency pool" : "Admin pool"}
                         </span>
                       )}
@@ -2440,7 +2442,7 @@ export function AccessControlPanel({
               <button className={theme.buttonPrimary} onClick={handleApplyCreditPolicy} type="button">
                 Apply credit policy
               </button>
-              <p className="text-sm text-white/48">
+              <p className="text-sm text-[color:var(--text-muted)]">
                 Managers only see and manage this section when an agency admin grants the credit-management permission.
               </p>
             </div>

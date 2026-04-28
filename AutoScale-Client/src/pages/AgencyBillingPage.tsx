@@ -71,28 +71,76 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
 
       <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
         <section
-          className="billing-current-plan-card relative overflow-hidden rounded-[26px] border bg-[color:var(--surface-soft)] p-5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_42%,transparent),0_22px_70px_color-mix(in_srgb,var(--accent-main)_12%,transparent)]"
+          className="billing-current-plan-card relative overflow-hidden rounded-[30px] border bg-[color:var(--surface-card-strong)] p-5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_42%,transparent),0_22px_70px_color-mix(in_srgb,var(--accent-main)_12%,transparent)] sm:p-6"
           style={{ borderColor: "color-mix(in srgb, var(--accent-main) 72%, transparent)" }}
         >
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-80" style={planGlowStyle} />
-          <div className="relative z-10">
-            <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Current Plan</p>
-            <p className="mt-4 text-4xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.currentPlan}</p>
-            <p className="mt-3 text-lg font-semibold text-[color:var(--accent-text)]">{agencyBillingPlan.currentPrice}</p>
-            <p className="mt-2 text-sm font-semibold text-[color:var(--text-muted)]">{agencyBillingPlan.includedCredit}</p>
-            <p className="mt-1 text-sm font-semibold text-[color:var(--text-muted)]">
-              {agencyBillingPlan.parallelGenerationsPerUser} parallel generations per user
-            </p>
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-65" style={planGlowStyle} />
+          <div className="relative z-10 flex flex-wrap items-start justify-between gap-3 border-b border-[color:var(--surface-border)] pb-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Current Plan</p>
+              <p className="font-display mt-3 text-4xl text-[color:var(--text-strong)]">{agencyBillingPlan.currentPlan}</p>
+              <p className="mt-3 text-lg font-bold text-[color:var(--accent-text)]">{agencyBillingPlan.currentPrice}</p>
+            </div>
+            <span className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--accent-text)]">
+              Active
+            </span>
           </div>
 
-          <div className="relative z-10 mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="relative z-10 mt-5 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
             <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit balance</p>
-              <p className="mt-2 text-2xl font-semibold text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit balance</p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
             </div>
             <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Renews</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Renews</p>
               <p className="mt-2 text-sm font-semibold text-[color:var(--text-strong)]">{agencyBillingPlan.renewalDate}</p>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Included credits</p>
+              <p className="mt-2 text-sm font-semibold text-[color:var(--text-strong)]">{agencyBillingPlan.includedCredit}</p>
+            </div>
+          </div>
+
+          <div className="relative z-10 mt-5 rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan benefits</p>
+              <span className="text-xs font-semibold text-[color:var(--accent-text)]">Team capacity</span>
+            </div>
+            <div className="mt-4 space-y-3">
+              {[
+                [
+                  `${agencyBillingPlan.influencerAllowance}`,
+                  "AI influencer allowance",
+                  "Included AI influencer capacity on the Starter plan. The allowance renews annually; deletion swaps or influencer replacements require a one-off payment of $2,000 per influencer.",
+                ],
+                [
+                  `${agencyBillingPlan.parallelGenerationsPerUser}`,
+                  "Parallel generations",
+                  "Per employee generation lanes. Image requests can include up to 4 outputs per generation, with higher quantities available for specific models.",
+                ],
+                [`${agencyBillingPlan.employeeAllowance}`, "Employee allowance", "Included seats for your agency team."],
+                [`${agencyBillingPlan.dedicatedGpusPerEmployee}`, "Dedicated GPU", "Reserved GPU capacity per employee."],
+                ["Included", "Auto Plug In", "Included with the Starter plan."],
+                ["Included", "Auto Features", "Automation features are included with your plan."],
+              ].map(([value, label, detail]) => {
+                const valueIsNumber = /^\d+$/.test(value);
+                return (
+                <div key={label} className="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-3 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-3">
+                  <div
+                    className={cx(
+                      "flex h-12 items-center justify-center rounded-xl bg-[color:var(--accent-soft)] px-2 text-center font-bold text-[color:var(--accent-text)]",
+                      valueIsNumber ? "text-2xl tracking-tight" : "text-[10px] uppercase tracking-[0.08em]",
+                    )}
+                  >
+                    {value}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[color:var(--text-strong)]">{label}</p>
+                    <p className="mt-1 text-xs leading-5 text-[color:var(--text-muted)]">{detail}</p>
+                  </div>
+                </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -300,6 +348,10 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                 <label className="block space-y-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">CVC</span>
                   <input className={theme.input} readOnly value="123" />
+                </label>
+                <label className="block space-y-2 md:col-span-3">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Billing address</span>
+                  <input className={theme.input} readOnly value="123 Market Street, San Francisco, CA 94103, United States" />
                 </label>
               </div>
             ) : null}
