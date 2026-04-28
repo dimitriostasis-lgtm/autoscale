@@ -43,6 +43,7 @@ function presentRow(row: WorkspaceRow, store: StoreData) {
   return {
     ...row,
     reference: presentReference(row.reference, store),
+    audioReference: presentReference(row.audioReference ?? null, store),
     outputAssets: row.outputAssetIds
       .map((assetId) => store.assets.find((asset) => asset.id === assetId))
       .filter((asset): asset is GeneratedAsset => Boolean(asset))

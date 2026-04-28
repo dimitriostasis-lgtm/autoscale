@@ -80,10 +80,12 @@ export interface ReferenceSelection {
 export interface BoardSettings {
   generationModel: string;
   resolution: string;
+  poseMultiplierResolution: string;
   videoDurationSeconds: number | null;
   quality: string;
   aspectRatio: string;
   quantity: number;
+  sdxlWorkspaceMode: "DEFAULT" | "POSE_MULTIPLIER";
   poseMultiplierEnabled: boolean;
   poseMultiplier: number;
   poseMultiplierGenerationModel: string;
@@ -105,6 +107,7 @@ export interface WorkspaceRow {
   posePromptTemplates: string[] | null;
   faceSwap: boolean;
   reference: ReferenceSelection | null;
+  audioReference: ReferenceSelection | null;
   status: GenerationStatus;
   errorMessage: string | null;
   outputAssets: GeneratedAsset[];

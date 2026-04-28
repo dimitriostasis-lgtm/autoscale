@@ -21,10 +21,12 @@ export const BOARD_DETAIL_QUERY = gql`
       settings {
         generationModel
         resolution
+        poseMultiplierResolution
         videoDurationSeconds
         quality
         aspectRatio
         quantity
+        sdxlWorkspaceMode
         poseMultiplierEnabled
         poseMultiplier
         poseMultiplierGenerationModel
@@ -66,6 +68,25 @@ export const BOARD_DETAIL_QUERY = gql`
         errorMessage
         lastRunAt
         reference {
+          id
+          slotIndex
+          label
+          sourceType
+          assetId
+          assetUrl
+          uploadPath
+          uploadUrl
+          asset {
+            id
+            url
+            fileName
+            promptSnapshot
+            createdAt
+            isSyntheticFailure
+            failureLabel
+          }
+        }
+        audioReference {
           id
           slotIndex
           label
@@ -201,10 +222,12 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
       settings {
         generationModel
         resolution
+        poseMultiplierResolution
         videoDurationSeconds
         quality
         aspectRatio
         quantity
+        sdxlWorkspaceMode
         poseMultiplierEnabled
         poseMultiplier
         poseMultiplierGenerationModel
@@ -246,6 +269,25 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         errorMessage
         lastRunAt
         reference {
+          id
+          slotIndex
+          label
+          sourceType
+          assetId
+          assetUrl
+          uploadPath
+          uploadUrl
+          asset {
+            id
+            url
+            fileName
+            promptSnapshot
+            createdAt
+            isSyntheticFailure
+            failureLabel
+          }
+        }
+        audioReference {
           id
           slotIndex
           label

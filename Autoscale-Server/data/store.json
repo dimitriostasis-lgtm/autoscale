@@ -445,7 +445,9 @@
           "Keep the same framing and styling while varying the body pose for each multiplied shot."
         ],
         "poseMultiplierGenerationModel": "kling_o1",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -575,7 +577,9 @@
           "Keep the same framing and styling while varying the body pose for each multiplied shot."
         ],
         "poseMultiplierGenerationModel": "sd_4_5",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -663,7 +667,9 @@
           "Keep the same framing and styling while varying the body pose for each multiplied shot."
         ],
         "poseMultiplierGenerationModel": "sd_4_5",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -793,7 +799,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -923,7 +931,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -1053,7 +1063,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -1183,7 +1195,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -1313,7 +1327,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -1443,7 +1459,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -1573,7 +1591,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -1640,14 +1660,17 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_nsfw__:Table 1",
       "createdAt": "2026-04-25T20:44:04.759Z",
-      "updatedAt": "2026-04-27T12:48:33.867Z",
+      "updatedAt": "2026-04-28T16:08:06.082Z",
       "settings": {
-        "generationModel": "sdxl",
+        "generationModel": "sd_4_5",
         "resolution": "2k",
+        "poseMultiplierResolution": "2k",
+        "videoDurationSeconds": null,
         "quality": "medium",
-        "aspectRatio": "3:4",
+        "aspectRatio": "1:1",
         "quantity": 1,
-        "poseMultiplierEnabled": false,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierEnabled": true,
         "poseMultiplier": 4,
         "poseMultiplierGenerationModel": "nb_pro",
         "faceSwap": false,
@@ -1702,8 +1725,7 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ],
-        "videoDurationSeconds": null
+        ]
       },
       "rows": [
         {
@@ -1949,7 +1971,9 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ]
+        ],
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -2079,7 +2103,9 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ]
+        ],
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -2146,13 +2172,13 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_video_sfw__:Table 1",
       "createdAt": "2026-04-26T15:09:09.064Z",
-      "updatedAt": "2026-04-27T13:38:41.784Z",
+      "updatedAt": "2026-04-28T14:44:41.538Z",
       "settings": {
         "generationModel": "kling_3_0",
         "resolution": "720p",
-        "videoDurationSeconds": 5,
+        "videoDurationSeconds": 3,
         "quality": "medium",
-        "aspectRatio": "3:4",
+        "aspectRatio": "auto",
         "quantity": 1,
         "poseMultiplierEnabled": false,
         "poseMultiplier": 1,
@@ -2209,7 +2235,9 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ]
+        ],
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -2276,13 +2304,16 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_voice_sfw__:Table 1",
       "createdAt": "2026-04-26T15:09:11.241Z",
-      "updatedAt": "2026-04-27T13:51:51.183Z",
+      "updatedAt": "2026-04-28T16:00:53.816Z",
       "settings": {
         "generationModel": "nb_pro",
         "resolution": "2k",
+        "poseMultiplierResolution": "2k",
+        "videoDurationSeconds": null,
         "quality": "medium",
         "aspectRatio": "3:4",
         "quantity": 4,
+        "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierEnabled": false,
         "poseMultiplier": 1,
         "poseMultiplierGenerationModel": "nb_pro",
@@ -2338,8 +2369,7 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ],
-        "videoDurationSeconds": null
+        ]
       },
       "rows": [
         {
@@ -2351,6 +2381,36 @@
           "posePromptTemplates": null,
           "faceSwap": false,
           "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "6b72517e-0083-4e21-91ae-3dae0e693f50",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "5565fc59-bc4c-407a-8527-9cfb82ff0ed3",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 1,
+          "posePromptTemplates": null,
+          "faceSwap": false,
+          "reference": null,
+          "audioReference": null,
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
@@ -2427,7 +2487,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "nb_pro",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -2557,7 +2619,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "kling_o1",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -2687,7 +2751,9 @@
           }
         ],
         "poseMultiplierGenerationModel": "kling_o1",
-        "videoDurationSeconds": null
+        "videoDurationSeconds": null,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
       },
       "rows": [
         {
@@ -2754,17 +2820,20 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "Table 4",
       "createdAt": "2026-04-26T18:43:41.427Z",
-      "updatedAt": "2026-04-26T23:31:33.452Z",
+      "updatedAt": "2026-04-28T16:10:52.332Z",
       "settings": {
-        "generationModel": "sdxl",
+        "generationModel": "gpt_2",
         "resolution": "2k",
+        "poseMultiplierResolution": "4k",
+        "videoDurationSeconds": null,
         "quality": "medium",
-        "aspectRatio": "3:4",
+        "aspectRatio": "1:1",
         "quantity": 1,
-        "poseMultiplierEnabled": false,
-        "poseMultiplier": 1,
-        "poseMultiplierGenerationModel": "gpt_2",
-        "faceSwap": false,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierEnabled": true,
+        "poseMultiplier": 4,
+        "poseMultiplierGenerationModel": "nb_pro",
+        "faceSwap": true,
         "autoPromptGen": false,
         "autoPromptImage": false,
         "posePromptMode": "AUTO",
@@ -2816,12 +2885,143 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ],
-        "videoDurationSeconds": null
+        ]
       },
       "rows": [
         {
           "id": "153ccb00-f8a2-4af0-8c5a-55ea4d866f40",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 4,
+          "posePromptTemplates": null,
+          "faceSwap": true,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "0c06b9f8-0e35-49f1-a054-05a3369d5a4e",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 4,
+          "posePromptTemplates": null,
+          "faceSwap": true,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "700df5ce-4db9-4dea-8083-4e33ab96654a",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 4,
+          "posePromptTemplates": null,
+          "faceSwap": true,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "ec7009c9-79f3-446b-adc4-49d21769f14e",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 4,
+          "posePromptTemplates": null,
+          "faceSwap": true,
+          "reference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "242f818b-c05d-4933-87fb-aeea31045106",
+      "influencerModelId": "e7c5da9f-b380-479b-9303-b49f29f77d56",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "__autoscale_workspace_voice_sfw__:Table 1",
+      "createdAt": "2026-04-27T20:13:48.217Z",
+      "updatedAt": "2026-04-27T20:13:53.459Z",
+      "settings": {
+        "generationModel": "kling_o1",
+        "resolution": "1k",
+        "videoDurationSeconds": null,
+        "quality": "medium",
+        "aspectRatio": "9:16",
+        "quantity": 4,
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "poseMultiplierGenerationModel": "kling_o1",
+        "faceSwap": false,
+        "autoPromptGen": true,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "6b1c0859-390a-4613-8b88-39f0288ccaff",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "1014ec09-e1d3-4da2-b1e8-47ee4c146a8a",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "c8b7cf2a-9498-4099-a379-da3876ece71c",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "78961c99-e846-4ff8-824c-ab3a0b2b1af2",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ],
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierResolution": "2k"
+      },
+      "rows": [
+        {
+          "id": "e748acf0-6bc5-43c9-8da5-f283b537e260",
           "orderIndex": 0,
           "label": "1",
           "prompt": "",
@@ -2835,7 +3035,7 @@
           "lastRunAt": null
         },
         {
-          "id": "0c06b9f8-0e35-49f1-a054-05a3369d5a4e",
+          "id": "124a6dc4-0ad5-495a-b171-7efedeb7ed83",
           "orderIndex": 1,
           "label": "2",
           "prompt": "",
@@ -2849,7 +3049,7 @@
           "lastRunAt": null
         },
         {
-          "id": "700df5ce-4db9-4dea-8083-4e33ab96654a",
+          "id": "54fef180-21db-4288-a882-89b1d28c9d83",
           "orderIndex": 2,
           "label": "3",
           "prompt": "",
@@ -2863,7 +3063,7 @@
           "lastRunAt": null
         },
         {
-          "id": "ec7009c9-79f3-446b-adc4-49d21769f14e",
+          "id": "a98fe8ce-5845-4592-a97b-37e53c1fc3cd",
           "orderIndex": 3,
           "label": "4",
           "prompt": "",

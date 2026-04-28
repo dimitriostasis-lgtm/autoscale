@@ -88,10 +88,12 @@ type ReferenceSelection {
 type BoardSettings {
   generationModel: String!
   resolution: String!
+  poseMultiplierResolution: String!
   videoDurationSeconds: Int
   quality: String!
   aspectRatio: String!
   quantity: Int!
+  sdxlWorkspaceMode: String!
   poseMultiplierEnabled: Boolean!
   poseMultiplier: Float!
   poseMultiplierGenerationModel: String!
@@ -134,6 +136,7 @@ type WorkspaceRow {
   posePromptTemplates: [String!]
   faceSwap: Boolean!
   reference: ReferenceSelection
+  audioReference: ReferenceSelection
   status: GenerationStatus!
   errorMessage: String
   outputAssets: [GeneratedAsset!]!
@@ -209,17 +212,21 @@ input UpdateBoardRowInput {
   posePromptTemplates: [String!]
   faceSwap: Boolean
   reference: ReferenceSelectionInput
+  audioReference: ReferenceSelectionInput
   clearReference: Boolean
+  clearAudioReference: Boolean
   clearPosePromptTemplates: Boolean
 }
 
 input BoardSettingsInput {
   generationModel: String!
   resolution: String!
+  poseMultiplierResolution: String!
   videoDurationSeconds: Int
   quality: String!
   aspectRatio: String!
   quantity: Int!
+  sdxlWorkspaceMode: String!
   poseMultiplierEnabled: Boolean!
   poseMultiplier: Float!
   poseMultiplierGenerationModel: String!

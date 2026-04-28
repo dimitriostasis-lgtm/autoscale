@@ -13,6 +13,7 @@ import {
   getResolutionOptionsForGenerationModel,
   imageGenerationModelOptions,
   normalizeAspectRatioForGenerationModel,
+  normalizePoseMultiplierResolution,
   normalizeQualityForGenerationModel,
   normalizePoseMultiplierGenerationModel,
   normalizeResolutionForGenerationModel,
@@ -44,17 +45,20 @@ function parseInfluencerCapacity(value: string): number {
 
 function buildInitialSettings(): BoardSettings {
   const generationModel = imageGenerationModelOptions[0];
+  const poseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(generationModel);
 
   return {
     generationModel,
     resolution: normalizeResolutionForGenerationModel(generationModel, "2k"),
+    poseMultiplierResolution: normalizePoseMultiplierResolution("2k", poseMultiplierGenerationModel),
     videoDurationSeconds: null,
     quality: normalizeQualityForGenerationModel(generationModel, "medium"),
     aspectRatio: "auto",
     quantity: 4,
+    sdxlWorkspaceMode: "DEFAULT",
     poseMultiplierEnabled: false,
     poseMultiplier: 1,
-    poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(generationModel),
+    poseMultiplierGenerationModel,
     faceSwap: false,
     autoPromptGen: false,
     autoPromptImage: false,
@@ -144,6 +148,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel, onCreated }
       quality: normalizeQualityForGenerationModel(nextGenerationModel, current.quality),
       aspectRatio: normalizeAspectRatioForGenerationModel(nextGenerationModel, current.aspectRatio),
       quantity: nextQuantity,
+      sdxlWorkspaceMode: imageGenerationModelOptions.includes(nextGenerationModel as (typeof imageGenerationModelOptions)[number]) ? current.sdxlWorkspaceMode : "DEFAULT",
       poseMultiplierEnabled: nextQuantity === 1 ? current.poseMultiplierEnabled : false,
       poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(current.poseMultiplierGenerationModel, nextGenerationModel),
     }));

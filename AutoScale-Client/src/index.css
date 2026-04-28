@@ -384,27 +384,27 @@ body {
 
 :root[data-theme="light"] .generation-workspace [class*="border-[#4e6b22]"],
 :root[data-theme="light"] .generation-workspace [class*="border-[#5f8628]"] {
-  border-color: rgba(132, 164, 31, 0.34) !important;
+  border-color: color-mix(in srgb, var(--accent-text) 46%, transparent) !important;
 }
 
 :root[data-theme="light"] .generation-workspace [class*="bg-[#2f4513]"],
 :root[data-theme="light"] .generation-workspace [class*="bg-[#314513]"] {
-  background-color: rgba(132, 164, 31, 0.14) !important;
+  background-color: color-mix(in srgb, var(--accent-main) 22%, white 78%) !important;
 }
 
 :root[data-theme="light"] .generation-workspace [class*="bg-[#4d7311]"] {
-  background-color: rgba(132, 164, 31, 0.18) !important;
+  background-color: color-mix(in srgb, var(--accent-main) 48%, white 52%) !important;
 }
 
 :root[data-theme="light"] .generation-workspace [class*="hover:bg-[#395119]"]:hover,
 :root[data-theme="light"] .generation-workspace [class*="hover:bg-[#598515]"]:hover {
-  background-color: rgba(132, 164, 31, 0.24) !important;
+  background-color: color-mix(in srgb, var(--accent-main) 58%, white 42%) !important;
 }
 
 :root[data-theme="light"] .generation-workspace [class*="text-[#dcf6a0]"],
 :root[data-theme="light"] .generation-workspace [class*="text-[#f4ffd8]"],
 :root[data-theme="light"] .generation-workspace [class*="text-[#b4d37a]"] {
-  color: #4f6910 !important;
+  color: var(--accent-text) !important;
 }
 
 :root[data-theme="light"] .generation-workspace [class*="placeholder:text-[#b4d37a]"]::placeholder {
@@ -416,19 +416,19 @@ body {
 }
 
 :root[data-theme="light"] .generation-workspace .workspace-row-prompt-shell--auto {
-  background: linear-gradient(180deg, rgba(132, 164, 31, 0.1) 0%, rgba(132, 164, 31, 0.06) 100%) !important;
-  border-color: rgba(132, 164, 31, 0.22) !important;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-main) 24%, white 76%) 0%, color-mix(in srgb, var(--accent-main) 14%, white 86%) 100%) !important;
+  border-color: color-mix(in srgb, var(--accent-text) 38%, transparent) !important;
 }
 
 :root[data-theme="light"] .generation-workspace .workspace-row-image-shell--auto {
-  background: linear-gradient(180deg, rgba(132, 164, 31, 0.1) 0%, rgba(132, 164, 31, 0.06) 100%) !important;
-  border-color: rgba(132, 164, 31, 0.22) !important;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-main) 24%, white 76%) 0%, color-mix(in srgb, var(--accent-main) 14%, white 86%) 100%) !important;
+  border-color: color-mix(in srgb, var(--accent-text) 38%, transparent) !important;
 }
 
 :root[data-theme="light"] .generation-workspace .workspace-row-image-preview--auto {
-  background-color: rgba(255, 252, 236, 0.92) !important;
+  background-color: color-mix(in srgb, var(--accent-main) 16%, white 84%) !important;
   background-image: none !important;
-  border-color: rgba(132, 164, 31, 0.24) !important;
+  border-color: color-mix(in srgb, var(--accent-text) 34%, transparent) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
 }
 

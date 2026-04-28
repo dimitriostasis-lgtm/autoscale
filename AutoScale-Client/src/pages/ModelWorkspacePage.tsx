@@ -29,8 +29,11 @@ import {
   getResolutionOptionsForGenerationModel,
   getVideoDurationOptionsForGenerationModel,
   imageGenerationModelOptions,
+  isPoseMultiplierWorkspace,
+  isSdxlPoseMultiplierWorkspace,
   isVideoGenerationModel,
-  normalizeAspectRatioForGenerationModel,
+  normalizeBoardAspectRatio,
+  normalizePoseMultiplierResolution,
   normalizeQualityForGenerationModel,
   normalizePoseMultiplierGenerationModel,
   normalizeResolutionForGenerationModel,
@@ -136,23 +139,34 @@ function resolveWorkspaceGenerationModels(mode: WorkspaceMode, modelGenerationMo
 }
 
 function normalizeSettingsForGenerationModel(settings: BoardSettings, generationModel: string): BoardSettings {
-  const quantity = Math.min(settings.quantity, getMaxQuantityForGenerationModel(generationModel));
+  const nextSdxlWorkspaceMode = (imageGenerationModelOptions as readonly string[]).includes(generationModel) ? settings.sdxlWorkspaceMode ?? "DEFAULT" : "DEFAULT";
+  const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(generationModel, nextSdxlWorkspaceMode);
+  const isSdxlPoseMultiplierLayout = isSdxlPoseMultiplierWorkspace(generationModel, nextSdxlWorkspaceMode);
+  const quantity = isPoseMultiplierWorkspaceLayout ? 1 : Math.min(settings.quantity, getMaxQuantityForGenerationModel(generationModel));
+  const promptUnsupported = generationModel === "kling_motion_control";
+  const poseMultiplierGenerationModel = isSdxlPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, generationModel);
 
   return {
     ...settings,
     generationModel,
     resolution: normalizeResolutionForGenerationModel(generationModel, settings.resolution),
+    poseMultiplierResolution: normalizePoseMultiplierResolution(settings.poseMultiplierResolution ?? settings.resolution, poseMultiplierGenerationModel, isSdxlPoseMultiplierLayout),
     videoDurationSeconds: normalizeVideoDurationForGenerationModel(generationModel, settings.videoDurationSeconds),
     quality: normalizeQualityForGenerationModel(generationModel, settings.quality),
-    aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, settings.aspectRatio),
+    aspectRatio: normalizeBoardAspectRatio(generationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
     quantity,
-    poseMultiplierEnabled: quantity === 1 ? settings.poseMultiplierEnabled : false,
-    poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, generationModel),
+    sdxlWorkspaceMode: nextSdxlWorkspaceMode,
+    autoPromptGen: promptUnsupported ? false : settings.autoPromptGen,
+    autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : settings.autoPromptImage,
+    poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : quantity === 1 ? settings.poseMultiplierEnabled : false,
+    poseMultiplierGenerationModel,
   };
 }
 
 type PickerState =
   | { kind: "row"; row: WorkspaceRow }
+  | { kind: "row-video"; row: WorkspaceRow }
+  | { kind: "row-audio"; row: WorkspaceRow }
   | { kind: "global"; slotIndex: number; source?: "tray" };
 
 const maxPlaygroundReferenceCount = 10;
@@ -500,8 +514,10 @@ function PlaygroundSurface({
   const settings = board.settings;
   const generationModel = settings.generationModel;
   const videoGenerationModel = isVideoGenerationModel(generationModel);
+  const aspectRatioLocked = generationModel === "kling_motion_control" || isPoseMultiplierWorkspace(generationModel, settings.sdxlWorkspaceMode);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(generationModel);
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(generationModel);
+  const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
   const allowedVideoDurationOptions = getVideoDurationOptionsForGenerationModel(generationModel);
   const maxQuantity = getMaxQuantityForGenerationModel(generationModel);
   const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
@@ -533,6 +549,10 @@ function PlaygroundSurface({
   function updateGenerationModel(nextGenerationModel: string) {
     const nextVideoGenerationModel = isVideoGenerationModel(nextGenerationModel);
     const nextQuantity = Math.min(settings.quantity, getMaxQuantityForGenerationModel(nextGenerationModel));
+    const promptUnsupported = nextGenerationModel === "kling_motion_control";
+    const nextSdxlWorkspaceMode = (imageGenerationModelOptions as readonly string[]).includes(nextGenerationModel) ? settings.sdxlWorkspaceMode ?? "DEFAULT" : "DEFAULT";
+    const nextPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode);
+    const nextSdxlPoseMultiplierLayout = isSdxlPoseMultiplierWorkspace(nextGenerationModel, nextSdxlWorkspaceMode);
 
     onSettingsChange({
       ...settings,
@@ -540,10 +560,12 @@ function PlaygroundSurface({
       resolution: normalizeResolutionForGenerationModel(nextGenerationModel, settings.resolution),
       videoDurationSeconds: normalizeVideoDurationForGenerationModel(nextGenerationModel, settings.videoDurationSeconds),
       quality: normalizeQualityForGenerationModel(nextGenerationModel, settings.quality),
-      aspectRatio: normalizeAspectRatioForGenerationModel(nextGenerationModel, settings.aspectRatio),
-      quantity: nextQuantity,
-      poseMultiplierEnabled: nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
-      poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
+      aspectRatio: normalizeBoardAspectRatio(nextGenerationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
+      quantity: nextPoseMultiplierWorkspaceLayout ? 1 : nextQuantity,
+      sdxlWorkspaceMode: nextSdxlWorkspaceMode,
+      autoPromptGen: promptUnsupported ? false : settings.autoPromptGen,
+      poseMultiplierEnabled: nextPoseMultiplierWorkspaceLayout ? true : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
+      poseMultiplierGenerationModel: nextSdxlPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
     });
   }
 
@@ -812,12 +834,12 @@ function PlaygroundSurface({
 
               <select
                 aria-label="Aspect ratio"
-                className={controlClass + " w-24"}
-                disabled={!board}
+                className={controlClass + " w-24 disabled:cursor-not-allowed disabled:opacity-55"}
+                disabled={!board || aspectRatioLocked}
                 onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
-                value={normalizeAspectRatioForGenerationModel(generationModel, settings.aspectRatio)}
+                value={normalizeBoardAspectRatio(generationModel, settings.aspectRatio, settings.sdxlWorkspaceMode)}
               >
-                {allowedAspectRatioOptions.map((option) => (
+                {displayedAspectRatioOptions.map((option) => (
                   <option key={option} value={option}>
                     {option.toUpperCase()}
                   </option>
@@ -1001,7 +1023,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     }
   }, [createBoardMutation, mode, modeBoards, model, modelLoading, onSelectBoard, refetchModel, requestedBoardBelongsToMode]);
 
-  const { data: boardData, loading: boardLoading, refetch: refetchBoard } = useQuery<{ workspaceBoard: WorkspaceBoard | null }>(
+  const { data: boardData, loading: boardLoading, error: boardError, refetch: refetchBoard } = useQuery<{ workspaceBoard: WorkspaceBoard | null }>(
     BOARD_DETAIL_QUERY,
     {
       skip: !activeBoardId,
@@ -1011,6 +1033,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   );
 
   const board = boardData?.workspaceBoard ?? null;
+  const boardErrorMessage = boardError?.message || null;
   const positionedBoards = buildPositionNamedBoards(modeBoards);
   const activeBoardLabel = positionedBoards.find((entry) => entry.id === activeBoardId)?.name ?? board?.name ?? "Workspace";
   const activeGenerationModelOptions = useMemo(
@@ -1111,7 +1134,9 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     posePromptTemplates?: string[] | null;
     faceSwap?: boolean;
     reference?: ReferenceSelection;
+    audioReference?: ReferenceSelection;
     clearReference?: boolean;
+    clearAudioReference?: boolean;
     clearPosePromptTemplates?: boolean;
   }) {
     if (!board) {
@@ -1128,7 +1153,9 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
           posePromptTemplates: input.posePromptTemplates,
           faceSwap: input.faceSwap,
           reference: input.reference,
+          audioReference: input.audioReference,
           clearReference: input.clearReference,
+          clearAudioReference: input.clearAudioReference,
           clearPosePromptTemplates: input.clearPosePromptTemplates,
         },
       },
@@ -1140,6 +1167,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     if (!board) {
       return;
     }
+    const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(nextSettings.generationModel, nextSettings.sdxlWorkspaceMode);
 
     await updateSettingsMutation({
       variables: {
@@ -1147,16 +1175,18 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         input: {
           generationModel: nextSettings.generationModel,
           resolution: nextSettings.resolution,
+          poseMultiplierResolution: nextSettings.poseMultiplierResolution,
           videoDurationSeconds: nextSettings.videoDurationSeconds,
           quality: nextSettings.quality,
           aspectRatio: nextSettings.aspectRatio,
           quantity: nextSettings.quantity,
+          sdxlWorkspaceMode: nextSettings.sdxlWorkspaceMode,
           poseMultiplierEnabled: nextSettings.poseMultiplierEnabled,
           poseMultiplier: nextSettings.poseMultiplier,
           poseMultiplierGenerationModel: nextSettings.poseMultiplierGenerationModel,
           faceSwap: nextSettings.faceSwap,
           autoPromptGen: nextSettings.autoPromptGen,
-          autoPromptImage: nextSettings.autoPromptImage,
+          autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : nextSettings.autoPromptImage,
           posePromptMode: nextSettings.posePromptMode,
           posePromptTemplate: nextSettings.posePromptTemplate,
           posePromptTemplates: nextSettings.posePromptTemplates,
@@ -1188,10 +1218,13 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     const alreadyNormalized =
       normalizedSettings.generationModel === board.settings.generationModel &&
       normalizedSettings.resolution === board.settings.resolution &&
+      normalizedSettings.poseMultiplierResolution === board.settings.poseMultiplierResolution &&
       normalizedSettings.videoDurationSeconds === board.settings.videoDurationSeconds &&
       normalizedSettings.quality === board.settings.quality &&
       normalizedSettings.aspectRatio === board.settings.aspectRatio &&
       normalizedSettings.quantity === board.settings.quantity &&
+      normalizedSettings.sdxlWorkspaceMode === board.settings.sdxlWorkspaceMode &&
+      normalizedSettings.autoPromptImage === board.settings.autoPromptImage &&
       normalizedSettings.poseMultiplierEnabled === board.settings.poseMultiplierEnabled &&
       normalizedSettings.poseMultiplierGenerationModel === board.settings.poseMultiplierGenerationModel;
 
@@ -1207,6 +1240,14 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     await handleCommitRow({
       rowId: row.id,
       reference: buildUploadReference(0, file.name, upload),
+    });
+  }
+
+  async function handleUploadRowAudioReference(row: WorkspaceRow, file: File) {
+    const upload = await uploadReferenceFile(file);
+    await handleCommitRow({
+      rowId: row.id,
+      audioReference: buildUploadReference(0, file.name, upload),
     });
   }
 
@@ -1255,10 +1296,15 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
       return;
     }
 
-    if (pickerState.kind === "row") {
+    if (pickerState.kind === "row" || pickerState.kind === "row-video") {
       await handleCommitRow({
         rowId: pickerState.row.id,
         reference: buildAssetReference(0, asset),
+      });
+    } else if (pickerState.kind === "row-audio") {
+      await handleCommitRow({
+        rowId: pickerState.row.id,
+        audioReference: buildAssetReference(0, asset),
       });
     } else {
       const reference = buildAssetReference(pickerState.slotIndex, asset);
@@ -1376,6 +1422,8 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                   board={board}
                   referenceColumnLabel={`${activeModeMeta?.kind ?? "image"} reference`}
                   referenceColumnLocked={(activeModeMeta?.kind ?? "image") === "voice"}
+                  referenceMediaKind={(activeModeMeta?.kind ?? "image") === "video" ? "video" : "image"}
+                  showAudioReferenceColumn={(activeModeMeta?.kind ?? "image") === "voice"}
                   showPoseAndFaceSwapColumns={(activeModeMeta?.kind ?? "image") === "image"}
                   onAddRow={async () => {
                     await addRowMutation({ variables: { boardId: board.id } });
@@ -1386,12 +1434,25 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                     await deleteRowMutation({ variables: { boardId: board.id, rowId } });
                     await refetchBoard();
                   }}
-                  onPickReference={(row) => setPickerState({ kind: "row", row })}
+                  onPickReference={(row) =>
+                    setPickerState((activeModeMeta?.kind ?? "image") === "video" ? { kind: "row-video", row } : { kind: "row", row })
+                  }
+                  onPickAudioReference={(row) => setPickerState({ kind: "row-audio", row })}
+                  onUploadAudioReference={(row, file) => handleUploadRowAudioReference(row, file)}
                   onUploadReference={(row, file) => handleUploadRowReference(row, file)}
                 />
               </div>
             </>
-          ) : null}
+          ) : (
+            <div className="xl:col-span-2 flex min-h-[50vh] items-center justify-center bg-[#171717] p-6">
+              <div className="max-w-xl rounded-2xl border border-rose-300/15 bg-rose-500/8 p-5 text-sm leading-6 text-rose-100 shadow-[0_24px_70px_rgba(0,0,0,0.24)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-100/70">Workspace unavailable</p>
+                <p className="mt-3 text-white/74">
+                  {boardErrorMessage || "The selected workspace board could not be loaded."}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
         )}
       </section>
@@ -1402,6 +1463,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         onSelect={(asset) => void handleSelectAsset(asset)}
         open={Boolean(pickerState)}
         slug={slug}
+        variant={pickerState?.kind === "row-audio" ? "audio" : pickerState?.kind === "row-video" ? "video" : "image"}
       />
     </div>
   );

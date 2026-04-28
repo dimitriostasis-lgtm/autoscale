@@ -48,8 +48,9 @@ export const imageGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1
 export const videoGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"] as const;
 export const videoNsfwGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "grok_imagine"] as const;
 export const generationModelOptions = [...imageGenerationModelOptions, ...videoGenerationModelOptions] as const;
-export const poseMultiplierGenerationModelOptions = imageGenerationModelOptions.filter((option) => option !== "sdxl");
+export const poseMultiplierGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2"] as const;
 export const resolutionOptions = ["1k", "2k", "4k"] as const;
+export const poseMultiplierResolutionOptions = ["2k", "4k"] as const;
 export const videoResolutionOptions = ["480p", "720p", "1080p"] as const;
 export const workerResolutionOptions = [...videoResolutionOptions, ...resolutionOptions] as const;
 export const qualityOptions = ["low", "medium", "high"] as const;
@@ -64,6 +65,14 @@ export function getAspectRatioOptionsForGenerationModel(generationModel: string)
   return generationModel === "sdxl" ? aspectRatioOptions.filter((option) => option !== "auto") : aspectRatioOptions;
 }
 
+export function isSdxlPoseMultiplierWorkspace(generationModel: string, sdxlWorkspaceMode?: string | null): boolean {
+  return generationModel === "sdxl" && sdxlWorkspaceMode === "POSE_MULTIPLIER";
+}
+
+export function isPoseMultiplierWorkspace(generationModel: string, sdxlWorkspaceMode?: string | null): boolean {
+  return (imageGenerationModelOptions as readonly string[]).includes(generationModel) && sdxlWorkspaceMode === "POSE_MULTIPLIER";
+}
+
 export function normalizeAspectRatioForGenerationModel(generationModel: string, aspectRatio: string): (typeof aspectRatioOptions)[number] {
   const allowedAspectRatios = getAspectRatioOptionsForGenerationModel(generationModel);
 
@@ -72,6 +81,18 @@ export function normalizeAspectRatioForGenerationModel(generationModel: string, 
   }
 
   return allowedAspectRatios[0] || "1:1";
+}
+
+export function normalizeBoardAspectRatio(
+  generationModel: string,
+  aspectRatio: string,
+  sdxlWorkspaceMode?: string | null,
+): (typeof aspectRatioOptions)[number] {
+  if (generationModel === "kling_motion_control" || isPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode)) {
+    return "auto";
+  }
+
+  return normalizeAspectRatioForGenerationModel(generationModel, aspectRatio);
 }
 
 export function getMaxQuantityForGenerationModel(generationModel: string): number {
@@ -114,8 +135,41 @@ export function getResolutionOptionsForGenerationModel(generationModel: string):
   return resolutionOptions;
 }
 
+export function getPoseMultiplierResolutionOptionsForGenerationModel(
+  generationModel: string,
+  isSdxlPoseMultiplierLayout = false,
+): readonly (typeof workerResolutionOptions)[number][] {
+  if (isSdxlPoseMultiplierLayout) {
+    return poseMultiplierResolutionOptions;
+  }
+
+  return getResolutionOptionsForGenerationModel(generationModel);
+}
+
 export function normalizeResolutionForGenerationModel(generationModel: string, resolution: string): (typeof workerResolutionOptions)[number] {
   const allowedResolutions = getResolutionOptionsForGenerationModel(generationModel);
+
+  if (allowedResolutions.includes(resolution as (typeof workerResolutionOptions)[number])) {
+    return resolution as (typeof workerResolutionOptions)[number];
+  }
+
+  const requestedIndex = workerResolutionOptions.indexOf(resolution as (typeof workerResolutionOptions)[number]);
+  if (requestedIndex !== -1) {
+    const upgradedResolution = allowedResolutions.find((option) => workerResolutionOptions.indexOf(option) >= requestedIndex);
+    if (upgradedResolution) {
+      return upgradedResolution;
+    }
+  }
+
+  return allowedResolutions[allowedResolutions.length - 1] || resolutionOptions[0];
+}
+
+export function normalizePoseMultiplierResolution(
+  resolution: string | null | undefined,
+  generationModel?: string,
+  isSdxlPoseMultiplierLayout = false,
+): (typeof workerResolutionOptions)[number] {
+  const allowedResolutions = getPoseMultiplierResolutionOptionsForGenerationModel(generationModel ?? poseMultiplierGenerationModelOptions[0], isSdxlPoseMultiplierLayout);
 
   if (allowedResolutions.includes(resolution as (typeof workerResolutionOptions)[number])) {
     return resolution as (typeof workerResolutionOptions)[number];

@@ -66,10 +66,12 @@ export const workspaceResolvers = {
         input: {
           generationModel: string;
           resolution: string;
+          poseMultiplierResolution: string;
           videoDurationSeconds?: number | null;
           quality: string;
           aspectRatio: string;
           quantity: number;
+          sdxlWorkspaceMode: string;
           poseMultiplierEnabled: boolean;
           poseMultiplier: number;
           poseMultiplierGenerationModel: string;

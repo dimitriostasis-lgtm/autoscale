@@ -6,8 +6,12 @@ import {
   buildGalleryFolderGroups,
   defaultGalleryFolderId,
   findFolder,
+  matchesVideoAsset,
+  matchesVoiceAsset,
   readStoredCustomFolderGroups,
   readStoredCustomFolders,
+  videoFolderId,
+  voiceFolderId,
 } from "../../lib/galleryFolders";
 import type { GeneratedAsset } from "../../types";
 import { theme } from "../../styles/theme";
@@ -16,40 +20,75 @@ interface ImagePickerModalProps {
   open: boolean;
   slug: string;
   assets: GeneratedAsset[];
+  variant?: "image" | "video" | "audio";
   onClose: () => void;
   onSelect: (asset: GeneratedAsset) => void;
 }
 
-export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: ImagePickerModalProps) {
+export function ImagePickerModal({ open, slug, assets, variant = "image", onClose, onSelect }: ImagePickerModalProps) {
   const [query, setQuery] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState(defaultGalleryFolderId);
+  const defaultFolderId = variant === "audio" ? voiceFolderId : variant === "video" ? videoFolderId : defaultGalleryFolderId;
+  const [selectedFolderId, setSelectedFolderId] = useState(defaultFolderId);
   const [customFolderGroups, setCustomFolderGroups] = useState(() => readStoredCustomFolderGroups(slug));
   const [customFolders, setCustomFolders] = useState(() => readStoredCustomFolders(slug));
   const deferredQuery = useDeferredValue(query);
   const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups), [customFolderGroups, customFolders]);
   const selectedFolder = useMemo(
-    () => findFolder(selectedFolderId, folderGroups) ?? findFolder(defaultGalleryFolderId, folderGroups),
-    [folderGroups, selectedFolderId],
+    () => findFolder(selectedFolderId, folderGroups) ?? findFolder(defaultFolderId, folderGroups),
+    [defaultFolderId, folderGroups, selectedFolderId],
   );
-  const folderCounts = useMemo(() => buildFolderCounts(assets, folderGroups), [assets, folderGroups]);
+  const selectableAssets = useMemo(
+    () => {
+      if (variant === "audio") {
+        return assets.filter(matchesVoiceAsset);
+      }
+      if (variant === "video") {
+        return assets.filter(matchesVideoAsset);
+      }
+      return assets;
+    },
+    [assets, variant],
+  );
+  const folderCounts = useMemo(() => buildFolderCounts(selectableAssets, folderGroups), [selectableAssets, folderGroups]);
+  const copy =
+    variant === "audio"
+      ? {
+          eyebrow: "Audio Reference Gallery",
+          title: "Select an existing audio reference",
+          searchPlaceholder: "Search audio filenames or prompts",
+          emptyMessage: "No audio references match this folder or search yet.",
+        }
+      : variant === "video"
+        ? {
+            eyebrow: "Video Reference Gallery",
+            title: "Select an existing video reference",
+            searchPlaceholder: "Search video filenames or prompts",
+            emptyMessage: "No video references match this folder or search yet.",
+          }
+      : {
+          eyebrow: "Reference Gallery",
+          title: "Select an existing generated image",
+          searchPlaceholder: "Search prompts or filenames",
+          emptyMessage: "No generated images match this folder or search yet.",
+        };
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-  setCustomFolderGroups(readStoredCustomFolderGroups(slug));
+    setCustomFolderGroups(readStoredCustomFolderGroups(slug));
     setCustomFolders(readStoredCustomFolders(slug));
-    setSelectedFolderId(defaultGalleryFolderId);
+    setSelectedFolderId(defaultFolderId);
     setQuery("");
-  }, [open, slug]);
+  }, [defaultFolderId, open, slug]);
 
   if (!open) {
     return null;
   }
 
   const search = deferredQuery.trim().toLowerCase();
-  const folderAssets = selectedFolder ? assets.filter(selectedFolder.matcher) : assets;
+  const folderAssets = selectedFolder ? selectableAssets.filter(selectedFolder.matcher) : selectableAssets;
   const filteredAssets = folderAssets.filter((asset) => {
     if (!search) {
       return true;
@@ -62,13 +101,13 @@ export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: Imag
       <div className={cx(theme.cardStrong, "flex h-full max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden p-5") + " glass-panel"}>
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/8 pb-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-white/42">Reference Gallery</p>
-            <h3 className="font-display mt-2 text-2xl text-white">Select an existing generated image</h3>
+            <p className="text-sm uppercase tracking-[0.24em] text-white/42">{copy.eyebrow}</p>
+            <h3 className="font-display mt-2 text-2xl text-white">{copy.title}</h3>
           </div>
           <div className="flex items-center gap-3">
             <input
               className={theme.input + " min-w-[260px]"}
-              placeholder="Search prompts or filenames"
+              placeholder={copy.searchPlaceholder}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -125,9 +164,35 @@ export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: Imag
                 onClick={() => onSelect(asset)}
                 type="button"
               >
-                <div className="aspect-[3/4] overflow-hidden bg-black/30">
-                  <img alt={asset.fileName} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" src={asset.url} />
-                </div>
+                {variant === "audio" ? (
+                  <div className="flex aspect-[3/4] flex-col items-center justify-center gap-4 bg-black/30 px-5 text-center">
+                    <span className="inline-flex size-16 items-center justify-center rounded-2xl border border-lime-300/16 bg-lime-300/10 text-lime-100 shadow-[0_18px_42px_rgba(0,0,0,0.28)]">
+                      <svg aria-hidden="true" className="size-8" viewBox="0 0 24 24">
+                        <path
+                          d="M4 14.5v-5m4 8v-11m4 14v-17m4 14v-11m4 8v-5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                      Audio reference
+                    </span>
+                  </div>
+                ) : variant === "video" ? (
+                  <div className="relative aspect-[3/4] overflow-hidden bg-black/30">
+                    <video className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" muted playsInline preload="metadata" src={asset.url} />
+                    <span className="absolute left-3 top-3 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70 backdrop-blur-md">
+                      Video reference
+                    </span>
+                  </div>
+                ) : (
+                  <div className="aspect-[3/4] overflow-hidden bg-black/30">
+                    <img alt={asset.fileName} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" src={asset.url} />
+                  </div>
+                )}
                 <div className="space-y-2 p-4">
                   <p className="line-clamp-2 text-sm font-semibold text-white">{asset.fileName}</p>
                   <p className="line-clamp-3 text-xs leading-6 text-white/58">{asset.promptSnapshot}</p>
@@ -136,7 +201,7 @@ export function ImagePickerModal({ open, slug, assets, onClose, onSelect }: Imag
             ))}
             {!filteredAssets.length ? (
               <div className="col-span-full flex items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] p-10 text-center text-sm text-white/48">
-                No generated images match this folder or search yet.
+                {copy.emptyMessage}
               </div>
             ) : null}
           </div>

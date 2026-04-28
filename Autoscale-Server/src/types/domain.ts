@@ -36,9 +36,7 @@ export const SUPPORTED_WORKER_GENERATION_MODELS = [...IMAGE_WORKER_GENERATION_MO
 
 export type WorkerGenerationModel = (typeof SUPPORTED_WORKER_GENERATION_MODELS)[number];
 
-export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = IMAGE_WORKER_GENERATION_MODELS.filter(
-  (generationModel): generationModel is Exclude<(typeof IMAGE_WORKER_GENERATION_MODELS)[number], "sdxl"> => generationModel !== "sdxl",
-);
+export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2"] as const;
 
 export type PoseMultiplierGenerationModel = (typeof SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS)[number];
 
@@ -63,8 +61,10 @@ export function getMaxBoardQuantityForGenerationModel(generationModel: WorkerGen
 }
 
 export const SUPPORTED_WORKER_RESOLUTIONS = ["480p", "720p", "1080p", "1k", "2k", "4k"] as const;
+export const SUPPORTED_POSE_MULTIPLIER_RESOLUTIONS = ["2k", "4k"] as const;
 
 export type WorkerResolution = (typeof SUPPORTED_WORKER_RESOLUTIONS)[number];
+export type PoseMultiplierResolution = WorkerResolution;
 
 export function getAllowedResolutionsForGenerationModel(generationModel: WorkerGenerationModel | string): WorkerResolution[] {
   if (generationModel === "sdxl") {
@@ -106,6 +106,30 @@ export function normalizeResolutionForGenerationModel(
 
   if (allowedResolutions.includes(resolution as WorkerResolution)) {
     return resolution as WorkerResolution;
+  }
+
+  const requestedIndex = SUPPORTED_WORKER_RESOLUTIONS.indexOf(resolution as WorkerResolution);
+  if (requestedIndex !== -1) {
+    const upgradedResolution = allowedResolutions.find((option) => SUPPORTED_WORKER_RESOLUTIONS.indexOf(option) >= requestedIndex);
+    if (upgradedResolution) {
+      return upgradedResolution;
+    }
+  }
+
+  return allowedResolutions[allowedResolutions.length - 1] || SUPPORTED_WORKER_RESOLUTIONS[0];
+}
+
+export function normalizePoseMultiplierResolution(
+  resolution: WorkerResolution | string | null | undefined,
+  generationModel?: WorkerGenerationModel | string,
+  isSdxlPoseMultiplierLayout = false,
+): PoseMultiplierResolution {
+  const allowedResolutions = isSdxlPoseMultiplierLayout
+    ? [...SUPPORTED_POSE_MULTIPLIER_RESOLUTIONS]
+    : getAllowedResolutionsForGenerationModel(generationModel ?? SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS[0]);
+
+  if (allowedResolutions.includes(resolution as WorkerResolution)) {
+    return resolution as PoseMultiplierResolution;
   }
 
   const requestedIndex = SUPPORTED_WORKER_RESOLUTIONS.indexOf(resolution as WorkerResolution);
@@ -220,6 +244,32 @@ export function normalizeAspectRatioForGenerationModel(
   return allowedAspectRatios[0] || "1:1";
 }
 
+export function isSdxlPoseMultiplierWorkspace(
+  generationModel: WorkerGenerationModel | string,
+  sdxlWorkspaceMode: string | null | undefined,
+): boolean {
+  return generationModel === "sdxl" && sdxlWorkspaceMode === "POSE_MULTIPLIER";
+}
+
+export function isPoseMultiplierWorkspace(
+  generationModel: WorkerGenerationModel | string,
+  sdxlWorkspaceMode: string | null | undefined,
+): boolean {
+  return IMAGE_WORKER_GENERATION_MODELS.includes(generationModel as (typeof IMAGE_WORKER_GENERATION_MODELS)[number]) && sdxlWorkspaceMode === "POSE_MULTIPLIER";
+}
+
+export function normalizeBoardAspectRatio(
+  generationModel: WorkerGenerationModel | string,
+  aspectRatio: WorkerAspectRatio | string,
+  sdxlWorkspaceMode?: string | null,
+): WorkerAspectRatio {
+  if (generationModel === "kling_motion_control" || isPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode)) {
+    return "auto";
+  }
+
+  return normalizeAspectRatioForGenerationModel(generationModel, aspectRatio);
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -295,13 +345,15 @@ export interface ReferenceSelection {
 export interface BoardSettings {
   generationModel: WorkerGenerationModel;
   resolution: WorkerResolution;
+  poseMultiplierResolution: PoseMultiplierResolution;
   videoDurationSeconds: number | null;
   quality: WorkerQuality;
   aspectRatio: WorkerAspectRatio;
   quantity: number;
+  sdxlWorkspaceMode: "DEFAULT" | "POSE_MULTIPLIER";
   poseMultiplierEnabled: boolean;
   poseMultiplier: number;
-  poseMultiplierGenerationModel: PoseMultiplierGenerationModel;
+  poseMultiplierGenerationModel: PoseMultiplierGenerationModel | "sdxl";
   faceSwap: boolean;
   autoPromptGen: boolean;
   autoPromptImage: boolean;
@@ -320,6 +372,7 @@ export interface WorkspaceRow {
   posePromptTemplates: string[] | null;
   faceSwap: boolean;
   reference: ReferenceSelection | null;
+  audioReference: ReferenceSelection | null;
   status: GenerationStatus;
   errorMessage: string | null;
   outputAssetIds: string[];

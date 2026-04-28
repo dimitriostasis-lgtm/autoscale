@@ -2,8 +2,10 @@ import { createBoardSeed, createDefaultRows, readStore, updateStore } from "../l
 import {
   DEFAULT_POSE_PROMPT_TEMPLATE,
   getMaxBoardQuantityForGenerationModel,
-  normalizeAspectRatioForGenerationModel,
+  isPoseMultiplierWorkspace,
+  normalizeBoardAspectRatio,
   normalizeOptionalPosePromptTemplates,
+  normalizePoseMultiplierResolution,
   normalizePoseMultiplierGenerationModel,
   normalizePosePromptTemplates,
   normalizeQualityForGenerationModel,
@@ -39,6 +41,7 @@ function normalizeRows(rows: WorkspaceRow[]): WorkspaceRow[] {
       label: row.label || `${index + 1}`,
       poseMultiplier: typeof row.poseMultiplier === "number" ? row.poseMultiplier : 1,
       faceSwap: typeof row.faceSwap === "boolean" ? row.faceSwap : false,
+      audioReference: row.audioReference ?? null,
     }));
 }
 
@@ -190,7 +193,9 @@ export async function updateBoardRow(
     posePromptTemplates?: string[] | null;
     faceSwap?: boolean | null;
     reference?: ReferenceSelection | null;
+    audioReference?: ReferenceSelection | null;
     clearReference?: boolean | null;
+    clearAudioReference?: boolean | null;
     clearPosePromptTemplates?: boolean | null;
   },
 ) {
@@ -227,6 +232,11 @@ export async function updateBoardRow(
     } else if (input.reference) {
       row.reference = normalizeReference(input.reference);
     }
+    if (input.clearAudioReference) {
+      row.audioReference = null;
+    } else if (input.audioReference) {
+      row.audioReference = normalizeReference(input.audioReference);
+    }
 
     row.status = "IDLE";
     row.errorMessage = null;
@@ -247,10 +257,12 @@ export async function updateBoardSettings(
   input: {
     generationModel: string;
     resolution: string;
+    poseMultiplierResolution: string;
     videoDurationSeconds?: number | null;
     quality: string;
     aspectRatio: string;
     quantity: number;
+    sdxlWorkspaceMode: string;
     poseMultiplierEnabled: boolean;
     poseMultiplier: number;
     poseMultiplierGenerationModel: string;
@@ -267,30 +279,40 @@ export async function updateBoardSettings(
   const store = await updateStore((current) => {
     const board = assertBoardEdit(current, viewer, boardId);
     const normalizedGenerationModel = input.generationModel as WorkspaceBoard["settings"]["generationModel"];
+    const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(normalizedGenerationModel, input.sdxlWorkspaceMode);
+    const isSdxlPoseMultiplierLayout = normalizedGenerationModel === "sdxl" && input.sdxlWorkspaceMode === "POSE_MULTIPLIER";
     const normalizedResolution = normalizeResolutionForGenerationModel(normalizedGenerationModel, input.resolution);
     const normalizedVideoDurationSeconds = normalizeVideoDurationForGenerationModel(normalizedGenerationModel, input.videoDurationSeconds);
     const normalizedQuality = normalizeQualityForGenerationModel(normalizedGenerationModel, input.quality);
-    const normalizedAspectRatio = normalizeAspectRatioForGenerationModel(normalizedGenerationModel, input.aspectRatio);
-    const normalizedQuantity = Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
+    const normalizedAspectRatio = normalizeBoardAspectRatio(normalizedGenerationModel, input.aspectRatio, input.sdxlWorkspaceMode);
+    const normalizedQuantity = isPoseMultiplierWorkspaceLayout ? 1 : Math.max(1, Math.min(getMaxBoardQuantityForGenerationModel(input.generationModel), input.quantity));
     const normalizedPoseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(
       input.poseMultiplierGenerationModel,
       normalizedGenerationModel,
+    );
+    const nextPoseMultiplierGenerationModel = isSdxlPoseMultiplierLayout ? "sdxl" : normalizedPoseMultiplierGenerationModel;
+    const normalizedPoseMultiplierResolution = normalizePoseMultiplierResolution(
+      input.poseMultiplierResolution || input.resolution,
+      nextPoseMultiplierGenerationModel,
+      isSdxlPoseMultiplierLayout,
     );
     const normalizedPosePromptTemplates = normalizePosePromptTemplates(input.posePromptTemplates, input.posePromptTemplate);
     const normalizedGlobalReferences = input.globalReferences.map((selection) => normalizeReference(selection));
     board.settings = {
       generationModel: normalizedGenerationModel,
       resolution: normalizedResolution,
+      poseMultiplierResolution: normalizedPoseMultiplierResolution,
       videoDurationSeconds: normalizedVideoDurationSeconds,
       quality: normalizedQuality,
       aspectRatio: normalizedAspectRatio,
       quantity: normalizedQuantity,
-      poseMultiplierEnabled: normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
+      sdxlWorkspaceMode: isPoseMultiplierWorkspaceLayout ? "POSE_MULTIPLIER" : "DEFAULT",
+      poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : normalizedQuantity === 1 ? input.poseMultiplierEnabled : false,
       poseMultiplier: Math.max(1, Math.min(4, input.poseMultiplier)),
-      poseMultiplierGenerationModel: normalizedPoseMultiplierGenerationModel,
+      poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
       faceSwap: input.faceSwap,
       autoPromptGen: input.autoPromptGen,
-      autoPromptImage: input.autoPromptImage,
+      autoPromptImage: isPoseMultiplierWorkspaceLayout ? false : input.autoPromptImage,
       posePromptMode: input.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
       posePromptTemplate: normalizedPosePromptTemplates[0] || DEFAULT_POSE_PROMPT_TEMPLATE,
       posePromptTemplates: normalizedPosePromptTemplates,
@@ -323,6 +345,7 @@ export async function clearBoard(currentUser: AuthUser | null, boardId: string) 
         ...row,
         prompt: "",
         reference: null,
+        audioReference: null,
         status: "IDLE",
         errorMessage: null,
         outputAssetIds: [],

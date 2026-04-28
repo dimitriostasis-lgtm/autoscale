@@ -8,8 +8,10 @@ import {
   DEFAULT_MANAGER_PERMISSIONS,
   SUPPORTED_WORKER_GENERATION_MODELS,
   getMaxBoardQuantityForGenerationModel,
-  normalizeAspectRatioForGenerationModel,
+  isPoseMultiplierWorkspace,
+  normalizeBoardAspectRatio,
   normalizeOptionalPosePromptTemplates,
+  normalizePoseMultiplierResolution,
   normalizePoseMultiplierGenerationModel,
   normalizePosePromptTemplates,
   normalizeQualityForGenerationModel,
@@ -168,7 +170,7 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           ...model.defaults,
           generationModel,
           resolution: normalizeResolutionForGenerationModel(generationModel, model.defaults.resolution),
-          aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, model.defaults.aspectRatio),
+          aspectRatio: normalizeBoardAspectRatio(generationModel, model.defaults.aspectRatio),
         },
         allowedGenerationModels: normalizeAllowedGenerationModels((model as { allowedGenerationModels?: unknown }).allowedGenerationModels),
         agencyIds: normalizeInfluencerAgencyIds(
@@ -190,6 +192,16 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
     boards: (rawStore.boards || []).map((board) => {
       const generationModel = normalizeWorkerGenerationModel(board.settings.generationModel);
       const quantity = normalizeBoardQuantity(generationModel, board.settings.quantity);
+      const requestedSdxlWorkspaceMode = (board.settings as { sdxlWorkspaceMode?: unknown }).sdxlWorkspaceMode === "POSE_MULTIPLIER" ? "POSE_MULTIPLIER" : "DEFAULT";
+      const sdxlWorkspaceMode = isPoseMultiplierWorkspace(generationModel, requestedSdxlWorkspaceMode) ? "POSE_MULTIPLIER" : "DEFAULT";
+      const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode);
+      const isSdxlPoseMultiplierLayout = sdxlWorkspaceMode === "POSE_MULTIPLIER" && generationModel === "sdxl";
+      const poseMultiplierGenerationModel = isSdxlPoseMultiplierLayout
+        ? "sdxl"
+        : normalizePoseMultiplierGenerationModel(
+            (board.settings as { poseMultiplierGenerationModel?: unknown }).poseMultiplierGenerationModel,
+            generationModel,
+          );
       const posePromptTemplates = normalizePosePromptTemplates(
         (board.settings as { posePromptTemplates?: unknown }).posePromptTemplates,
         (board.settings as { posePromptTemplate?: unknown }).posePromptTemplate,
@@ -201,22 +213,30 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           ...board.settings,
           generationModel,
           resolution: normalizeResolutionForGenerationModel(generationModel, board.settings.resolution),
+          poseMultiplierResolution: normalizePoseMultiplierResolution(
+            ((board.settings as { poseMultiplierResolution?: unknown }).poseMultiplierResolution as string | undefined) ?? board.settings.resolution,
+            poseMultiplierGenerationModel,
+            isSdxlPoseMultiplierLayout,
+          ),
           videoDurationSeconds: normalizeVideoDurationForGenerationModel(
             generationModel,
             (board.settings as { videoDurationSeconds?: unknown }).videoDurationSeconds as number | null | undefined,
           ),
           quality: normalizeQualityForGenerationModel(generationModel, (board.settings as { quality?: unknown }).quality as string),
-          aspectRatio: normalizeAspectRatioForGenerationModel(generationModel, board.settings.aspectRatio),
-          quantity,
-          poseMultiplierEnabled:
-            quantity === 1 && typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
-              ? board.settings.poseMultiplierEnabled
+          aspectRatio: normalizeBoardAspectRatio(
+            generationModel,
+            board.settings.aspectRatio,
+            sdxlWorkspaceMode,
+          ),
+            quantity: isPoseMultiplierWorkspaceLayout ? 1 : quantity,
+          sdxlWorkspaceMode,
+            poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout
+              ? true
+              : quantity === 1 && typeof (board.settings as { poseMultiplierEnabled?: unknown }).poseMultiplierEnabled === "boolean"
+                ? board.settings.poseMultiplierEnabled
               : false,
           poseMultiplier: typeof (board.settings as { poseMultiplier?: unknown }).poseMultiplier === "number" ? board.settings.poseMultiplier : 1,
-          poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(
-            (board.settings as { poseMultiplierGenerationModel?: unknown }).poseMultiplierGenerationModel,
-            generationModel,
-          ),
+          poseMultiplierGenerationModel,
           faceSwap: typeof (board.settings as { faceSwap?: unknown }).faceSwap === "boolean" ? board.settings.faceSwap : false,
           autoPromptGen: typeof (board.settings as { autoPromptGen?: unknown }).autoPromptGen === "boolean" ? board.settings.autoPromptGen : false,
           autoPromptImage: typeof (board.settings as { autoPromptImage?: unknown }).autoPromptImage === "boolean" ? board.settings.autoPromptImage : false,
@@ -243,17 +263,20 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
 
 function defaultBoardSettings(model: InfluencerModel): BoardSettings {
   const posePromptTemplates = normalizePosePromptTemplates(undefined, DEFAULT_POSE_PROMPT_TEMPLATE);
+  const poseMultiplierGenerationModel = normalizePoseMultiplierGenerationModel(model.defaults.generationModel);
 
   return {
     generationModel: model.defaults.generationModel,
     resolution: model.defaults.resolution,
+    poseMultiplierResolution: normalizePoseMultiplierResolution(model.defaults.resolution, poseMultiplierGenerationModel),
     videoDurationSeconds: normalizeVideoDurationForGenerationModel(model.defaults.generationModel, null),
     quality: normalizeQualityForGenerationModel(model.defaults.generationModel, "medium"),
-    aspectRatio: normalizeAspectRatioForGenerationModel(model.defaults.generationModel, model.defaults.aspectRatio),
+    aspectRatio: normalizeBoardAspectRatio(model.defaults.generationModel, model.defaults.aspectRatio),
     quantity: normalizeBoardQuantity(model.defaults.generationModel, model.defaults.quantity),
+    sdxlWorkspaceMode: "DEFAULT",
     poseMultiplierEnabled: false,
     poseMultiplier: 1,
-    poseMultiplierGenerationModel: normalizePoseMultiplierGenerationModel(model.defaults.generationModel),
+    poseMultiplierGenerationModel,
     faceSwap: false,
     autoPromptGen: false,
     autoPromptImage: false,
@@ -283,6 +306,7 @@ export function createDefaultRows(count = 4, defaults?: Pick<BoardSettings, "pos
     posePromptTemplates: null,
     faceSwap: defaults?.faceSwap ?? false,
     reference: null,
+    audioReference: null,
     status: "IDLE",
     errorMessage: null,
     outputAssetIds: [],

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { agencyBillingPlan, creditPurchaseOptions, paymentMethodOptions, planGlowStyle, upgradeOptions } from "../lib/billing";
+import { agencyBillingPlan, creditPurchaseOptions, paymentMethodOptions, planGlowStyle } from "../lib/billing";
 import { cx } from "../lib/cx";
 import { theme } from "../styles/theme";
 import type { UserRecord } from "../types";
@@ -10,6 +10,212 @@ interface AgencyBillingPageProps {
 }
 
 type PaymentLogoBadge = (typeof paymentMethodOptions)[number]["logoBadges"][number];
+
+const billingCountryOptions = [
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Australia",
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cabo Verde",
+  "Cambodia",
+  "Cameroon",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czechia",
+  "Democratic Republic of the Congo",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Palestine",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Timor-Leste",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe",
+];
+
+const cryptoPaymentOptions = [
+  { id: "bitcoin", label: "Bitcoin", symbol: "BTC", network: "Bitcoin" },
+  { id: "eth", label: "Ethereum", symbol: "ETH", network: "Ethereum" },
+  { id: "usdc", label: "USD Coin", symbol: "USDC", network: "Base" },
+  { id: "usdt", label: "Tether", symbol: "USDT", network: "Ethereum / Tron" },
+  { id: "sol", label: "Solana", symbol: "SOL", network: "Solana" },
+];
 
 function PaymentLogoStrip({ logos, compact = false }: { logos: PaymentLogoBadge[]; compact?: boolean }) {
   return (
@@ -34,12 +240,14 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
   const [selectedCreditPurchaseId, setSelectedCreditPurchaseId] = useState(creditPurchaseOptions[1].id);
   const [customCreditAmount, setCustomCreditAmount] = useState("5000");
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState(paymentMethodOptions[0].id);
+  const [selectedCryptoPaymentId, setSelectedCryptoPaymentId] = useState(cryptoPaymentOptions[2].id);
   const [processorNotice, setProcessorNotice] = useState<string | null>(null);
   const selectedCreditPurchase = creditPurchaseOptions.find((option) => option.id === selectedCreditPurchaseId) || creditPurchaseOptions[0];
   const customCreditAmountValue = Math.max(0, Number(customCreditAmount) || 0);
   const selectedCreditAmount = selectedCreditPurchaseId === "custom" ? customCreditAmountValue : selectedCreditPurchase.amount;
   const selectedCreditLabel = selectedCreditPurchaseId === "custom" ? `$${selectedCreditAmount.toLocaleString()} custom credits` : selectedCreditPurchase.label;
   const selectedPaymentMethod = paymentMethodOptions.find((option) => option.id === selectedPaymentMethodId) || paymentMethodOptions[0];
+  const selectedCryptoPayment = cryptoPaymentOptions.find((option) => option.id === selectedCryptoPaymentId) || cryptoPaymentOptions[2];
   const paymentDiscount = Math.round(selectedCreditAmount * selectedPaymentMethod.discountRate);
   const paymentTotal = Math.max(0, selectedCreditAmount - paymentDiscount);
   const projectedCreditBalance = agencyBillingPlan.creditBalance + selectedCreditAmount;
@@ -71,42 +279,67 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
 
       <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
         <section
-          className="billing-current-plan-card relative overflow-hidden rounded-[30px] border bg-[color:var(--surface-card-strong)] p-5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_42%,transparent),0_22px_70px_color-mix(in_srgb,var(--accent-main)_12%,transparent)] sm:p-6"
+          className="billing-current-plan-card relative overflow-hidden rounded-[30px] border bg-[color:var(--surface-card-strong)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_42%,transparent),0_22px_70px_color-mix(in_srgb,var(--accent-main)_12%,transparent)]"
           style={{ borderColor: "color-mix(in srgb, var(--accent-main) 72%, transparent)" }}
         >
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-65" style={planGlowStyle} />
-          <div className="relative z-10 flex flex-wrap items-start justify-between gap-3 border-b border-[color:var(--surface-border)] pb-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Current Plan</p>
-              <p className="font-display mt-3 text-4xl text-[color:var(--text-strong)]">{agencyBillingPlan.currentPlan}</p>
-              <p className="mt-3 text-lg font-bold text-[color:var(--accent-text)]">{agencyBillingPlan.currentPrice}</p>
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-70" style={planGlowStyle} />
+          <div className="relative z-10 p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Current Plan</p>
+                <h2 className="font-display mt-3 text-4xl text-[color:var(--text-strong)]">{agencyBillingPlan.currentPlan}</h2>
+              </div>
+              <span className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--accent-text)]">
+                Active
+              </span>
             </div>
-            <span className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--accent-text)]">
-              Active
-            </span>
+
+            <div className="mt-5 rounded-[24px] border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-4 py-4">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-text)]">Monthly subscription</p>
+                  <p className="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.currentPrice}</p>
+                </div>
+                <p className="max-w-32 text-right text-xs font-semibold leading-5 text-[color:var(--text-muted)]">
+                  {agencyBillingPlan.includedCredit}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-2">
+              <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 xl:col-span-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit balance</p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
+              </div>
+              <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 xl:col-span-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Renews</p>
+                <p className="mt-2 text-sm font-semibold text-[color:var(--text-strong)]">{agencyBillingPlan.renewalDate}</p>
+              </div>
+              <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 sm:col-span-3 xl:col-span-2">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan allowance</p>
+                  <span className="rounded-full bg-[color:var(--surface-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--accent-text)]">
+                    Starter
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-semibold leading-6 text-[color:var(--text-strong)]">
+                  {agencyBillingPlan.influencerAllowance} AI influencers, {agencyBillingPlan.employeeAllowance} employees, and {agencyBillingPlan.parallelGenerationsPerUser} parallel generations per employee.
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="relative z-10 mt-5 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit balance</p>
-              <p className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
+          <div className="relative z-10 border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan benefits</p>
+                <p className="mt-1 text-sm font-semibold text-[color:var(--text-strong)]">Capacity, tooling, and automation included</p>
+              </div>
+              <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--text-muted)]">
+                Team capacity
+              </span>
             </div>
-            <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Renews</p>
-              <p className="mt-2 text-sm font-semibold text-[color:var(--text-strong)]">{agencyBillingPlan.renewalDate}</p>
-            </div>
-            <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Included credits</p>
-              <p className="mt-2 text-sm font-semibold text-[color:var(--text-strong)]">{agencyBillingPlan.includedCredit}</p>
-            </div>
-          </div>
-
-          <div className="relative z-10 mt-5 rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Plan benefits</p>
-              <span className="text-xs font-semibold text-[color:var(--accent-text)]">Team capacity</span>
-            </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 grid gap-3">
               {[
                 [
                   `${agencyBillingPlan.influencerAllowance}`,
@@ -119,26 +352,27 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                   "Per employee generation lanes. Image requests can include up to 4 outputs per generation, with higher quantities available for specific models.",
                 ],
                 [`${agencyBillingPlan.employeeAllowance}`, "Employee allowance", "Included seats for your agency team."],
+                ["3", "Tab allowance", "Per employee access across image, video, and voice generation."],
                 [`${agencyBillingPlan.dedicatedGpusPerEmployee}`, "Dedicated GPU", "Reserved GPU capacity per employee."],
                 ["Included", "Auto Plug In", "Included with the Starter plan."],
                 ["Included", "Auto Features", "Automation features are included with your plan."],
               ].map(([value, label, detail]) => {
                 const valueIsNumber = /^\d+$/.test(value);
                 return (
-                <div key={label} className="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-3 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-3">
-                  <div
-                    className={cx(
-                      "flex h-12 items-center justify-center rounded-xl bg-[color:var(--accent-soft)] px-2 text-center font-bold text-[color:var(--accent-text)]",
-                      valueIsNumber ? "text-2xl tracking-tight" : "text-[10px] uppercase tracking-[0.08em]",
-                    )}
-                  >
-                    {value}
+                  <div key={label} className="group grid grid-cols-[4.75rem_minmax(0,1fr)] gap-3 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-3 transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-soft-hover)]">
+                    <div
+                      className={cx(
+                        "flex h-12 items-center justify-center rounded-xl bg-[color:var(--accent-soft)] px-2 text-center font-bold text-[color:var(--accent-text)]",
+                        valueIsNumber ? "text-2xl tracking-tight" : "text-[10px] uppercase tracking-[0.08em]",
+                      )}
+                    >
+                      {value}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[color:var(--text-strong)]">{label}</p>
+                      <p className="mt-1 text-xs leading-5 text-[color:var(--text-muted)]">{detail}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[color:var(--text-strong)]">{label}</p>
-                    <p className="mt-1 text-xs leading-5 text-[color:var(--text-muted)]">{detail}</p>
-                  </div>
-                </div>
                 );
               })}
             </div>
@@ -152,9 +386,14 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
               <h2 className="font-display mt-2 text-2xl text-[color:var(--text-strong)]">Add agency credits</h2>
               <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">Local test processor only. No live charge is created.</p>
             </div>
-            <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--text-main)]">
-              Test mode
-            </span>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-bold text-[color:var(--accent-text)]">
+                $1 = 1 credit
+              </span>
+              <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--text-main)]">
+                Test mode
+              </span>
+            </div>
           </div>
 
           <div className="mt-5 grid auto-rows-fr gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -210,7 +449,7 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
               <label className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                 <span>
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Custom amount</span>
-                  <span className="mt-2 block text-sm leading-6 text-[color:var(--text-muted)]">Set a custom credit top-up while keeping the package selector stable.</span>
+                  <span className="mt-2 block text-sm leading-6 text-[color:var(--text-muted)]">Set a custom credit top-up in $100 increments.</span>
                 </span>
                 <span className="block space-y-2">
                   <input
@@ -220,6 +459,7 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                       setCustomCreditAmount(event.target.value);
                       setProcessorNotice(null);
                     }}
+                    step="100"
                     type="number"
                     value={customCreditAmount}
                   />
@@ -349,10 +589,42 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">CVC</span>
                   <input className={theme.input} readOnly value="123" />
                 </label>
-                <label className="block space-y-2 md:col-span-3">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Billing address</span>
-                  <input className={theme.input} readOnly value="123 Market Street, San Francisco, CA 94103, United States" />
-                </label>
+                <div className="grid gap-3 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-4 md:col-span-3 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Billing address</p>
+                    <p className="mt-1 text-sm text-[color:var(--text-muted)]">Use the cardholder billing details for local test checkout.</p>
+                  </div>
+                  <label className="block space-y-2 md:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Address line 1</span>
+                    <input className={theme.input} defaultValue="123 Market Street" />
+                  </label>
+                  <label className="block space-y-2 md:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Address line 2</span>
+                    <input className={theme.input} placeholder="Apartment, suite, unit, or floor" />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">City</span>
+                    <input className={theme.input} defaultValue="San Francisco" />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">State / region</span>
+                    <input className={theme.input} defaultValue="CA" />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Post code</span>
+                    <input className={theme.input} defaultValue="94103" />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Country</span>
+                    <select className={theme.input} defaultValue="United States">
+                      {billingCountryOptions.map((country) => (
+                        <option key={country} value={country}>
+                          {country}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
               </div>
             ) : null}
 
@@ -387,13 +659,34 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                   </div>
                 </div>
                 <div className="grid gap-3">
+                  <label className="block space-y-2 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Pay with crypto</span>
+                    <select
+                      className={theme.input}
+                      onChange={(event) => {
+                        setSelectedCryptoPaymentId(event.target.value);
+                        setProcessorNotice(null);
+                      }}
+                      value={selectedCryptoPaymentId}
+                    >
+                      {cryptoPaymentOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label} ({option.symbol})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Network</p>
-                    <p className="mt-1 font-semibold text-[color:var(--text-strong)]">USDC on Base / BTC / ETH</p>
+                    <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Selected asset</p>
+                    <p className="mt-1 font-semibold text-[color:var(--text-strong)]">
+                      {selectedCryptoPayment.symbol} on {selectedCryptoPayment.network}
+                    </p>
                   </div>
                   <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
                     <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Wallet</p>
-                    <p className="mt-1 break-all font-semibold text-[color:var(--text-strong)]">autoscale-test-wallet-7f42...91c8</p>
+                    <p className="mt-1 break-all font-semibold text-[color:var(--text-strong)]">
+                      autoscale-{selectedCryptoPayment.symbol.toLowerCase()}-test-wallet-7f42...91c8
+                    </p>
                   </div>
                   <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
                     <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Discount</p>
@@ -424,87 +717,82 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
         </section>
       </div>
 
-      <section className="space-y-4 rounded-[32px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Upgrade Options</p>
-            <h2 className="font-display mt-2 text-3xl text-[color:var(--text-strong)]">Increase agency capacity</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[color:var(--text-muted)]">
-              Move to a higher tier for more AI influencers, more flexible generation throughput, better scalability, priority support, and access to advanced production capabilities.
-            </p>
-          </div>
-          <span className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--accent-text)]">
-            From {agencyBillingPlan.currentPlan}
-          </span>
-        </div>
+      <section className="overflow-hidden rounded-[32px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)]">
+        <div className="flex flex-col xl:flex-row">
+          <div className="relative flex flex-col justify-between gap-8 overflow-hidden border-b border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-6 sm:p-8 xl:flex-[2_1_0%] xl:border-b-0 xl:border-r">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-70" style={planGlowStyle} />
+            <div className="relative z-10 max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Upgrade Options</p>
+              <h2 className="font-display mt-3 max-w-2xl text-3xl text-[color:var(--text-strong)] sm:text-4xl">
+                Enterprise AI generation infrastructure for agencies producing at scale
+              </h2>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
+                Tailored workflows, dedicated support, flexible capacity, advanced controls, and no training on your private agency data.
+              </p>
+            </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {upgradeOptions.map((option) => {
-            const hasPlanCapacity = "parallelGenerationsPerUser" in option;
-            const highlighted = "featured" in option && option.featured;
-
-            return (
-              <article
-                key={option.id}
-                className={cx(
-                  "billing-plan-option group relative flex min-h-[520px] flex-col overflow-hidden rounded-[28px] border bg-[color:var(--surface-card)] p-5 shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:border-[color:var(--border-strong)]",
-                  highlighted ? "border-[color:var(--border-strong)]" : "border-[color:var(--surface-border)]",
-                )}
-              >
-                <div aria-hidden="true" className={cx("pointer-events-none absolute inset-0 transition duration-300", highlighted ? "opacity-70" : "opacity-0 group-hover:opacity-100")} style={planGlowStyle} />
-
-                <div className="relative z-10 flex flex-1 flex-col">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--text-main)]">
-                      {option.badge}
-                    </span>
-                    {highlighted ? (
-                      <span className="rounded-full bg-[color:var(--accent-main)] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[color:var(--accent-foreground)]">
-                        Recommended
-                      </span>
-                    ) : null}
+            <div className="relative z-10 grid gap-3 md:grid-cols-3">
+              {[
+                ["Security and compliance", "Private production environments, role-based access, and no model training on your data."],
+                ["Data and usage rights", "Your agency retains rights to generated outputs for publishing, editing, and commercial reuse."],
+                ["Admin control", "Centralized permissions, team governance, credit controls, and scalable workspace management."],
+              ].map(([title, description]) => (
+                <div
+                  key={title}
+                  className="rounded-2xl border border-[color:var(--surface-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--text-strong)_3%,transparent),color-mix(in_srgb,var(--text-strong)_5%,transparent))] p-4"
+                >
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-[color:var(--accent-soft)] text-[color:var(--accent-text)]">
+                    <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 3.25 19 6v5.35c0 4.45-2.85 7.58-7 9.4-4.15-1.82-7-4.95-7-9.4V6l7-2.75Z"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.8"
+                      />
+                      <path d="m9 12 2 2 4-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                    </svg>
                   </div>
-
-                  <div className="mt-5">
-                    <h3 className="font-display text-3xl text-[color:var(--text-strong)]">{option.label}</h3>
-                    <p className="mt-3 text-4xl font-semibold tracking-tight text-[color:var(--text-strong)]">{option.price}</p>
-                    {"includedCredit" in option ? <p className="mt-2 text-sm font-bold text-[color:var(--accent-text)]">{option.includedCredit}</p> : null}
-                    <p className="mt-4 text-sm leading-6 text-[color:var(--text-muted)]">{option.note}</p>
-                  </div>
-
-                  <div className="mt-5 grid gap-2">
-                    <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Influencers</p>
-                      <p className="mt-1 text-lg font-semibold text-[color:var(--text-strong)]">{hasPlanCapacity ? option.label : "Custom capacity"}</p>
-                    </div>
-                    <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Parallel gen</p>
-                      <p className="mt-1 text-lg font-semibold text-[color:var(--text-strong)]">
-                        {hasPlanCapacity ? `${option.parallelGenerationsPerUser} per user` : "Custom"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Support</p>
-                      <p className="mt-1 text-lg font-semibold text-[color:var(--text-strong)]">{option.supportLabel}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex-1 space-y-2">
-                    {option.featureHighlights.map((highlight) => (
-                      <div key={highlight} className="flex items-start gap-2 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-2">
-                        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[color:var(--accent-main)]" />
-                        <span className="text-sm font-semibold leading-5 text-[color:var(--text-main)]">{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button className={cx(highlighted ? theme.buttonPrimary : theme.buttonSecondary, "mt-5 w-full justify-center")} type="button">
-                    {option.ctaLabel}
-                  </button>
+                  <p className="mt-4 text-sm font-semibold text-[color:var(--text-strong)]">{title}</p>
+                  <p className="mt-2 text-xs leading-5 text-[color:var(--text-muted)]">{description}</p>
                 </div>
-              </article>
-            );
-          })}
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between gap-6 bg-[color:var(--surface-card-strong)] p-6 sm:p-8 xl:flex-[1_1_0%] xl:min-w-[320px]">
+            <div>
+              <p className="text-sm font-semibold text-[color:var(--text-muted)]">Everything in {agencyBillingPlan.currentPlan}, plus:</p>
+              <div className="mt-4 grid gap-2">
+                {[
+                  "Unlimited team members",
+                  "Custom credit packages",
+                  "Dedicated model capacity",
+                  "Access to all available generation models",
+                  "Volume-based discounts",
+                  "Priority processing queue",
+                ].map((feature) => (
+                  <div key={feature} className="flex items-center gap-2 text-sm font-semibold text-[color:var(--text-strong)]">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-[color:var(--accent-text)]">
+                      <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none">
+                        <path d="m6 12 4 4 8-8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" />
+                      </svg>
+                    </span>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <button className={theme.buttonPrimary + " h-13 w-full rounded-xl text-sm"} type="button">
+                Contact sales
+              </button>
+              <button className={theme.buttonSecondary + " h-13 w-full rounded-xl text-sm"} type="button">
+                Learn more
+              </button>
+            </div>
+          </div>
         </div>
       </section>
     </div>

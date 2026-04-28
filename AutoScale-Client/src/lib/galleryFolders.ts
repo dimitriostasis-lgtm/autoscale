@@ -36,6 +36,8 @@ export const customFolderGroupId = "custom-folders";
 export const customFolderGroupLabel = "Custom folders";
 export const allMediaFolderId = "all";
 export const defaultGalleryFolderId = "images";
+export const videoFolderId = "videos";
+export const voiceFolderId = "voices";
 export const faceSwapFolderId = "face-swaps";
 export const inpaintFolderId = "inpaint";
 export const multiPoseFolderId = "multi-pose";
@@ -43,18 +45,20 @@ export const multiPoseFolderId = "multi-pose";
 const galleryFolderStorageKeyPrefix = "autoscale-gallery-custom-folders";
 const galleryFolderGroupStorageKeyPrefix = "autoscale-gallery-custom-folder-groups";
 const videoAssetPattern = /(?:^|[^a-z0-9])videos?(?:$|[^a-z0-9])/i;
+const videoAssetExtensionPattern = /\.(?:mp4|mov|m4v|webm)$/i;
 const voiceAssetPattern = /(?:^|[^a-z0-9])(?:voices?|audio)(?:$|[^a-z0-9])/i;
+const audioAssetExtensionPattern = /\.(?:mp3|wav|m4a|aac|ogg|oga|flac|webm)$/i;
 
 function buildAssetSearchText(asset: GeneratedAsset): string {
   return `${asset.fileName} ${asset.promptSnapshot}`;
 }
 
-function matchesVideoAsset(asset: GeneratedAsset): boolean {
-  return videoAssetPattern.test(buildAssetSearchText(asset));
+export function matchesVideoAsset(asset: GeneratedAsset): boolean {
+  return videoAssetPattern.test(buildAssetSearchText(asset)) || videoAssetExtensionPattern.test(asset.fileName);
 }
 
-function matchesVoiceAsset(asset: GeneratedAsset): boolean {
-  return voiceAssetPattern.test(buildAssetSearchText(asset));
+export function matchesVoiceAsset(asset: GeneratedAsset): boolean {
+  return voiceAssetPattern.test(buildAssetSearchText(asset)) || audioAssetExtensionPattern.test(asset.fileName);
 }
 
 function matchesImageAsset(asset: GeneratedAsset): boolean {
@@ -81,14 +85,14 @@ export const galleryFolderGroups: GalleryFolderGroup[] = [
         source: "smart",
       },
       {
-        id: "videos",
+        id: videoFolderId,
         label: "Videos",
         description: "Video generation assets matched from prompt or filename metadata.",
         matcher: matchesVideoAsset,
         source: "smart",
       },
       {
-        id: "voices",
+        id: voiceFolderId,
         label: "Voice Notes",
         description: "Voice-note generation assets matched from prompt or filename metadata.",
         matcher: matchesVoiceAsset,
