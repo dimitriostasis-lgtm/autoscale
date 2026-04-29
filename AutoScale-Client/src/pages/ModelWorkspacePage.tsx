@@ -342,7 +342,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
   const activeMeta = activeMode === "playground" ? null : workspaceModeMetaByMode[activeMode];
 
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-[#262626] p-1">
+    <div className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-[#262626] p-1 sm:w-auto sm:grid-cols-none sm:auto-cols-max sm:grid-flow-col sm:rounded-full">
       {workspaceModeMenus.map((menu) => {
         const activeMenu = activeMeta?.kind === menu.kind;
         const hasSafetyMenu = menu.hasSafetyMenu !== false && menu.modes.length > 1;
@@ -352,7 +352,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
         return (
           <div
             key={menu.kind}
-            className="relative -mb-2 pb-2"
+            className="relative"
             onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) {
                 setOpenKind(null);
@@ -374,7 +374,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
               aria-expanded={hasSafetyMenu ? isOpen : undefined}
               aria-haspopup={hasSafetyMenu ? "menu" : undefined}
               className={cx(
-                "inline-flex min-w-24 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition",
+                "inline-flex h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-semibold uppercase tracking-[0.16em] transition sm:min-w-24 sm:rounded-full",
                 activeMenu ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
               )}
               onClick={() => {
@@ -392,7 +392,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
             </button>
 
             {isOpen ? (
-              <div className="absolute left-0 top-full z-30 w-36 overflow-hidden rounded-2xl border border-white/10 bg-[#202020] p-1 shadow-[0_18px_42px_rgba(0,0,0,0.42)]">
+              <div className="absolute left-0 top-full z-30 mt-1 w-36 overflow-hidden rounded-2xl border border-white/10 bg-[#202020] p-1 shadow-[0_18px_42px_rgba(0,0,0,0.42)]">
                 {menu.modes.map((item) => {
                   const active = activeMode === item.mode;
 
@@ -420,7 +420,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
       })}
       <button
         className={cx(
-          "rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition",
+          "h-9 rounded-xl px-3 text-[11px] font-semibold uppercase tracking-[0.16em] transition sm:rounded-full",
           activeMode === "playground" ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
         )}
         onClick={() => {
@@ -1766,7 +1766,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
               <InfluencerAvatar model={model} size="lg" />
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Generation workspace</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-2 flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <h1 className="font-display text-2xl text-white sm:text-3xl">{model.name}</h1>
                   <GenerationModeMenus activeMode={mode} onSelectMode={onSelectMode} />
                 </div>
@@ -1817,7 +1817,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         ) : (
         <div
           className={cx(
-            "grid min-h-[68vh] gap-0 transition-[grid-template-columns] duration-200 ease-out",
+            "grid gap-0 transition-[grid-template-columns] duration-200 ease-out xl:min-h-[68vh]",
             sharedControlsCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)]" : "xl:grid-cols-[320px_minmax(0,1fr)]",
           )}
         >
@@ -1827,19 +1827,35 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
             <>
               <div className="border-b border-white/8 bg-[#202020] xl:border-r xl:border-b-0">
                 {sharedControlsCollapsed ? (
-                  <button
-                    className="flex h-full min-h-[68vh] w-full flex-col items-center gap-4 px-2 py-4 text-white/64 transition hover:bg-white/[0.03] hover:text-white"
-                    onClick={() => setSharedControlsCollapsed(false)}
-                    title="Show shared controls"
-                    type="button"
-                  >
-                    <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-lg font-bold leading-none">
-                      &gt;
-                    </span>
-                    <span className="rotate-180 text-[10px] font-semibold uppercase tracking-[0.2em] [writing-mode:vertical-rl]">
-                      Shared controls
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      className="flex w-full items-start justify-between gap-3 px-5 py-4 text-left text-white/64 transition hover:bg-white/[0.03] hover:text-white xl:hidden"
+                      onClick={() => setSharedControlsCollapsed(false)}
+                      title="Show shared controls"
+                      type="button"
+                    >
+                      <span>
+                        <span className="block text-[11px] uppercase tracking-[0.24em] text-white/38">Workspace rail</span>
+                        <span className="font-display mt-2 block text-xl text-white">Shared controls</span>
+                      </span>
+                      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-base font-bold leading-none text-white/68 transition hover:bg-white/[0.08] hover:text-white">
+                        v
+                      </span>
+                    </button>
+                    <button
+                      className="hidden h-full min-h-[68vh] w-full flex-col items-center gap-4 px-2 py-4 text-white/64 transition hover:bg-white/[0.03] hover:text-white xl:flex"
+                      onClick={() => setSharedControlsCollapsed(false)}
+                      title="Show shared controls"
+                      type="button"
+                    >
+                      <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-lg font-bold leading-none">
+                        &gt;
+                      </span>
+                      <span className="rotate-180 text-[10px] font-semibold uppercase tracking-[0.2em] [writing-mode:vertical-rl]">
+                        Shared controls
+                      </span>
+                    </button>
+                  </>
                 ) : (
                   <SettingsPanel
                     allowedGenerationModels={activeGenerationModelOptions}

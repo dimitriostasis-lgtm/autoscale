@@ -124,7 +124,8 @@ export function SettingsPanel({
               title="Hide shared controls"
               type="button"
             >
-              &lt;
+              <span className="xl:hidden">^</span>
+              <span className="hidden xl:inline">&lt;</span>
             </button>
           ) : null}
         </div>

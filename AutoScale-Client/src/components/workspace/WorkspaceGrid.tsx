@@ -267,7 +267,7 @@ export function WorkspaceGrid({
               <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Face Swap</div>
             ) : null}
             <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Status</div>
-            <div className="px-3 py-3 text-center">Remove</div>
+            <div className={cx("px-3 py-3 text-center", denseLayout && "-translate-x-1")}>Remove</div>
           </div>
 
           {board.rows.map((row) => {
