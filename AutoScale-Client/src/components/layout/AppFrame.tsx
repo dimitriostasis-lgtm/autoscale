@@ -129,6 +129,20 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
     window.setTimeout(scrollToSection, 240);
   }
 
+  function handleAccessMenuButtonClick(): void {
+    if (isAccessMenuOpen) {
+      handleAccessJumpChange("__top");
+      return;
+    }
+
+    setIsAccessMenuOpen(true);
+    if (!accessRouteActive) {
+      onNavigate({ name: "admin", sectionId: null });
+
+      window.setTimeout(() => window.scrollTo({ behavior: "smooth", top: 0 }), 80);
+    }
+  }
+
   return (
     <div className="app-shell-grid">
       <header className="sticky top-0 z-40 border-b border-[color:var(--surface-border)] bg-[color:var(--header-bg)] backdrop-blur-2xl">
@@ -199,7 +213,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
                           ? "bg-[color:var(--accent-main)] text-[color:var(--accent-foreground)]"
                           : "border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-main)] hover:bg-[color:var(--surface-soft-hover)]",
                       )}
-                      onClick={() => handleAccessJumpChange("__top")}
+                      onClick={handleAccessMenuButtonClick}
                       type="button"
                     >
                       {accessLabel}
@@ -209,7 +223,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
                     </button>
 
                     {isAccessMenuOpen ? (
-                      <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-72 overflow-hidden rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] p-2 shadow-[var(--shadow-card-strong)]">
+                      <div className="fixed inset-x-4 top-32 z-50 max-h-[calc(100vh-9rem)] overflow-y-auto rounded-3xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] p-2 shadow-[var(--shadow-card-strong)] sm:absolute sm:inset-x-auto sm:left-0 sm:top-[calc(100%+0.5rem)] sm:max-h-[min(70vh,28rem)] sm:w-72">
                         <button
                           className={cx(
                             "block w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold transition",

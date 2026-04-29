@@ -716,6 +716,31 @@ body {
   border-color: rgba(244, 63, 94, 0.22) !important;
 }
 
+@media (max-width: 767px) {
+  .admin-access-shell {
+    overflow-x: clip;
+  }
+
+  .admin-access-shell :where(section, div, form, aside, label, button, input, select, textarea, dl, dt, dd) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .admin-access-shell .truncate {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .admin-access-shell :where(h1, h2, h3, p, span, button, label, dt, dd) {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-access-shell [class*="tracking-["] {
+    letter-spacing: 0.1em;
+  }
+}
+
 @media (min-width: 640px) {
   .masonry-columns {
     column-count: 2;

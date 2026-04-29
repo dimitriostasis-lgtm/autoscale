@@ -2013,7 +2013,7 @@ export function AccessControlPanel({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="admin-access-shell min-w-0 space-y-5 overflow-x-hidden sm:space-y-6">
       {renderNotice("global")}
 
       {isPlatformAdmin ? (
@@ -2026,14 +2026,14 @@ export function AccessControlPanel({
                   Revenue from agency renewals, credit purchases, and plan upgrades across the platform.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 rounded-3xl border border-white/8 bg-black/18 p-1.5">
+              <div className="grid w-full grid-cols-2 gap-2 rounded-3xl border border-white/8 bg-black/18 p-1.5 sm:w-auto sm:grid-cols-none sm:flex sm:flex-wrap">
                 {salesRangeOptions.map((option) => {
                   const selected = salesRange === option.value;
                   return (
                     <button
                       key={option.value}
                       className={cx(
-                        "rounded-2xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition",
+                        "inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-2xl px-2.5 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.1em] transition sm:min-h-0 sm:px-3 sm:text-xs sm:tracking-[0.14em]",
                         selected ? "bg-lime-300 text-black" : "text-white/58 hover:bg-white/[0.06] hover:text-white/78",
                       )}
                       onClick={() => setSalesRange(option.value)}
@@ -2058,7 +2058,7 @@ export function AccessControlPanel({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-white/42">{selectedSalesSnapshot.label}</p>
-                  <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{formatCurrency(selectedSalesSnapshot.total)}</p>
+                  <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{formatCurrency(selectedSalesSnapshot.total)}</p>
                   <p className="mt-3 text-sm font-semibold text-lime-100">{selectedSalesSnapshot.changeLabel}</p>
                 </div>
                 <span className="rounded-full border border-white/10 bg-black/18 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/62">
@@ -2069,11 +2069,11 @@ export function AccessControlPanel({
               <div className="mt-7 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-3xl border border-white/12 bg-white/[0.055] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/42">Paid agencies</p>
-                  <p className="mt-3 text-3xl font-semibold text-white">{selectedSalesSnapshot.paidAgencies}</p>
+                  <p className="mt-3 text-2xl font-semibold text-white sm:text-3xl">{selectedSalesSnapshot.paidAgencies}</p>
                 </div>
                 <div className="rounded-3xl border border-white/12 bg-white/[0.055] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/42">Avg order</p>
-                  <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(selectedSalesSnapshot.averageOrderValue)}</p>
+                  <p className="mt-3 text-2xl font-semibold text-white sm:text-3xl">{formatCurrency(selectedSalesSnapshot.averageOrderValue)}</p>
                 </div>
               </div>
 
@@ -2135,10 +2135,10 @@ export function AccessControlPanel({
                 className="mt-6 rounded-[28px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] p-3 shadow-[var(--shadow-soft)] sm:p-5"
                 onMouseLeave={() => setActiveSalesPointIndex(null)}
               >
-                <div className="overflow-x-auto">
+                <div className="overflow-hidden">
                   <svg
                     aria-label={`${selectedSalesSnapshot.title} platform sales chart`}
-                    className="min-w-[760px]"
+                    className="block w-full"
                     role="img"
                     viewBox={`0 0 ${salesChart.width} ${salesChart.height}`}
                     width="100%"
@@ -2395,7 +2395,7 @@ export function AccessControlPanel({
         <section id="access-agency-performance" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
           <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
             <p className="text-xs uppercase tracking-[0.22em] text-white/42">Overview</p>
-            <h2 className="font-display mt-2 text-3xl text-white">Platform summary</h2>
+            <h2 className="font-display mt-2 text-2xl text-white sm:text-3xl">Platform summary</h2>
             <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
               A compact operations view for agency credits, influencer capacity, account load, and gallery output across the platform.
             </p>
@@ -2410,7 +2410,7 @@ export function AccessControlPanel({
               }}
             >
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencer Models</p>
-              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{models.length}</p>
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{models.length}</p>
               <p className="mt-3 text-sm leading-7 text-white/60">{platformAgencyTotals.assignedInfluencers.toLocaleString()} agency-owned influencer slots.</p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {models.slice(0, 4).map((model) => (
@@ -2428,13 +2428,13 @@ export function AccessControlPanel({
 
             <div className="border border-white/10 bg-[color:var(--surface-card)] px-6 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-7 sm:py-7">
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Agencies</p>
-              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{platformAgencyTotals.agencies}</p>
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{platformAgencyTotals.agencies}</p>
               <p className="mt-3 text-sm leading-7 text-white/60">{platformAgencyTotals.activeAccounts.toLocaleString()} active accounts under agency management.</p>
             </div>
 
             <div className="border border-white/10 bg-[color:var(--surface-card-strong)] px-6 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-7 sm:py-7">
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Agency Credits</p>
-              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{platformAgencyTotals.creditBalance.toLocaleString()}</p>
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{platformAgencyTotals.creditBalance.toLocaleString()}</p>
               <p className="mt-3 text-sm leading-7 text-white/60">
                 Total credit balance currently shown across all agencies.
               </p>
@@ -2448,7 +2448,7 @@ export function AccessControlPanel({
               }}
             >
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Gallery Outputs</p>
-              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{totalGalleryAssets}</p>
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{totalGalleryAssets}</p>
               <p className="mt-3 max-w-sm text-sm leading-7 text-white/60">
                 Generated assets currently available across the internal gallery surface for review, download, and reuse.
               </p>
@@ -2496,7 +2496,7 @@ export function AccessControlPanel({
             <div className="mt-5 min-w-0 overflow-hidden rounded-[28px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] shadow-[var(--shadow-soft)]">
               <div className="max-h-[520px] min-w-0 overflow-y-auto">
                 <div className="min-w-0">
-                  <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.3fr)_1.1fr_1.1fr_0.9fr_0.9fr] gap-px bg-[color:var(--surface-border)] lg:grid">
+                  <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.3fr)_1.1fr_1.1fr_0.9fr_0.9fr] gap-px bg-[color:var(--surface-border)] xl:grid">
                     <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Agency</div>
                     <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credits</div>
                     <div className="bg-[color:var(--surface-card)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Agency-owned influencers</div>
@@ -2510,7 +2510,7 @@ export function AccessControlPanel({
                       const statusLabel = row.overCapacityCount > 0 ? `${row.overCapacityCount.toLocaleString()} over capacity` : `${row.openInfluencerSlots.toLocaleString()} slots open`;
 
                       return (
-                        <div key={row.agency.id} className="grid min-w-0 gap-4 bg-[color:var(--surface-card)] px-4 py-4 text-sm transition hover:bg-[color:var(--surface-soft-hover)] lg:grid-cols-[minmax(0,1.3fr)_1.1fr_1.1fr_0.9fr_0.9fr] lg:gap-3">
+                        <div key={row.agency.id} className="grid min-w-0 gap-4 bg-[color:var(--surface-card)] px-4 py-4 text-sm transition hover:bg-[color:var(--surface-soft-hover)] xl:grid-cols-[minmax(0,1.3fr)_1.1fr_1.1fr_0.9fr_0.9fr] xl:gap-3">
                           <div className="min-w-0">
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
                               <p className="truncate font-semibold text-[color:var(--text-strong)]">{row.agency.name}</p>
@@ -2520,12 +2520,12 @@ export function AccessControlPanel({
                             </p>
                           </div>
                           <div>
-                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:hidden">Credits</p>
+                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:hidden">Credits</p>
                             <p className="font-semibold text-[color:var(--text-strong)]">{formatCreditCount(row.creditBalance)}</p>
                             <p className="mt-1 text-xs text-[color:var(--text-muted)]">Current agency balance</p>
                           </div>
                           <div>
-                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:hidden">Agency-owned influencers</p>
+                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:hidden">Agency-owned influencers</p>
                             <p className="font-semibold text-[color:var(--text-strong)]">
                               {row.assignedInfluencers.toLocaleString()} / {row.influencerCapacity.toLocaleString()} owned
                             </p>
@@ -2544,7 +2544,7 @@ export function AccessControlPanel({
                             </div>
                           </div>
                           <div>
-                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:hidden">Accounts</p>
+                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:hidden">Accounts</p>
                             <p className="font-semibold text-[color:var(--text-strong)]">{row.activeAccounts.toLocaleString()} active</p>
                             <p className="mt-1 text-xs text-[color:var(--text-muted)]">{row.memberCount.toLocaleString()} total accounts</p>
                             <p className="mt-1 text-xs text-[color:var(--text-muted)]">
@@ -2583,7 +2583,7 @@ export function AccessControlPanel({
             <p className="text-xs uppercase tracking-[0.22em] text-white/42">Overview</p>
             <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="font-display text-3xl text-white">Agency summary</h2>
+                <h2 className="font-display text-2xl text-white sm:text-3xl">Agency summary</h2>
                 <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
                   {agencySummaryAgency?.name || currentUser.agencyName || "Your agency"} owned influencers, account mix, gallery output volume, and credit usage.
                 </p>
@@ -2603,7 +2603,7 @@ export function AccessControlPanel({
               }}
             >
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Owned Influencers</p>
-              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{agencyAvailableModels.length}</p>
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{agencyAvailableModels.length}</p>
               <p className="mt-3 max-w-sm text-sm leading-7 text-white/60">
                 Influencer profiles owned by this agency and visible to agency admins.
               </p>
@@ -2637,7 +2637,7 @@ export function AccessControlPanel({
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-4">
                     <p className="text-xs uppercase tracking-[0.18em] text-white/42">{label}</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{value}</p>
+                    <p className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{value}</p>
                   </div>
                 ))}
               </div>
@@ -2651,7 +2651,7 @@ export function AccessControlPanel({
               }}
             >
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Gallery Outputs</p>
-              <p className="mt-5 text-5xl font-semibold tracking-tight text-white">{agencyGalleryAssets}</p>
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{agencyGalleryAssets}</p>
               <p className="mt-3 max-w-sm text-sm leading-7 text-white/60">
                 Generated assets across {agencyBoardCount} workspace board{agencyBoardCount === 1 ? "" : "s"} for this agency.
               </p>
@@ -2682,7 +2682,7 @@ export function AccessControlPanel({
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--text-muted)]">Credit Controls</p>
-                <h3 className="font-display mt-2 text-3xl text-[color:var(--text-strong)]">User spend and allocation</h3>
+                <h3 className="font-display mt-2 text-2xl text-[color:var(--text-strong)] sm:text-3xl">User spend and allocation</h3>
                 <p className="mt-3 max-w-4xl text-sm leading-7 text-[color:var(--text-muted)]">
                   Pick one credit policy for the agency, then review spend and allocation caps for each user or manager.
                 </p>
@@ -2787,7 +2787,7 @@ export function AccessControlPanel({
                 </span>
               </div>
 
-              <div className="hidden gap-px bg-[color:var(--surface-border)] text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)] lg:grid lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr]">
+              <div className="hidden gap-px bg-[color:var(--surface-border)] text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)] xl:grid xl:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr]">
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Account</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">{agencyCreditAccessMode === "AGENCY_POOL" ? "Policy" : "Allocation cap"}</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Spent</div>
@@ -2818,14 +2818,14 @@ export function AccessControlPanel({
                   return (
                     <div
                       key={row.user.id}
-                      className="grid gap-4 bg-[color:var(--surface-card)] px-4 py-4 lg:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr] lg:items-center"
+                      className="grid gap-4 bg-[color:var(--surface-card)] px-4 py-4 xl:grid-cols-[minmax(0,1.25fr)_0.8fr_0.75fr_0.8fr_0.8fr_0.95fr] xl:items-center"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{row.user.name}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{roleLabel(row.user.role)}</p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] xl:hidden">
                           {agencyCreditAccessMode === "AGENCY_POOL" ? "Policy" : "Allocation cap"}
                         </p>
                         {agencyCreditAccessMode === "USER_ALLOCATION" && canReceiveAllocation ? (
@@ -2851,21 +2851,21 @@ export function AccessControlPanel({
                         </p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Spent</p>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] xl:hidden">Spent</p>
                         <p className="text-sm font-semibold text-[color:var(--text-strong)]">{formatCreditCount(row.estimatedCredits)}</p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Outputs</p>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] xl:hidden">Outputs</p>
                         <p className="text-sm text-[color:var(--text-main)]">
                           {row.outputCount.toLocaleString()} output{row.outputCount === 1 ? "" : "s"} / {row.modelCount.toLocaleString()} model{row.modelCount === 1 ? "" : "s"}
                         </p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Last use</p>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] xl:hidden">Last use</p>
                         <p className="text-sm text-[color:var(--text-main)]">{formatTimestamp(row.lastGeneratedAt)}</p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] lg:hidden">Credit status</p>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)] xl:hidden">Credit status</p>
                         <span className="inline-flex w-fit rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
                           {agencyCreditAccessMode === "AGENCY_POOL" ? "Shared access" : canReceiveAllocation ? "Cap editable" : "Admin reserve"}
                         </span>
@@ -2927,7 +2927,7 @@ export function AccessControlPanel({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Access control</p>
-              <h2 className="font-display mt-2 text-3xl text-white">Directory and selected account</h2>
+              <h2 className="font-display mt-2 text-2xl text-white sm:text-3xl">Directory and selected account</h2>
               <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
                 {isPlatformAdmin
                   ? "Pick an account from the directory and manage its role, agency, permissions, and status. Agency admins control user-level model access inside their own agency."
@@ -2937,7 +2937,7 @@ export function AccessControlPanel({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-3xl border border-white/8 bg-black/16 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/44">Visible accounts</p>
-                <p className="mt-2 text-3xl font-semibold text-white">{filteredUsers.length}</p>
+                <p className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{filteredUsers.length}</p>
               </div>
               <div className="rounded-3xl border border-white/8 bg-black/16 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/44">Selected scope</p>
@@ -2947,8 +2947,8 @@ export function AccessControlPanel({
           </div>
         </div>
 
-        <div className="grid gap-px bg-white/8 xl:grid-cols-[1.02fr_1.08fr]">
-          <div className="max-h-[1180px] overflow-y-auto bg-[color:var(--surface-card-strong)] p-5 sm:p-6">
+        <div className="grid min-w-0 gap-px bg-white/8 xl:grid-cols-[1.02fr_1.08fr]">
+          <div className="min-w-0 bg-[color:var(--surface-card-strong)] p-4 sm:p-6 xl:max-h-[1180px] xl:overflow-y-auto">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Directory</p>
@@ -3040,7 +3040,7 @@ export function AccessControlPanel({
           </div>
           </div>
 
-          <div className="max-h-[1180px] overflow-y-auto bg-[color:var(--surface-card)] p-4 sm:p-5">
+          <div className="min-w-0 bg-[color:var(--surface-card)] p-4 sm:p-5 xl:max-h-[1180px] xl:overflow-y-auto">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Account</p>
@@ -3055,7 +3055,7 @@ export function AccessControlPanel({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-2 md:grid-cols-3">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-3">
               <p className="text-xs uppercase tracking-[0.18em] text-white/40">Email</p>
               <p className="mt-1.5 truncate text-sm font-semibold text-white">{selectedUser.email}</p>
@@ -3184,11 +3184,11 @@ export function AccessControlPanel({
           </div>
 
           {selectedUser.role === "AGENCY_MANAGER" ? (
-            <div className="relative mt-6 rounded-[28px] border border-white/8 bg-black/14 p-5 pr-16">
+            <div className="relative mt-6 rounded-[28px] border border-white/8 bg-black/14 p-4 pt-16 sm:p-5 sm:pr-16">
               <button
                 aria-expanded={managerPermissionsExpanded}
                 aria-label={managerPermissionsExpanded ? "Collapse manager permissions" : "Expand manager permissions"}
-                className="absolute right-5 top-5 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105"
+                className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105 sm:right-5 sm:top-5"
                 onClick={() => setManagerPermissionsExpanded((current) => !current)}
                 type="button"
               >
@@ -3253,11 +3253,11 @@ export function AccessControlPanel({
           ) : null}
 
           {!isPlatformAdmin ? (
-          <div className="relative mt-6 rounded-[28px] border border-white/8 bg-black/14 p-5 pr-16">
+          <div className="relative mt-6 rounded-[28px] border border-white/8 bg-black/14 p-4 pt-16 sm:p-5 sm:pr-16">
             <button
               aria-expanded={influencerAccessExpanded}
               aria-label={influencerAccessExpanded ? "Collapse influencer access" : "Expand influencer access"}
-              className="absolute right-5 top-5 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105"
+              className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105 sm:right-5 sm:top-5"
               onClick={() => setInfluencerAccessExpanded((current) => !current)}
               type="button"
             >
@@ -3447,7 +3447,7 @@ export function AccessControlPanel({
                     Create, rename, remove, and tune agency billing settings from one operations view.
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-right">
+                <div className="grid w-full grid-cols-1 gap-2 text-left sm:w-auto sm:grid-cols-3 sm:text-right">
                   <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
                     <p className="text-[11px] uppercase tracking-[0.16em] text-white/42">Agencies</p>
                     <p className="mt-1 text-lg font-semibold text-white">{agencies.length}</p>
@@ -3490,7 +3490,7 @@ export function AccessControlPanel({
             </div>
 
             <div className="max-h-[860px] overflow-y-auto">
-              <div className="sticky top-0 z-10 hidden grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] gap-px bg-[color:var(--surface-border)] text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:grid">
+              <div className="sticky top-0 z-10 hidden grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] gap-px bg-[color:var(--surface-border)] text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:grid">
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Agency</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Roster</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Influencers</div>
@@ -3510,21 +3510,21 @@ export function AccessControlPanel({
                   }`;
 
                   return (
-                    <div key={agency.id} className="grid gap-4 border-b border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-4 text-sm transition last:border-b-0 hover:bg-[color:var(--surface-soft-hover)] lg:grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] lg:items-center">
+                    <div key={agency.id} className="grid gap-4 border-b border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-4 text-sm transition last:border-b-0 hover:bg-[color:var(--surface-soft-hover)] xl:grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] xl:items-center">
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-[color:var(--text-strong)]">{agency.name}</p>
                         <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{agency.slug}</p>
                         <p className="mt-1 text-xs text-[color:var(--text-muted)]">Created {new Date(agency.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:hidden">Roster</p>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:hidden">Roster</p>
                         <p className="font-semibold text-[color:var(--text-strong)]">{row.memberCount} total / {row.activeAccounts} active</p>
                         <p className="mt-1 text-xs text-[color:var(--text-muted)]">
                           {agency.adminCount} admins / {agency.managerCount} managers / {agency.userCount} users
                         </p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:hidden">Influencers</p>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:hidden">Influencers</p>
                         <p className="font-semibold text-[color:var(--text-strong)]">{row.assignedInfluencers} / {row.influencerCapacity} owned</p>
                         <p className={cx("mt-1 text-xs", row.overCapacityCount > 0 ? "text-red-100/72" : "text-[color:var(--text-muted)]")}>
                           {row.overCapacityCount > 0 ? `${row.overCapacityCount} over capacity` : `${row.openInfluencerSlots} slots open`}
@@ -3538,11 +3538,11 @@ export function AccessControlPanel({
                           onChange={(event) => setAgencyDrafts((current) => ({ ...current, [agency.id]: event.target.value }))}
                         />
                       </label>
-                      <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-start xl:justify-end">
                         <button
                           aria-expanded={billingSettingsExpanded}
                           className={cx(
-                            "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition",
+                            "inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition sm:w-auto",
                             billingSettingsExpanded
                               ? "border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-[color:var(--accent-text)]"
                               : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-main)] hover:bg-[color:var(--surface-soft-hover)]",
@@ -3559,15 +3559,15 @@ export function AccessControlPanel({
                           </svg>
                           Settings
                         </button>
-                        <button className={theme.buttonSecondary} onClick={() => void handleRenameAgency(agency)} type="button">
+                        <button className={theme.buttonSecondary + " w-full sm:w-auto"} onClick={() => void handleRenameAgency(agency)} type="button">
                           Rename
                         </button>
-                        <button className={theme.buttonDanger} onClick={() => void handleDeleteAgency(agency)} title={deleteSummary} type="button">
+                        <button className={theme.buttonDanger + " w-full sm:w-auto"} onClick={() => void handleDeleteAgency(agency)} title={deleteSummary} type="button">
                           Delete
                         </button>
                       </div>
                       {billingSettingsExpanded ? (
-                      <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-strong)_5%,transparent)] lg:col-span-5">
+                      <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-strong)_5%,transparent)] xl:col-span-5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">BILLING & ALLOWANCE SETTINGS</p>
@@ -3623,7 +3623,7 @@ export function AccessControlPanel({
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.22em] text-white/42">Provisioning</p>
-                    <h3 className="font-display mt-2 text-3xl text-white">Create platform accounts</h3>
+                    <h3 className="font-display mt-2 text-2xl text-white sm:text-3xl">Create platform accounts</h3>
                     <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
                       Create platform-wide admins or agency-scoped accounts. For user accounts, choose an agency first, then grant influencer access below.
                     </p>
@@ -3781,19 +3781,19 @@ export function AccessControlPanel({
               </form>
             </section>
           ) : null}
-          <section id="access-influencer-profiles" className={theme.cardStrong + " glass-panel theme-smooth max-h-[980px] scroll-mt-32 overflow-y-auto p-0"}>
+          <section id="access-influencer-profiles" className={theme.cardStrong + " glass-panel theme-smooth scroll-mt-32 overflow-hidden p-0 xl:max-h-[980px] xl:overflow-y-auto"}>
             <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencers</p>
-              <h3 className="font-display mt-2 text-3xl text-white">Influencer profile setup</h3>
+              <h3 className="font-display mt-2 text-2xl text-white sm:text-3xl">Influencer profile setup</h3>
               <p className="mt-3 max-w-4xl text-sm leading-7 text-white/56">
                 Only the platform administrator can create and manage AI influencer models. Every new profile ships with the full generation toolset by default, while agency ownership is controlled here and updates access immediately for agency admins.
               </p>
             </div>
 
-            <div className="p-6 sm:p-7">
+            <div className="p-4 sm:p-7">
 
             <form className="mt-6 overflow-hidden rounded-[28px] border border-white/8 bg-white/[0.03]" onSubmit={handleCreateInfluencer}>
-              <div className="grid gap-px bg-white/8 xl:grid-cols-[minmax(0,1.1fr)_360px]">
+              <div className="grid min-w-0 gap-px bg-white/8 xl:grid-cols-[minmax(0,1.1fr)_360px]">
                 <div className="bg-[color:var(--surface-card)] p-4 sm:p-5">
                   <div>
                     <p className="text-sm font-semibold text-white">Create profile</p>
@@ -3949,7 +3949,7 @@ export function AccessControlPanel({
                     {selectedInfluencer ? (
                       <div className="rounded-[28px] border border-white/8 bg-black/14 p-4 sm:p-5">
                         <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div className="flex min-w-0 items-start gap-4">
+                          <div className="flex min-w-0 flex-wrap items-start gap-4 sm:flex-nowrap">
                             <InfluencerAvatar
                               model={{
                                 ...selectedInfluencer,
@@ -3964,7 +3964,7 @@ export function AccessControlPanel({
                               <p className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-white/46">{modelProfileDraft.handle || selectedInfluencer.handle}</p>
                             </div>
                           </div>
-                          <div className="min-w-[180px] rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
+                          <div className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left sm:w-auto sm:min-w-[180px] sm:text-right">
                             <p className="text-xs uppercase tracking-[0.2em] text-white/44">Current owner</p>
                             <p className="mt-2 text-sm font-semibold text-white">{selectedInfluencerCurrentAgencyName}</p>
                           </div>
@@ -4063,7 +4063,7 @@ export function AccessControlPanel({
                           </div>
 
                           <div className="mt-4 max-h-[520px] overflow-y-auto rounded-2xl border border-white/8 bg-black/18">
-                            <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.2fr)_130px_170px] gap-4 border-b border-white/8 bg-[var(--surface-card-strong)] px-4 py-3 text-xs uppercase tracking-[0.18em] text-white/42 md:grid">
+                            <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.2fr)_130px_170px] gap-4 border-b border-white/8 bg-[var(--surface-card-strong)] px-4 py-3 text-xs uppercase tracking-[0.18em] text-white/42 lg:grid">
                               <span>Agency</span>
                               <span>Accounts</span>
                               <span className="text-right">Ownership change</span>
@@ -4078,7 +4078,7 @@ export function AccessControlPanel({
                                 <button
                                   key={agency.id}
                                   className={cx(
-                                    "grid w-full gap-3 border-b border-white/8 px-4 py-4 text-left transition last:border-b-0 md:grid-cols-[minmax(0,1.2fr)_130px_170px] md:items-center md:gap-4",
+                                    "grid w-full gap-3 border-b border-white/8 px-4 py-4 text-left transition last:border-b-0 lg:grid-cols-[minmax(0,1.2fr)_130px_170px] lg:items-center lg:gap-4",
                                     currentOwner
                                       ? "bg-lime-300/[0.08] hover:bg-lime-300/[0.12]"
                                       : willBecomeOwner
@@ -4093,7 +4093,7 @@ export function AccessControlPanel({
                                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/42">{agency.slug}</p>
                                   </div>
                                   <p className="text-sm text-white/56">{scopedMembers} accounts</p>
-                                  <div className="flex justify-start md:justify-end">
+                                  <div className="flex justify-start lg:justify-end">
                                     <span
                                       className={cx(
                                         "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]",
@@ -4148,13 +4148,13 @@ export function AccessControlPanel({
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-white/42">Provisioning</p>
-                <h3 className="font-display mt-2 text-3xl text-white">Create agency accounts</h3>
+                <h3 className="font-display mt-2 text-2xl text-white sm:text-3xl">Create agency accounts</h3>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
                   Add teammates to {currentUser.agencyName || "your agency"} with the right day-one access.
                 </p>
               </div>
 
-              <div className="grid w-full gap-2 text-right sm:w-auto sm:grid-cols-3">
+              <div className="grid w-full gap-2 text-left sm:w-auto sm:grid-cols-3 sm:text-right">
                 {[
                   ["Agency", currentUser.agencyName || "Assigned"],
                   ["Active", agencySummaryCounts.activeCount.toLocaleString()],
@@ -4169,7 +4169,7 @@ export function AccessControlPanel({
             </div>
           </div>
 
-          <form className="grid gap-px bg-white/8 lg:grid-cols-[minmax(0,1fr)_340px]" onSubmit={handleCreateUser}>
+          <form className="grid min-w-0 gap-px bg-white/8 lg:grid-cols-[minmax(0,1fr)_340px]" onSubmit={handleCreateUser}>
             <div className="bg-[color:var(--surface-card)] p-5 sm:p-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block space-y-2">
@@ -4316,7 +4316,7 @@ export function AccessControlPanel({
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 pb-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-rose-200/68">Confirm deletion</p>
-                <h3 className="font-display mt-2 text-3xl text-white">Delete account?</h3>
+                <h3 className="font-display mt-2 text-2xl text-white sm:text-3xl">Delete account?</h3>
                 <p className="mt-3 max-w-lg text-sm leading-7 text-white/58">
                   You are about to delete <span className="font-semibold text-white">{userPendingDeletion.name}</span>.
                 </p>
@@ -4370,7 +4370,7 @@ export function AccessControlPanel({
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 pb-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-rose-200/68">Confirm deletion</p>
-                <h3 className="font-display mt-2 text-3xl text-white">Delete AI influencer?</h3>
+                <h3 className="font-display mt-2 text-2xl text-white sm:text-3xl">Delete AI influencer?</h3>
                 <p className="mt-3 max-w-lg text-sm leading-7 text-white/58">
                   This will permanently remove <span className="font-semibold text-white">{influencerPendingDeletion.name}</span> from the model library.
                 </p>
