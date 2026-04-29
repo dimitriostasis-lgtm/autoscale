@@ -122,6 +122,13 @@ body {
   backdrop-filter: blur(24px);
 }
 
+.theme-smooth,
+.theme-smooth * {
+  transition-duration: 220ms;
+  transition-property: background-color, border-color, color, fill, opacity, stroke, box-shadow;
+  transition-timing-function: ease;
+}
+
 .font-display {
   font-family: "Space Grotesk", "Manrope", sans-serif;
 }

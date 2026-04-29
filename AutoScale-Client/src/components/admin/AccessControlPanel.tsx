@@ -3399,7 +3399,7 @@ export function AccessControlPanel({
 
       {isPlatformAdmin ? (
         <div className="space-y-6">
-          <section id="access-agency-settings" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
+          <section id="access-agency-settings" className={theme.cardStrong + " glass-panel theme-smooth scroll-mt-32 overflow-hidden p-0"}>
             <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6" style={sectionHeaderGlowStyle}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -3743,7 +3743,7 @@ export function AccessControlPanel({
               </form>
             </section>
           ) : null}
-          <section id="access-influencer-profiles" className={theme.cardStrong + " glass-panel max-h-[980px] scroll-mt-32 overflow-y-auto p-0"}>
+          <section id="access-influencer-profiles" className={theme.cardStrong + " glass-panel theme-smooth max-h-[980px] scroll-mt-32 overflow-y-auto p-0"}>
             <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencers</p>
               <h3 className="font-display mt-2 text-3xl text-white">Influencer profile setup</h3>
@@ -3833,38 +3833,38 @@ export function AccessControlPanel({
               {models.length ? (
                 <>
                   <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.45fr)]">
-                    <div className="overflow-hidden rounded-[28px] border border-white/8 bg-white/[0.03]">
-                      <div className="border-b border-white/8 p-4 sm:p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-white/44">Influencer library</p>
-                          <p className="mt-2 text-sm font-semibold text-white">
-                            {filteredInfluencerModels.length} of {models.length} visible
-                          </p>
+                    <div className="overflow-hidden rounded-[28px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] transition-colors duration-300 ease-out">
+                      <div className="border-b border-[color:var(--surface-border)] p-4 transition-colors duration-300 ease-out sm:p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--text-muted)] transition-colors duration-300 ease-out">Influencer library</p>
+                            <p className="mt-2 text-sm font-semibold text-[color:var(--text-strong)] transition-colors duration-300 ease-out">
+                              {filteredInfluencerModels.length} of {models.length} visible
+                            </p>
+                          </div>
+                          <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--text-muted)] transition-colors duration-300 ease-out">
+                            {models.filter((model) => model.assignedAgencyIds.length === 0).length} unassigned
+                          </span>
                         </div>
-                        <span className="rounded-full border border-white/10 bg-black/18 px-3 py-1 text-xs font-semibold text-white/62">
-                          {models.filter((model) => model.assignedAgencyIds.length === 0).length} unassigned
-                        </span>
+
+                        <input
+                          className={theme.input + " mt-4"}
+                          placeholder="Search influencers or owner agencies"
+                          value={influencerLibrarySearch}
+                          onChange={(event) => setInfluencerLibrarySearch(event.target.value)}
+                        />
                       </div>
 
-                      <input
-                        className={theme.input + " mt-4"}
-                        placeholder="Search influencers or owner agencies"
-                        value={influencerLibrarySearch}
-                        onChange={(event) => setInfluencerLibrarySearch(event.target.value)}
-                      />
-                      </div>
-
-                      <div className="max-h-[620px] divide-y divide-white/8 overflow-y-auto">
+                      <div className="max-h-[620px] divide-y divide-[color:var(--surface-border)] overflow-y-auto transition-colors duration-300 ease-out">
                         {filteredInfluencerModels.map((model) => {
                           const active = model.id === selectedInfluencer?.id;
                           return (
                             <button
                               key={model.id}
                               className={cx(
-                                "grid w-full gap-3 px-4 py-4 text-left transition sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center",
+                                "grid w-full gap-3 border-b border-[color:var(--surface-border)] px-4 py-4 text-left transition-colors duration-300 ease-out last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center",
                                 active
-                                  ? "bg-lime-300/12"
+                                  ? "bg-[color:var(--accent-soft)]"
                                   : "bg-[color:var(--surface-card)] hover:bg-[color:var(--surface-soft-hover)]",
                               )}
                               onClick={() => setSelectedInfluencerId(model.id)}
@@ -3874,34 +3874,34 @@ export function AccessControlPanel({
                                 <InfluencerAvatar model={model} size="sm" />
                                 <div className="min-w-0">
                                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                    <p className="truncate text-sm font-semibold text-white">{model.name}</p>
+                                    <p className="truncate text-sm font-semibold text-[color:var(--text-strong)] transition-colors duration-300 ease-out">{model.name}</p>
                                     {active ? (
-                                      <span className="rounded-full bg-lime-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-black">Selected</span>
+                                      <span className="rounded-full bg-[color:var(--accent-main)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--accent-foreground)] transition-colors duration-300 ease-out">Selected</span>
                                     ) : null}
                                   </div>
-                                  <p className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-white/46">{model.handle}</p>
+                                  <p className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)] transition-colors duration-300 ease-out">{model.handle}</p>
                                   <div className="mt-2 flex flex-wrap gap-1.5">
-                                    <span className="rounded-full border border-white/8 bg-black/16 px-2 py-1 text-[11px] font-semibold text-white/50">
+                                    <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[color:var(--text-muted)] transition-colors duration-300 ease-out">
                                       {model.outputCount} outputs
                                     </span>
-                                    <span className="rounded-full border border-white/8 bg-black/16 px-2 py-1 text-[11px] font-semibold text-white/50">
+                                    <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[color:var(--text-muted)] transition-colors duration-300 ease-out">
                                       {model.platformWorkflowCount + model.customWorkflowCount} workflows
                                     </span>
                                   </div>
                                 </div>
                               </div>
                               <div className="flex items-center justify-between gap-2 sm:justify-end">
-                                <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/62">
+                                <span className="shrink-0 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)] transition-colors duration-300 ease-out">
                                   {model.assignedAgencyNames[0] || "Unassigned"}
                                 </span>
-                                <span className={cx("h-2.5 w-2.5 shrink-0 rounded-full", active ? "bg-lime-300" : "bg-white/18")} />
+                                <span className={cx("h-2.5 w-2.5 shrink-0 rounded-full transition-colors duration-300 ease-out", active ? "bg-[color:var(--accent-main)]" : "bg-[color:var(--surface-border-strong)]")} />
                               </div>
                             </button>
                           );
                         })}
 
                         {!filteredInfluencerModels.length ? (
-                          <div className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/14 p-4 text-sm text-white/50">
+                          <div className="m-4 rounded-2xl border border-dashed border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-4 text-sm text-[color:var(--text-muted)] transition-colors duration-300 ease-out">
                             No influencers match this search.
                           </div>
                         ) : null}
@@ -3977,8 +3977,8 @@ export function AccessControlPanel({
                             >
                               Reset
                             </button>
-                            <button className={theme.buttonSecondary} onClick={() => setInfluencerPendingDeletionId(selectedInfluencer.id)} type="button">
-                              Delete influencer
+                            <button className={theme.buttonDanger} onClick={() => setInfluencerPendingDeletionId(selectedInfluencer.id)} type="button">
+                              Delete
                             </button>
                           </div>
                         </form>
