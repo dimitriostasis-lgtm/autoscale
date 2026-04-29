@@ -227,7 +227,7 @@ export function WorkspaceGrid({
               <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Face Swap</div>
             ) : null}
             <div className="border-r border-[color:var(--surface-border)] px-3 py-3">Status</div>
-            <div className="px-3 py-3">Actions</div>
+            <div className="px-3 py-3 text-center">Remove</div>
           </div>
 
           {board.rows.map((row) => {
@@ -709,8 +709,19 @@ export function WorkspaceGrid({
                 </div>
 
                 <div className="flex items-start justify-center px-3 py-3">
-                  <button className={theme.buttonDanger + " h-9 rounded-lg px-3 py-0 text-xs"} onClick={() => void onDeleteRow(row.id)} type="button">
-                    Del
+                  <button
+                    aria-label={`Remove row ${row.orderIndex + 1}`}
+                    className="group inline-grid size-9 place-items-center rounded-xl border border-rose-400/18 bg-rose-400/[0.06] text-rose-200/80 transition hover:border-rose-300/35 hover:bg-rose-400/14 hover:text-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/35"
+                    onClick={() => void onDeleteRow(row.id)}
+                    title="Remove row"
+                    type="button"
+                  >
+                    <svg aria-hidden="true" className="size-4 transition group-hover:scale-110" viewBox="0 0 20 20">
+                      <path
+                        d="M5.22 5.22a.75.75 0 0 1 1.06 0L10 8.94l3.72-3.72a.75.75 0 1 1 1.06 1.06L11.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06L10 11.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06L8.94 10 5.22 6.28a.75.75 0 0 1 0-1.06Z"
+                        fill="currentColor"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
