@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
+
 import { cx } from "../../lib/cx";
+import { improvePromptDraft } from "../../lib/promptImprovement";
 import type { ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../../types";
 import { isPoseMultiplierWorkspace, theme } from "../../styles/theme";
 
@@ -70,6 +73,8 @@ export function WorkspaceGrid({
   onDeleteRow,
   onAddRow,
 }: WorkspaceGridProps) {
+  const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({});
+  const [improvingPromptRowId, setImprovingPromptRowId] = useState<string | null>(null);
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode);
   const isFaceSwapWorkspaceLayout = board.settings.sdxlWorkspaceMode === "FACE_SWAP";
   const isVideoReference = referenceMediaKind === "video";
@@ -148,6 +153,45 @@ export function WorkspaceGrid({
     "relative z-10 mt-1 flex min-h-[148px] flex-1 items-center justify-center rounded-lg border border-dashed border-[color:var(--surface-border)] bg-[color:var(--surface-card)]/72 px-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--text-muted)] backdrop-blur-sm";
   const autoReferenceTitle = isVideoReference ? "Auto video" : "Auto image";
   const autoReferenceKindLabel = isVideoReference ? "Video reference" : "Image reference";
+
+  useEffect(() => {
+    setPromptDrafts((current) => {
+      const next: Record<string, string> = {};
+
+      for (const row of board.rows) {
+        next[row.id] = current[row.id] ?? row.prompt;
+      }
+
+      return next;
+    });
+  }, [board.rows]);
+
+  function handlePromptDraftChange(rowId: string, prompt: string): void {
+    setPromptDrafts((current) => ({ ...current, [rowId]: prompt }));
+  }
+
+  function handlePromptCommit(row: WorkspaceRow, prompt: string): void {
+    if (prompt !== row.prompt) {
+      void onCommitRow({ rowId: row.id, prompt });
+    }
+  }
+
+  function handleImproveRowPrompt(row: WorkspaceRow): void {
+    const currentPrompt = (promptDrafts[row.id] ?? row.prompt).trim();
+
+    if (!currentPrompt || improvingPromptRowId) {
+      return;
+    }
+
+    setImprovingPromptRowId(row.id);
+    window.setTimeout(() => {
+      const improvedPrompt = improvePromptDraft(currentPrompt);
+      setPromptDrafts((current) => ({ ...current, [row.id]: improvedPrompt }));
+      void onCommitRow({ rowId: row.id, prompt: improvedPrompt });
+      setImprovingPromptRowId(null);
+    }, 250);
+  }
+
   const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false) => (
     <div className={cx("grid grid-cols-2 gap-3 rounded-xl border border-white/8 bg-[#202020] p-3", compact ? "min-h-[116px] flex-1" : "h-full min-h-[188px]")}>
       {row.outputAssets.map((asset) => (
@@ -491,17 +535,35 @@ export function WorkspaceGrid({
                           </span>
                         </div>
                       ) : (
-                        <textarea
-                          className="workspace-row-prompt-input h-full min-h-[188px] w-full resize-none rounded-lg border border-white/8 bg-[#222222] px-3 py-2 text-sm leading-6 text-white outline-none transition placeholder:text-white/34 focus:border-white/14 focus:bg-[#262626]"
-                          defaultValue={row.prompt}
-                          disabled={promptLockedByAudioReference}
-                          onBlur={(event) => {
-                            if (event.target.value !== row.prompt) {
-                              void onCommitRow({ rowId: row.id, prompt: event.target.value });
-                            }
-                          }}
-                          placeholder="Describe the job prompt for this influencer row"
-                        />
+                        <div className="relative h-full min-h-[188px]">
+                          <button
+                            className="absolute right-3 top-3 z-10 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
+                            disabled={promptLockedByAudioReference || !(promptDrafts[row.id] ?? row.prompt).trim() || Boolean(improvingPromptRowId)}
+                            onClick={() => handleImproveRowPrompt(row)}
+                            title="Improve this prompt without turning on Auto Prompt."
+                            type="button"
+                          >
+                            <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
+                              <path
+                                d="M10.9 2.9c.08-.48.76-.48.84 0l.18 1.1a5.28 5.28 0 0 0 4.36 4.36l1.1.18c.48.08.48.76 0 .84l-1.1.18a5.28 5.28 0 0 0-4.36 4.36l-.18 1.1c-.08.48-.76.48-.84 0l-.18-1.1a5.28 5.28 0 0 0-4.36-4.36l-1.1-.18c-.48-.08-.48-.76 0-.84l1.1-.18A5.28 5.28 0 0 0 10.72 4l.18-1.1Z"
+                                fill="currentColor"
+                              />
+                              <path
+                                d="M4.72 12.75c.06-.3.48-.3.54 0l.08.39a2.4 2.4 0 0 0 1.9 1.9l.39.08c.3.06.3.48 0 .54l-.39.08a2.4 2.4 0 0 0-1.9 1.9l-.08.39c-.06.3-.48.3-.54 0l-.08-.39a2.4 2.4 0 0 0-1.9-1.9l-.39-.08c-.3-.06-.3-.48 0-.54l.39-.08a2.4 2.4 0 0 0 1.9-1.9l.08-.39Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                            {improvingPromptRowId === row.id ? "Improving" : "Improve prompt"}
+                          </button>
+                          <textarea
+                            className="workspace-row-prompt-input h-full min-h-[188px] w-full resize-none rounded-lg border border-white/8 bg-[#222222] px-3 pb-2 pt-12 text-sm leading-6 text-white outline-none transition placeholder:text-white/34 focus:border-white/14 focus:bg-[#262626]"
+                            disabled={promptLockedByAudioReference}
+                            onBlur={(event) => handlePromptCommit(row, event.target.value)}
+                            onChange={(event) => handlePromptDraftChange(row.id, event.target.value)}
+                            placeholder="Describe the job prompt for this influencer row"
+                            value={promptDrafts[row.id] ?? row.prompt}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>

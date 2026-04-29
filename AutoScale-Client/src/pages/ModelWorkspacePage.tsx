@@ -8,6 +8,7 @@ import { ImagePickerModal } from "../components/workspace/ImagePickerModal";
 import { SettingsPanel } from "../components/workspace/SettingsPanel";
 import { WorkspaceGrid } from "../components/workspace/WorkspaceGrid";
 import { cx } from "../lib/cx";
+import { improvePromptDraft } from "../lib/promptImprovement";
 import type { WorkspaceMode } from "../lib/router";
 import { uploadReferenceFile } from "../lib/uploads";
 import { INFLUENCER_MODEL_QUERY, MODEL_ASSETS_QUERY } from "../queries/model";
@@ -222,26 +223,6 @@ function buildEmptyGlobalReference(slotIndex: number): ReferenceSelection {
 
 function previewSourceForReference(reference: ReferenceSelection): string | null {
   return reference.asset?.url || reference.assetUrl || reference.uploadUrl || null;
-}
-
-function improveVoiceoverPromptDraft(prompt: string): string {
-  const normalized = prompt
-    .replace(/\s+/g, " ")
-    .replace(/\s+([,.!?;:])/g, "$1")
-    .trim();
-
-  if (!normalized) {
-    return "";
-  }
-
-  const sentenceCase = normalized.replace(/(^|[.!?]\s+)([a-z])/g, (match) => match.toUpperCase());
-  const punctuated = /[.!?]$/.test(sentenceCase) ? sentenceCase : `${sentenceCase}.`;
-
-  if (/^Voiceover direction:/i.test(punctuated)) {
-    return punctuated;
-  }
-
-  return `Voiceover direction: deliver this naturally, clearly, and with a polished human cadence.\n\n${punctuated}`;
 }
 
 function filledGlobalReferences(settings: BoardSettings): ReferenceSelection[] {
@@ -478,7 +459,7 @@ function PlaygroundSurface({
   const [draggedReferenceId, setDraggedReferenceId] = useState<string | null>(null);
   const [referenceDropIndex, setReferenceDropIndex] = useState<number | null>(null);
   const [voicePlaygroundMode, setVoicePlaygroundMode] = useState<"VOICEOVER" | "CHANGE_VOICE">("VOICEOVER");
-  const [improvingVoicePrompt, setImprovingVoicePrompt] = useState(false);
+  const [improvingPrompt, setImprovingPrompt] = useState(false);
   const [referenceDragPreview, setReferenceDragPreview] = useState<{
     reference: ReferenceSelection;
     x: number;
@@ -556,9 +537,10 @@ function PlaygroundSurface({
 
   const settings = board.settings;
   const generationModel = settings.generationModel;
+  const klingMotionControlModel = generationModel === "kling_motion_control";
   const videoGenerationModel = isVideoGenerationModel(generationModel);
   const voiceGenerationModel = voiceGenerationModelOptions.includes(generationModel as (typeof voiceGenerationModelOptions)[number]);
-  const aspectRatioLocked = generationModel === "kling_motion_control" || isPoseMultiplierWorkspace(generationModel, settings.sdxlWorkspaceMode);
+  const aspectRatioLocked = klingMotionControlModel || isPoseMultiplierWorkspace(generationModel, settings.sdxlWorkspaceMode);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(generationModel);
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(generationModel);
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
@@ -572,7 +554,9 @@ function PlaygroundSurface({
   const voiceModelSelectOptions = allowedGenerationModels.filter((option) => voiceGenerationModelOptions.includes(option as (typeof voiceGenerationModelOptions)[number]));
   const activeGlobalReferences = filledGlobalReferences(settings);
   const voiceVideoReference = voiceGenerationModel ? activeGlobalReferences[0] ?? null : null;
+  const klingVideoReference = klingMotionControlModel ? activeGlobalReferences[0] ?? null : null;
   const lockedVoiceSubjectName = subjectName.trim() || "Current influencer";
+  const lockedCharacterSubjectName = subjectName.trim() || "Current influencer";
   const draggedReference = draggedReferenceId ? activeGlobalReferences.find((reference) => reference.id === draggedReferenceId) ?? null : null;
   const referencesWithoutDragged = draggedReference
     ? activeGlobalReferences.filter((reference) => reference.id !== draggedReference.id)
@@ -592,6 +576,7 @@ function PlaygroundSurface({
     : activeGlobalReferences.map((reference) => ({ kind: "reference" as const, reference }));
   const nextReferenceSlot = activeGlobalReferences.length;
   const canAddReference = nextReferenceSlot < maxPlaygroundReferenceCount;
+  const generateDisabled = voiceGenerationModel && voicePlaygroundMode === "CHANGE_VOICE" ? !voiceVideoReference : klingMotionControlModel ? !klingVideoReference : !prompt.trim();
 
   function updateGenerationModel(nextGenerationModel: string) {
     const nextVideoGenerationModel = isVideoGenerationModel(nextGenerationModel);
@@ -628,17 +613,17 @@ function PlaygroundSurface({
     void onUploadReference(0, file);
   }
 
-  function handleImproveVoicePrompt(): void {
+  function handleImprovePlaygroundPrompt(kind: "general" | "voiceover"): void {
     const currentPrompt = prompt.trim();
 
-    if (!currentPrompt || improvingVoicePrompt) {
+    if (!currentPrompt || improvingPrompt) {
       return;
     }
 
-    setImprovingVoicePrompt(true);
+    setImprovingPrompt(true);
     window.setTimeout(() => {
-      setPrompt(improveVoiceoverPromptDraft(currentPrompt));
-      setImprovingVoicePrompt(false);
+      setPrompt(improvePromptDraft(currentPrompt, kind));
+      setImprovingPrompt(false);
     }, 250);
   }
 
@@ -760,7 +745,7 @@ function PlaygroundSurface({
 
                 <div className="min-w-0">
                   {voicePlaygroundMode === "CHANGE_VOICE" ? (
-                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_9.5rem]">
+                    <div className="grid gap-3">
                       <input
                         ref={voiceVideoInputRef}
                         accept="video/mp4,video/quicktime,video/*"
@@ -772,7 +757,7 @@ function PlaygroundSurface({
                         type="file"
                       />
                       <div
-                        className="group flex min-h-[118px] items-center rounded-xl border border-dashed border-[color:var(--surface-border-strong)] bg-[color:var(--surface-card)] p-4 transition duration-200 hover:border-[color:var(--focus-ring)] hover:bg-[color:var(--surface-soft-hover)]"
+                        className="group flex min-h-[118px] flex-col gap-4 rounded-xl border border-dashed border-[color:var(--surface-border-strong)] bg-[color:var(--surface-card)] p-4 transition duration-200 hover:border-[color:var(--focus-ring)] hover:bg-[color:var(--surface-soft-hover)] sm:flex-row sm:items-center sm:justify-between"
                         onDragOver={(event) => {
                           event.preventDefault();
                           event.dataTransfer.dropEffect = "copy";
@@ -798,30 +783,30 @@ function PlaygroundSurface({
                             </p>
                           </div>
                         </div>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                        <button
-                          className="inline-flex h-14 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)]"
-                          onClick={() => voiceVideoInputRef.current?.click()}
-                          type="button"
-                        >
-                          Choose from files
-                        </button>
-                        <button
-                          className="inline-flex h-14 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)]"
-                          onClick={() => onPickReference(0)}
-                          type="button"
-                        >
-                          Gallery
-                        </button>
+                        <div className="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto sm:justify-end">
+                          <button
+                            className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] sm:flex-none"
+                            onClick={() => voiceVideoInputRef.current?.click()}
+                            type="button"
+                          >
+                            Choose from files
+                          </button>
+                          <button
+                            className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] sm:flex-none"
+                            onClick={() => onPickReference(0)}
+                            type="button"
+                          >
+                            Gallery
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="relative">
                       <button
                         className="absolute right-3 top-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
-                        disabled={!prompt.trim() || improvingVoicePrompt}
-                        onClick={handleImproveVoicePrompt}
+                        disabled={!prompt.trim() || improvingPrompt}
+                        onClick={() => handleImprovePlaygroundPrompt("voiceover")}
                         title="Improve the current voiceover prompt without turning on Auto Prompt."
                         type="button"
                       >
@@ -835,7 +820,7 @@ function PlaygroundSurface({
                             fill="currentColor"
                           />
                         </svg>
-                        {improvingVoicePrompt ? "Improving" : "Improve prompt"}
+                        {improvingPrompt ? "Improving" : "Improve prompt"}
                       </button>
                       <textarea
                         className="min-h-[118px] w-full resize-none rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 pb-3 pt-12 text-sm leading-6 text-[color:var(--text-strong)] outline-none transition placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--focus-ring)] focus:bg-[color:var(--surface-soft-hover)]"
@@ -845,6 +830,76 @@ function PlaygroundSurface({
                       />
                     </div>
                   )}
+                </div>
+              </div>
+            ) : klingMotionControlModel ? (
+              <div className="rounded-[20px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-strong)_7%,transparent)] transition-colors duration-300">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Video model</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[color:var(--text-strong)]">Kling Motion Control</p>
+                  </div>
+                  <div className="rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-2 text-right transition-colors duration-300">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Subject character locked</p>
+                    <p className="mt-0.5 max-w-[13rem] truncate text-xs font-semibold text-[color:var(--text-strong)]">{lockedCharacterSubjectName}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3">
+                  <input
+                    ref={voiceVideoInputRef}
+                    accept="video/mp4,video/quicktime,video/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      handleVoiceVideoFiles(event.target.files ?? []);
+                      event.target.value = "";
+                    }}
+                    type="file"
+                  />
+                  <div
+                    className="group flex min-h-[118px] flex-col gap-4 rounded-xl border border-dashed border-[color:var(--surface-border-strong)] bg-[color:var(--surface-card)] p-4 transition duration-200 hover:border-[color:var(--focus-ring)] hover:bg-[color:var(--surface-soft-hover)] sm:flex-row sm:items-center sm:justify-between"
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "copy";
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      handleVoiceVideoFiles(event.dataTransfer.files);
+                    }}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid size-12 shrink-0 place-items-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-muted)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-strong)_10%,transparent),0_12px_24px_rgba(0,0,0,0.16)] transition group-hover:text-[color:var(--text-strong)]">
+                        <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24">
+                          <path
+                            d="M5 6.5A2.5 2.5 0 0 1 7.5 4h6A2.5 2.5 0 0 1 16 6.5V9l3.54-2.02A1 1 0 0 1 21 7.85v8.3a1 1 0 0 1-1.46.89L16 15v2.5A2.5 2.5 0 0 1 13.5 20h-6A2.5 2.5 0 0 1 5 17.5v-11Z"
+                            fill="currentColor"
+                          />
+                        </svg>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{klingVideoReference ? klingVideoReference.label : "Video Reference"}</p>
+                        <p className="mt-1 text-xs leading-5 text-[color:var(--text-muted)]">
+                          {klingVideoReference ? "Drop a new motion video here to replace it." : "Drag and drop the motion reference video here."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto sm:justify-end">
+                      <button
+                        className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] sm:flex-none"
+                        onClick={() => voiceVideoInputRef.current?.click()}
+                        type="button"
+                      >
+                        Choose from files
+                      </button>
+                      <button
+                        className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] sm:flex-none"
+                        onClick={() => onPickReference(0)}
+                        type="button"
+                      >
+                        Gallery
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -986,12 +1041,33 @@ function PlaygroundSurface({
               ) : null}
             </div>
 
-            <textarea
-              className="min-h-16 max-h-32 w-full resize-none border-none bg-transparent text-sm leading-6 text-[color:var(--text-strong)] outline-none placeholder:text-[color:var(--text-muted)]"
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Describe the scene you imagine"
-              value={prompt}
-            />
+            <div className="relative">
+              <button
+                className="absolute right-0 top-0 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={!prompt.trim() || improvingPrompt}
+                onClick={() => handleImprovePlaygroundPrompt("general")}
+                title="Improve the current prompt without turning on Auto Prompt."
+                type="button"
+              >
+                <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
+                  <path
+                    d="M10.9 2.9c.08-.48.76-.48.84 0l.18 1.1a5.28 5.28 0 0 0 4.36 4.36l1.1.18c.48.08.48.76 0 .84l-1.1.18a5.28 5.28 0 0 0-4.36 4.36l-.18 1.1c-.08.48-.76.48-.84 0l-.18-1.1a5.28 5.28 0 0 0-4.36-4.36l-1.1-.18c-.48-.08-.48-.76 0-.84l1.1-.18A5.28 5.28 0 0 0 10.72 4l.18-1.1Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M4.72 12.75c.06-.3.48-.3.54 0l.08.39a2.4 2.4 0 0 0 1.9 1.9l.39.08c.3.06.3.48 0 .54l-.39.08a2.4 2.4 0 0 0-1.9 1.9l-.08.39c-.06.3-.48.3-.54 0l-.08-.39a2.4 2.4 0 0 0-1.9-1.9l-.39-.08c-.3-.06-.3-.48 0-.54l.39-.08a2.4 2.4 0 0 0 1.9-1.9l.08-.39Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                {improvingPrompt ? "Improving" : "Improve prompt"}
+              </button>
+              <textarea
+                className="min-h-16 max-h-32 w-full resize-none border-none bg-transparent pb-1 pr-36 pt-10 text-sm leading-6 text-[color:var(--text-strong)] outline-none placeholder:text-[color:var(--text-muted)]"
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Describe the scene you imagine"
+                value={prompt}
+              />
+            </div>
               </>
             )}
 
@@ -1042,19 +1118,21 @@ function PlaygroundSurface({
                     ))}
                   </select>
 
-                  <select
-                    aria-label="Aspect ratio"
-                    className={controlClass + " w-24 disabled:cursor-not-allowed disabled:opacity-55"}
-                    disabled={!board || aspectRatioLocked}
-                    onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
-                    value={normalizeBoardAspectRatio(generationModel, settings.aspectRatio, settings.sdxlWorkspaceMode)}
-                  >
-                    {displayedAspectRatioOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
+                  {!klingMotionControlModel ? (
+                    <select
+                      aria-label="Aspect ratio"
+                      className={controlClass + " w-24 disabled:cursor-not-allowed disabled:opacity-55"}
+                      disabled={!board || aspectRatioLocked}
+                      onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
+                      value={normalizeBoardAspectRatio(generationModel, settings.aspectRatio, settings.sdxlWorkspaceMode)}
+                    >
+                      {displayedAspectRatioOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
                 </>
               ) : null}
 
@@ -1112,7 +1190,7 @@ function PlaygroundSurface({
             </div>
           </div>
 
-          <button className={theme.buttonPrimary + " h-20 w-full rounded-2xl px-6 text-sm lg:w-36"} disabled={voiceGenerationModel && voicePlaygroundMode === "CHANGE_VOICE" ? !voiceVideoReference : !prompt.trim()} type="submit">
+          <button className={theme.buttonPrimary + " h-20 w-full rounded-2xl px-6 text-sm lg:w-36"} disabled={generateDisabled} type="submit">
             Generate
           </button>
         </fieldset>
