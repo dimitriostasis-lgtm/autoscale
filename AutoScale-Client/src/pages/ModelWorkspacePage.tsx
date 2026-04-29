@@ -342,7 +342,7 @@ function shouldUseTapModeMenu(): boolean {
     return false;
   }
 
-  return window.matchMedia("(hover: none), (pointer: coarse), (max-width: 639px)").matches;
+  return window.matchMedia("(hover: none), (pointer: coarse), (max-width: 1023px)").matches;
 }
 
 function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: WorkspaceMode; onSelectMode: (mode: WorkspaceMode) => void }) {
@@ -362,6 +362,10 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
             key={menu.kind}
             className="relative"
             onBlur={(event) => {
+              if (shouldUseTapModeMenu()) {
+                return;
+              }
+
               if (!event.currentTarget.contains(event.relatedTarget)) {
                 setOpenKind(null);
               }
@@ -376,56 +380,92 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
                 setOpenKind(menu.kind);
               }
             }}
-            onMouseLeave={() => setOpenKind((current) => (current === menu.kind ? null : current))}
-          >
-            <button
-              aria-expanded={hasSafetyMenu ? isOpen : undefined}
-              aria-haspopup={hasSafetyMenu ? "menu" : undefined}
-              className={cx(
-                "inline-flex h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-semibold uppercase tracking-[0.16em] transition sm:min-w-24 sm:rounded-full",
-                activeMenu ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
-              )}
-              onClick={() => {
-                if (hasSafetyMenu && shouldUseTapModeMenu()) {
-                  setOpenKind((current) => (current === menu.kind ? null : menu.kind));
-                  return;
-                }
+            onMouseLeave={() => {
+              if (shouldUseTapModeMenu()) {
+                return;
+              }
 
-                setOpenKind(null);
-                onSelectMode(defaultMode);
-              }}
-              type="button"
-            >
-              {menu.label}
-              {hasSafetyMenu ? (
-                <span aria-hidden="true" className="text-[10px] opacity-70">
-                  v
-                </span>
-              ) : null}
-            </button>
+              setOpenKind((current) => (current === menu.kind ? null : current));
+            }}
+          >
+            {hasSafetyMenu ? (
+              <div
+                className={cx(
+                  "flex h-9 w-full min-w-0 overflow-hidden rounded-xl text-[11px] font-semibold uppercase tracking-[0.16em] transition sm:min-w-24 sm:rounded-full",
+                  activeMenu ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
+                )}
+              >
+                <button
+                  className="min-w-0 flex-1 px-3 transition hover:bg-white/[0.06]"
+                  onClick={() => {
+                    if (shouldUseTapModeMenu()) {
+                      onSelectMode(defaultMode);
+                      setOpenKind(menu.kind);
+                      return;
+                    }
+
+                    onSelectMode(defaultMode);
+                    setOpenKind(menu.kind);
+                  }}
+                  type="button"
+                >
+                  {menu.label}
+                </button>
+                <button
+                  aria-expanded={isOpen}
+                  aria-haspopup="menu"
+                  aria-label={`${menu.label} safety options`}
+                  className="flex w-8 shrink-0 items-center justify-center border-l border-current/12 transition hover:bg-white/[0.08]"
+                  onClick={() => {
+                    setOpenKind((current) => (current === menu.kind ? null : menu.kind));
+                  }}
+                  type="button"
+                >
+                  <span aria-hidden="true" className="text-[10px] opacity-70">
+                    v
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <button
+                className={cx(
+                  "inline-flex h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-semibold uppercase tracking-[0.16em] transition sm:min-w-24 sm:rounded-full",
+                  activeMenu ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
+                )}
+                onClick={() => {
+                  setOpenKind(null);
+                  onSelectMode(defaultMode);
+                }}
+                type="button"
+              >
+                {menu.label}
+              </button>
+            )}
 
             {isOpen ? (
-              <div className="absolute inset-x-0 top-full z-30 mt-1 min-w-36 overflow-hidden rounded-2xl border border-white/10 bg-[#202020] p-1 shadow-[0_18px_42px_rgba(0,0,0,0.42)] sm:left-0 sm:right-auto sm:w-36">
-                {menu.modes.map((item) => {
-                  const active = activeMode === item.mode;
+              <div className="absolute inset-x-0 top-full z-30 min-w-36 pt-1 sm:left-0 sm:right-auto sm:w-36">
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#202020] p-1 shadow-[0_18px_42px_rgba(0,0,0,0.42)]">
+                  {menu.modes.map((item) => {
+                    const active = activeMode === item.mode;
 
-                  return (
-                    <button
-                      key={item.mode}
-                      className={cx(
-                        "block w-full rounded-xl px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.14em] transition sm:text-left",
-                        active ? "bg-lime-300 text-black" : "text-white/62 hover:bg-white/[0.06] hover:text-white",
-                      )}
-                      onClick={() => {
-                        setOpenKind(null);
-                        onSelectMode(item.mode);
-                      }}
-                      type="button"
-                    >
-                      {item.dropdownLabel}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={item.mode}
+                        className={cx(
+                          "block w-full rounded-xl px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.14em] transition sm:text-left",
+                          active ? "bg-lime-300 text-black" : "text-white/62 hover:bg-white/[0.06] hover:text-white",
+                        )}
+                        onClick={() => {
+                          setOpenKind(null);
+                          onSelectMode(item.mode);
+                        }}
+                        type="button"
+                      >
+                        {item.dropdownLabel}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
           </div>

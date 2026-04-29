@@ -151,7 +151,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
             <div className="flex min-w-0 flex-col gap-4 md:flex-1 md:flex-row md:items-center md:gap-6">
               <button
                 aria-label="AutoScale Group home"
-                className="inline-flex shrink-0 items-center gap-3 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-2 text-left transition hover:bg-[color:var(--surface-soft-hover)]"
+                className="inline-flex max-w-full shrink-0 self-center items-center justify-center gap-3 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-2 text-left transition hover:bg-[color:var(--surface-soft-hover)] md:self-auto"
                 onClick={() => onNavigate({ name: "models" })}
                 type="button"
               >
@@ -164,7 +164,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
                 </span>
               </button>
 
-              <nav className="flex min-w-0 flex-wrap gap-2 md:flex-1 md:justify-start">
+              <nav className="flex w-full min-w-0 flex-wrap justify-center gap-2 md:w-auto md:flex-1 md:justify-start">
                 {[
                   { label: "Models", route: { name: "models" } as Route, active: route.name === "models" },
                   {
@@ -272,7 +272,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
               </nav>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 md:justify-end">
+            <div className="flex w-full flex-wrap items-center justify-center gap-3 md:w-auto md:justify-end">
               <button
                 aria-label={`Switch to ${nextThemeLabel} mode`}
                 aria-pressed={themeMode === "light"}
@@ -291,7 +291,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
               </button>
 
               <div className="flex items-center gap-3 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-2">
-                <div className="text-right">
+                <div className="text-center md:text-right">
                   <p className="text-sm font-semibold text-[color:var(--text-strong)]">{currentUser.name}</p>
                   <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--text-muted)]">
                     {roleLabel(currentUser.role)}
@@ -302,7 +302,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
 
               {isAgencyAdmin ? (
                 <div className="flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-2 shadow-[var(--shadow-soft)]">
-                  <div className="text-right">
+                  <div className="text-center md:text-right">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credits</p>
                     <p className="text-sm font-bold text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
                   </div>
