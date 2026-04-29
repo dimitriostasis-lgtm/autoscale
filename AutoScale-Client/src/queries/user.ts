@@ -102,6 +102,10 @@ export const PLATFORM_NOTIFICATIONS_QUERY = gql`
       requesterEmail
       message
       createdAt
+      draftInfluencerName
+      draftInfluencerHandle
+      draftPrompt
+      draftPortraitUrls
     }
   }
 `;
@@ -118,6 +122,30 @@ export const REQUEST_BILLING_FOLLOW_UP_MUTATION = gql`
       requesterEmail
       message
       createdAt
+      draftInfluencerName
+      draftInfluencerHandle
+      draftPrompt
+      draftPortraitUrls
+    }
+  }
+`;
+
+export const REQUEST_INFLUENCER_DRAFT_MUTATION = gql`
+  mutation RequestInfluencerDraft($input: InfluencerDraftRequestInput!) {
+    requestInfluencerDraft(input: $input) {
+      id
+      type
+      agencyId
+      agencyName
+      requesterId
+      requesterName
+      requesterEmail
+      message
+      createdAt
+      draftInfluencerName
+      draftInfluencerHandle
+      draftPrompt
+      draftPortraitUrls
     }
   }
 `;

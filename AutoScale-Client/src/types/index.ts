@@ -64,6 +64,10 @@ export interface PlatformNotification {
   requesterEmail: string | null;
   message: string;
   createdAt: string;
+  draftInfluencerName?: string | null;
+  draftInfluencerHandle?: string | null;
+  draftPrompt?: string | null;
+  draftPortraitUrls?: string[] | null;
 }
 
 export interface GeneratedAsset {

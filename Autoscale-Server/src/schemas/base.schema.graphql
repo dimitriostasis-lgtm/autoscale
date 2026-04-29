@@ -39,6 +39,10 @@ type PlatformNotification {
   requesterEmail: String
   message: String!
   createdAt: String!
+  draftInfluencerName: String
+  draftInfluencerHandle: String
+  draftPrompt: String
+  draftPortraitUrls: [String!]
 }
 
 enum GenerationStatus {
@@ -320,6 +324,13 @@ input UpdateInfluencerModelProfileInput {
   avatarImageUrl: String
 }
 
+input InfluencerDraftRequestInput {
+  name: String!
+  handle: String!
+  prompt: String!
+  portraitImageUrls: [String!]!
+}
+
 type Query {
   me: User
   agencies: [Agency!]!
@@ -340,6 +351,7 @@ type Mutation {
   updateAgencyBillingSettings(agencyId: ID!, input: AgencyBillingSettingsInput!): Agency!
   clearPlatformNotifications: Boolean!
   requestBillingFollowUp: PlatformNotification!
+  requestInfluencerDraft(input: InfluencerDraftRequestInput!): PlatformNotification!
   createUser(input: CreateUserInput!): User!
   renameUser(userId: ID!, name: String!): User!
   updateUserRole(userId: ID!, role: Role!): User!

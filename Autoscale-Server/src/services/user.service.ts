@@ -47,6 +47,15 @@ function normalizeName(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function normalizeHandle(value: string): string {
+  const trimmed = value.trim().replace(/^@+/, "");
+  return trimmed ? `@${trimmed}` : "";
+}
+
+function normalizeUrlList(values: string[], limit: number): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).slice(0, limit);
+}
+
 function normalizeManagerPermissions(value: Partial<ManagerPermissions> | null | undefined): ManagerPermissions {
   return {
     canSuspendUsers: value?.canSuspendUsers ?? DEFAULT_MANAGER_PERMISSIONS.canSuspendUsers,
@@ -272,6 +281,69 @@ export async function requestBillingFollowUp(currentUser: AuthUser | null) {
   const notification = store.platformNotifications.find((entry) => entry.createdAt === timestamp && entry.requesterId === viewer.id);
   if (!notification) {
     throw new Error("Failed to create follow-up notification");
+  }
+
+  return presentPlatformNotification(notification, store);
+}
+
+export async function requestInfluencerDraft(
+  currentUser: AuthUser | null,
+  input: {
+    name: string;
+    handle: string;
+    prompt: string;
+    portraitImageUrls: string[];
+  },
+) {
+  const viewer = requireAuthenticatedUser(currentUser);
+  if (!isAgencyAdmin(viewer) || !viewer.agencyId) {
+    throw new Error("Agency admin access required");
+  }
+
+  const draftInfluencerName = normalizeName(input.name);
+  const draftInfluencerHandle = normalizeHandle(input.handle);
+  const draftPrompt = input.prompt.trim();
+  const draftPortraitUrls = normalizeUrlList(input.portraitImageUrls, 5);
+
+  if (!draftInfluencerName) {
+    throw new Error("Influencer name is required");
+  }
+
+  if (!draftInfluencerHandle) {
+    throw new Error("Influencer handle is required");
+  }
+
+  if (draftPortraitUrls.length < 5) {
+    throw new Error("Five portrait examples are required");
+  }
+
+  const timestamp = new Date().toISOString();
+
+  const store = await updateStore((current) => {
+    const agency = current.agencies.find((entry) => entry.id === viewer.agencyId) || null;
+    if (!agency) {
+      throw new Error("Agency not found");
+    }
+
+    current.platformNotifications.unshift({
+      id: randomUUID(),
+      type: "INFLUENCER_DRAFT_REQUEST",
+      agencyId: agency.id,
+      requesterId: viewer.id,
+      message: `${viewer.name} submitted an influencer draft for ${draftInfluencerName}.`,
+      createdAt: timestamp,
+      draftInfluencerName,
+      draftInfluencerHandle,
+      draftPrompt,
+      draftPortraitUrls,
+    });
+
+    return current;
+  });
+
+  const notification = store.platformNotifications.find((entry) => entry.createdAt === timestamp && entry.requesterId === viewer.id);
+  if (!notification) {
+    throw new Error("Failed to create influencer draft notification");
   }
 
   return presentPlatformNotification(notification, store);

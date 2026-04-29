@@ -1997,6 +1997,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
 
       <ImagePickerModal
         assets={assets}
+        boards={model?.boards ?? []}
         onClose={() => setPickerState(null)}
         onSelect={(asset) => void handleSelectAsset(asset)}
         open={Boolean(pickerState)}

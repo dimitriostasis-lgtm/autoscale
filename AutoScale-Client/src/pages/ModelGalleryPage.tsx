@@ -204,7 +204,7 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
 
     return selectedFolder ? assets.filter(selectedFolder.matcher) : assets;
   }, [assets, assetModesByBoardId, selectedFolder, selectedFolderId]);
-  const showSafetyControls = selectedMediaKind !== "voice";
+  const showSafetyControls = selectedMediaKind === "image" || selectedMediaKind === "video";
   const safetySectionCounts = useMemo(
     () => ({
       SFW: folderAssets.filter((asset) => resolveAssetGalleryMode(asset, assetModesByBoardId).safety === "SFW").length,

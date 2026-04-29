@@ -13,6 +13,7 @@ import {
   renameAgency,
   renameUser,
   requestBillingFollowUp,
+  requestInfluencerDraft,
   resetUserPassword,
   setUserActive,
   setUserModelAccess,
@@ -49,6 +50,18 @@ export const userResolvers = {
       clearPlatformNotifications(context.currentUser),
     requestBillingFollowUp: async (_parent: unknown, _args: unknown, context: GraphQLContext) =>
       requestBillingFollowUp(context.currentUser),
+    requestInfluencerDraft: async (
+      _parent: unknown,
+      args: {
+        input: {
+          name: string;
+          handle: string;
+          prompt: string;
+          portraitImageUrls: string[];
+        };
+      },
+      context: GraphQLContext,
+    ) => requestInfluencerDraft(context.currentUser, args.input),
     createUser: async (
       _parent: unknown,
       args: { input: { name: string; email: string; password: string; role: Role; agencyId?: string | null } },

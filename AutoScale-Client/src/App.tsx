@@ -153,7 +153,6 @@ function AppContent() {
       <AgencyInfluencerBuilderPage
         currentUser={user}
         onCancel={() => navigate({ name: "admin", sectionId: "access-agency-summary" })}
-        onCreated={(model: InfluencerModel) => navigate({ name: "workspace", slug: model.slug, mode: "playground" })}
       />
     ) : (
       <AdminPage currentUser={user} onOpenAgencyInfluencerBuilder={() => navigate({ name: "agencyInfluencerBuilder" })} />

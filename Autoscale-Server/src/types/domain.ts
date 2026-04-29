@@ -339,11 +339,15 @@ export interface Agency {
 
 export interface PlatformNotification {
   id: string;
-  type: "BILLING_FOLLOW_UP_REQUEST";
+  type: "BILLING_FOLLOW_UP_REQUEST" | "INFLUENCER_DRAFT_REQUEST";
   agencyId: string | null;
   requesterId: string;
   message: string;
   createdAt: string;
+  draftInfluencerName?: string | null;
+  draftInfluencerHandle?: string | null;
+  draftPrompt?: string | null;
+  draftPortraitUrls?: string[];
 }
 
 export interface InfluencerDefaults {

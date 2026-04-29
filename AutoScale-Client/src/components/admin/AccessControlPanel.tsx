@@ -1960,10 +1960,10 @@ export function AccessControlPanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Platform Notifications</p>
           {platformNotifications.length ? (
             <p className="mt-1 text-sm text-[color:var(--text-muted)]">
-              Billing follow-up requests from agency admins appear here as soon as they click the request button.
+              Billing follow-ups and influencer draft requests from agency admins appear here as soon as they are sent.
             </p>
           ) : (
-            <p className="mt-1 text-xs text-[color:var(--text-muted)]">No follow-up requests.</p>
+            <p className="mt-1 text-xs text-[color:var(--text-muted)]">No platform requests.</p>
           )}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1992,18 +1992,48 @@ export function AccessControlPanel({
 
       {platformNotifications.length ? (
         <div className="mt-4 divide-y divide-[color:var(--surface-border)] overflow-hidden rounded-[22px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)]">
-          {platformNotifications.slice(0, 3).map((notification) => (
-            <div key={notification.id} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-[color:var(--text-strong)]">{notification.message}</p>
-                <p className="mt-1 truncate text-xs text-[color:var(--text-muted)]">
-                  {notification.requesterName}
-                  {notification.requesterEmail ? ` - ${notification.requesterEmail}` : ""}
-                </p>
-              </div>
-              <div className="text-left sm:text-right">
-                <p className="text-xs font-semibold text-[color:var(--text-main)]">{notification.agencyName || "No agency"}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{formatTimestamp(notification.createdAt)}</p>
+          {platformNotifications.map((notification) => (
+            <div key={notification.id} className="px-4 py-3 text-sm">
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[color:var(--text-strong)]">{notification.message}</p>
+                  <p className="mt-1 truncate text-xs text-[color:var(--text-muted)]">
+                    {notification.requesterName}
+                    {notification.requesterEmail ? ` - ${notification.requesterEmail}` : ""}
+                  </p>
+                  {notification.type === "INFLUENCER_DRAFT_REQUEST" ? (
+                    <div className="mt-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-2.5 py-1 font-bold uppercase tracking-[0.14em] text-[color:var(--accent-text)]">
+                          Influencer Draft
+                        </span>
+                        <span className="font-semibold text-[color:var(--text-main)]">{notification.draftInfluencerName || "Unnamed draft"}</span>
+                        <span className="text-[color:var(--text-muted)]">{notification.draftInfluencerHandle || "@handle"}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[color:var(--text-muted)]">
+                        <span>
+                          Agency: <span className="font-semibold text-[color:var(--text-main)]">{notification.agencyName || "No agency"}</span>
+                        </span>
+                      </div>
+                      {notification.draftPrompt ? (
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-[color:var(--text-muted)]">{notification.draftPrompt}</p>
+                      ) : null}
+                      {notification.draftPortraitUrls?.length ? (
+                        <div className="mt-3 grid grid-cols-5 gap-2">
+                          {notification.draftPortraitUrls.slice(0, 5).map((url, index) => (
+                            <div key={`${notification.id}-${url}-${index}`} className="aspect-[3/4] overflow-hidden rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)]">
+                              <img alt={`${notification.draftInfluencerName || "Draft influencer"} portrait ${index + 1}`} className="h-full w-full object-cover" src={url} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-xs font-semibold text-[color:var(--text-main)]">{notification.agencyName || "No agency"}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{formatTimestamp(notification.createdAt)}</p>
+                </div>
               </div>
             </div>
           ))}
@@ -2914,7 +2944,7 @@ export function AccessControlPanel({
                   onClick={onOpenAgencyInfluencerBuilder}
                   type="button"
                 >
-                  Add influencer
+                  Draft AI Infuencer
                 </button>
               </div>
             </div>
