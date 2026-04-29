@@ -31,7 +31,10 @@ export const BOARD_DETAIL_QUERY = gql`
         poseMultiplier
         poseMultiplierGenerationModel
         upscale
+        upscaleFactor
+        upscaleDenoise
         faceSwap
+        faceSwapModelStrength
         autoPromptGen
         autoPromptImage
         posePromptMode
@@ -234,7 +237,10 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
         poseMultiplier
         poseMultiplierGenerationModel
         upscale
+        upscaleFactor
+        upscaleDenoise
         faceSwap
+        faceSwapModelStrength
         autoPromptGen
         autoPromptImage
         posePromptMode

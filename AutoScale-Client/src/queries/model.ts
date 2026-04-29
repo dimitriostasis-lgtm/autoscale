@@ -8,6 +8,9 @@ export const BOARD_TAB_FIELDS = gql`
     settings {
       generationModel
       sdxlWorkspaceMode
+      upscaleFactor
+      upscaleDenoise
+      faceSwapModelStrength
     }
   }
 `;

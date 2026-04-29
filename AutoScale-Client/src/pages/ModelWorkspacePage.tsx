@@ -168,6 +168,8 @@ function normalizeSettingsForGenerationModel(settings: BoardSettings, generation
     poseMultiplierEnabled: isPoseMultiplierWorkspaceLayout ? true : isSdxlDefaultWorkspace || isFaceSwapWorkspaceLayout ? false : quantity === 1 ? settings.poseMultiplierEnabled : false,
     poseMultiplierGenerationModel,
     upscale: isSdxlDefaultWorkspace ? settings.upscale : false,
+    upscaleFactor: [1, 1.5, 2].includes(settings.upscaleFactor) ? settings.upscaleFactor : 1,
+    upscaleDenoise: Math.max(0, Math.min(0.4, settings.upscaleDenoise ?? 0)),
     faceSwap: isFaceSwapWorkspaceLayout ? true : settings.faceSwap,
   };
 }
@@ -658,6 +660,8 @@ function PlaygroundSurface({
       poseMultiplierEnabled: nextPoseMultiplierWorkspaceLayout ? true : nextSdxlDefaultWorkspace ? false : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
       poseMultiplierGenerationModel: nextNsfwPoseMultiplierLayout ? "sdxl" : normalizePoseMultiplierGenerationModel(settings.poseMultiplierGenerationModel, nextGenerationModel),
       upscale: nextSdxlDefaultWorkspace ? settings.upscale : false,
+      upscaleFactor: [1, 1.5, 2].includes(settings.upscaleFactor) ? settings.upscaleFactor : 1,
+      upscaleDenoise: Math.max(0, Math.min(0.4, settings.upscaleDenoise ?? 0)),
       faceSwap: settings.faceSwap,
     });
   }
@@ -1595,7 +1599,10 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
           poseMultiplier: nextSettings.poseMultiplier,
           poseMultiplierGenerationModel: nextSettings.poseMultiplierGenerationModel,
           upscale: nextSettings.generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout ? nextSettings.upscale : false,
+          upscaleFactor: [1, 1.5, 2].includes(nextSettings.upscaleFactor) ? nextSettings.upscaleFactor : 1,
+          upscaleDenoise: Math.max(0, Math.min(0.4, nextSettings.upscaleDenoise ?? 0)),
           faceSwap: isFaceSwapWorkspaceLayout ? true : nextSettings.faceSwap,
+          faceSwapModelStrength: Math.max(0.3, Math.min(0.6, nextSettings.faceSwapModelStrength ?? 0.5)),
           autoPromptGen: isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptImage ? true : nextSettings.autoPromptGen,
           autoPromptImage: isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptImage,
           posePromptMode: nextSettings.posePromptMode,
@@ -1711,6 +1718,8 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
       autoPromptImage: nextIsPoseMultiplierWorkspaceLayout || nextIsFaceSwapWorkspaceLayout ? false : board.settings.autoPromptImage,
       sdxlWorkspaceMode: nextSdxlWorkspaceMode,
       upscale: nextIsSdxlDefaultWorkspace ? board.settings.upscale : false,
+      upscaleFactor: [1, 1.5, 2].includes(board.settings.upscaleFactor) ? board.settings.upscaleFactor : 1,
+      upscaleDenoise: Math.max(0, Math.min(0.4, board.settings.upscaleDenoise ?? 0)),
       faceSwap: nextIsFaceSwapWorkspaceLayout ? true : board.settings.faceSwap,
     });
   }

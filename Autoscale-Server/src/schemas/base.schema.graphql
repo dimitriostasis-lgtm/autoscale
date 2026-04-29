@@ -124,7 +124,10 @@ type BoardSettings {
   poseMultiplier: Float!
   poseMultiplierGenerationModel: String!
   upscale: Boolean!
+  upscaleFactor: Float!
+  upscaleDenoise: Float!
   faceSwap: Boolean!
+  faceSwapModelStrength: Float!
   autoPromptGen: Boolean!
   autoPromptImage: Boolean!
   posePromptMode: String!
@@ -260,7 +263,10 @@ input BoardSettingsInput {
   poseMultiplier: Float!
   poseMultiplierGenerationModel: String!
   upscale: Boolean!
+  upscaleFactor: Float!
+  upscaleDenoise: Float!
   faceSwap: Boolean!
+  faceSwapModelStrength: Float!
   autoPromptGen: Boolean!
   autoPromptImage: Boolean!
   posePromptMode: String!

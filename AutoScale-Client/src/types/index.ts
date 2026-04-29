@@ -116,7 +116,10 @@ export interface BoardSettings {
   poseMultiplier: number;
   poseMultiplierGenerationModel: string;
   upscale: boolean;
+  upscaleFactor: number;
+  upscaleDenoise: number;
   faceSwap: boolean;
+  faceSwapModelStrength: number;
   autoPromptGen: boolean;
   autoPromptImage: boolean;
   posePromptMode: "AUTO" | "CUSTOM";

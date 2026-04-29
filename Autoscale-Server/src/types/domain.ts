@@ -51,6 +51,22 @@ export const DEFAULT_MANAGER_PERMISSIONS: ManagerPermissions = {
   canManageCredits: false,
 };
 
+export const DEFAULT_FACE_SWAP_MODEL_STRENGTH = 0.5;
+export const DEFAULT_UPSCALE_FACTOR = 1;
+export const DEFAULT_UPSCALE_DENOISE = 0;
+
+export function normalizeFaceSwapModelStrength(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0.3, Math.min(0.6, value)) : DEFAULT_FACE_SWAP_MODEL_STRENGTH;
+}
+
+export function normalizeUpscaleFactor(value: unknown): number {
+  return value === 1 || value === 1.5 || value === 2 ? value : DEFAULT_UPSCALE_FACTOR;
+}
+
+export function normalizeUpscaleDenoise(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(0.4, value)) : DEFAULT_UPSCALE_DENOISE;
+}
+
 export type GenerationStatus =
   | "IDLE"
   | "QUEUED"
@@ -411,7 +427,10 @@ export interface BoardSettings {
   poseMultiplier: number;
   poseMultiplierGenerationModel: PoseMultiplierGenerationModel | "sdxl";
   upscale: boolean;
+  upscaleFactor: number;
+  upscaleDenoise: number;
   faceSwap: boolean;
+  faceSwapModelStrength: number;
   autoPromptGen: boolean;
   autoPromptImage: boolean;
   posePromptMode: "AUTO" | "CUSTOM";

@@ -109,6 +109,10 @@ export function SettingsPanel({
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
   const poseWorkerModelControlLocked = poseWorkerModelLocked || isNsfwPoseMultiplierLayout;
+  const faceSwapOn = isFaceSwapWorkspaceLayout || settings.faceSwap;
+  const upscaleFactor = [1, 1.5, 2].includes(settings.upscaleFactor) ? settings.upscaleFactor : 1;
+  const upscaleDenoise = Math.max(0, Math.min(0.4, settings.upscaleDenoise ?? 0));
+  const faceSwapModelStrength = Math.max(0.3, Math.min(0.6, settings.faceSwapModelStrength ?? 0.5));
   return (
     <section className="h-full bg-[#202020] text-white">
       <div className="border-b border-white/8 px-5 py-4">
@@ -693,6 +697,66 @@ export function SettingsPanel({
                     >
                       {settings.upscale ? "On" : "Off"}
                     </button>
+                    {settings.upscale ? (
+                      <div className="space-y-3 rounded-xl border border-white/8 bg-[#262626] p-3">
+                        <div className="space-y-2">
+                          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/58">Upscale Factor</span>
+                          <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-white/8 bg-[#202020] p-1">
+                            {[1, 1.5, 2].map((factor) => (
+                              <button
+                                className={
+                                  upscaleFactor === factor
+                                    ? "rounded-lg bg-[#4d7311] px-2 py-2 text-xs font-bold text-[#f4ffd8]"
+                                    : "rounded-lg px-2 py-2 text-xs font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+                                }
+                                key={factor}
+                                onClick={() => onSettingsChange({ ...settings, upscaleFactor: factor })}
+                                type="button"
+                              >
+                                {factor}x
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/58">Denoise</span>
+                              <span className="group/upscale-denoise relative inline-flex">
+                                <button
+                                  aria-label="Denoise info"
+                                  className="inline-flex size-5 items-center justify-center rounded-full border border-white/14 bg-[#202020] text-[11px] font-bold text-white/62"
+                                  type="button"
+                                >
+                                  i
+                                </button>
+                                <span className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs font-medium leading-5 text-white/66 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/upscale-denoise:opacity-100 sm:w-64">
+                                  The amount of denoising applied, lower values will maintain the structure of the initial image allowing for image to image sampling
+                                </span>
+                              </span>
+                            </div>
+                            <output className="rounded-lg border border-white/8 bg-[#202020] px-2 py-1 text-xs font-bold text-white/82">
+                              {upscaleDenoise.toFixed(2)}
+                            </output>
+                          </div>
+                          <input
+                            aria-label="Denoise"
+                            className="h-2 w-full cursor-pointer accent-[#c7ff27]"
+                            max={0.4}
+                            min={0}
+                            onChange={(event) =>
+                              onSettingsChange({
+                                ...settings,
+                                upscaleDenoise: Math.max(0, Math.min(0.4, Number(event.target.value))),
+                              })
+                            }
+                            step={0.01}
+                            type="range"
+                            value={upscaleDenoise}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -700,20 +764,63 @@ export function SettingsPanel({
                   <span className="text-sm font-semibold text-white/76">Face Swap</span>
                   <button
                     className={
-                      isFaceSwapWorkspaceLayout || settings.faceSwap
+                      faceSwapOn
                         ? "inline-flex w-full items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
                         : "inline-flex w-full items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
                     }
                     disabled={isFaceSwapWorkspaceLayout}
                     onClick={() => {
                       if (!isFaceSwapWorkspaceLayout) {
-                        onSettingsChange({ ...settings, faceSwap: !settings.faceSwap });
+                        onSettingsChange({
+                          ...settings,
+                          faceSwap: !settings.faceSwap,
+                          faceSwapModelStrength: settings.faceSwap ? faceSwapModelStrength : 0.5,
+                        });
                       }
                     }}
                     type="button"
                   >
-                    {isFaceSwapWorkspaceLayout || settings.faceSwap ? "On" : "Off"}
+                    {faceSwapOn ? "On" : "Off"}
                   </button>
+                  {faceSwapOn ? (
+                    <div className="space-y-2 rounded-xl border border-white/8 bg-[#262626] p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/58">Model Strength</span>
+                          <span className="group/face-strength relative inline-flex">
+                            <button
+                              aria-label="Model strength info"
+                              className="inline-flex size-5 items-center justify-center rounded-full border border-white/14 bg-[#202020] text-[11px] font-bold text-white/62"
+                              type="button"
+                            >
+                              i
+                            </button>
+                            <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-64 -translate-x-1/2 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs font-medium leading-5 text-white/66 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/face-strength:opacity-100">
+                              Optional: Set face strength. Default 0.50, you can go up to 0.6 and see result change.
+                            </span>
+                          </span>
+                        </div>
+                        <output className="rounded-lg border border-white/8 bg-[#202020] px-2 py-1 text-xs font-bold text-white/82">
+                          {faceSwapModelStrength.toFixed(2)}
+                        </output>
+                      </div>
+                      <input
+                        aria-label="Model Strength"
+                        className="h-2 w-full cursor-pointer accent-[#c7ff27]"
+                        max={0.6}
+                        min={0.3}
+                        onChange={(event) =>
+                          onSettingsChange({
+                            ...settings,
+                            faceSwapModelStrength: Math.max(0.3, Math.min(0.6, Number(event.target.value))),
+                          })
+                        }
+                        step={0.01}
+                        type="range"
+                        value={faceSwapModelStrength}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </>
             ) : null}
