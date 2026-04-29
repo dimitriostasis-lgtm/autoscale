@@ -712,7 +712,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
             <fieldset className="flex min-w-0 flex-col gap-4 rounded-b-[22px] rounded-t-none border border-[color:var(--surface-border)] p-4 sm:p-5 lg:flex-row lg:items-end">
               <div className="min-w-0 flex-1 space-y-3">
                 <div
-                  className="relative flex min-h-16 items-center gap-2 overflow-x-auto overflow-y-visible pb-2"
+                  className="relative flex min-h-24 items-center gap-2 overflow-x-auto overflow-y-visible px-3 pb-5 pt-3"
                   onPointerCancel={finishReferenceDrag}
                   onPointerMove={(event) => {
                     if (!draggedReferenceId) {

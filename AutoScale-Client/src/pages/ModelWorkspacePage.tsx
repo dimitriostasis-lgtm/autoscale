@@ -958,7 +958,7 @@ function PlaygroundSurface({
             ) : (
               <>
             <div
-              className="relative flex min-h-16 items-center gap-2 overflow-x-auto overflow-y-visible pb-2"
+              className="relative flex min-h-24 items-center gap-2 overflow-x-auto overflow-y-visible px-3 pb-5 pt-3"
               onPointerCancel={finishReferenceDrag}
               onPointerMove={(event) => {
                 if (!draggedReferenceId) {
