@@ -98,7 +98,6 @@ export function WorkspaceGrid({
         accept: "image/*",
       };
   const autoSurfaceClass = "border-[#4e6b22] bg-[#314513]";
-  const autoMessageClass = "text-[#dcf6a0]";
   const controlColumnCount = [showPoseColumn, showUpscaleColumn, showFaceSwapColumn].filter(Boolean).length;
   const showRowControlColumns = controlColumnCount > 0;
   const gridColumns = isFaceSwapWorkspaceLayout
@@ -141,6 +140,8 @@ export function WorkspaceGrid({
   const panelClass = "h-full rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-3";
   const stackedControlPanelClass = cx(panelClass, "flex flex-col gap-2");
   const pendingJobClass = "mt-1 flex min-h-[148px] flex-1 items-center justify-center rounded-lg border border-dashed border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]";
+  const autoReferenceTitle = isVideoReference ? "Auto video" : "Auto image";
+  const autoReferenceKindLabel = isVideoReference ? "Video reference" : "Image reference";
   const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false) => (
     <div className={cx("grid grid-cols-2 gap-3 rounded-xl border border-white/8 bg-[#202020] p-3", compact ? "min-h-[116px] flex-1" : "h-full min-h-[188px]")}>
       {row.outputAssets.map((asset) => (
@@ -233,7 +234,49 @@ export function WorkspaceGrid({
                           effectiveAutoPromptImage ? "border-[#5f8628] bg-[#2f4513]" : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)]",
                         )}
                       >
-                        {previewSrc && !effectiveAutoPromptImage ? (
+                        {effectiveAutoPromptImage ? (
+                          <div className="workspace-row-reference-auto-card relative flex h-full w-full flex-col overflow-hidden rounded-[inherit] px-3 py-3 text-left text-[#f4ffd8]">
+                            <div className="relative z-10 flex items-center justify-between gap-2">
+                              <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-[#c7ff27]/25 bg-[#c7ff27]/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#f4ffd8]">
+                                <svg aria-hidden="true" className="size-3 flex-none" viewBox="0 0 20 20">
+                                  <path
+                                    d="M9.1 2.4a.9.9 0 0 1 1.8 0l.16 1.26a4.5 4.5 0 0 0 3.88 3.88l1.26.16a.9.9 0 0 1 0 1.8l-1.26.16a4.5 4.5 0 0 0-3.88 3.88l-.16 1.26a.9.9 0 0 1-1.8 0l-.16-1.26a4.5 4.5 0 0 0-3.88-3.88L3.8 9.5a.9.9 0 0 1 0-1.8l1.26-.16a4.5 4.5 0 0 0 3.88-3.88L9.1 2.4Z"
+                                    fill="currentColor"
+                                  />
+                                </svg>
+                                <span className="truncate">{autoReferenceTitle}</span>
+                              </span>
+                              <span className="workspace-auto-prompt-live-dot flex-none" aria-hidden="true" />
+                            </div>
+
+                            <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-2 text-center">
+                              <span className="workspace-row-reference-auto-icon inline-flex size-14 items-center justify-center rounded-2xl border border-[#c7ff27]/22 bg-[#c7ff27]/12 text-[#f4ffd8] shadow-[inset_0_1px_0_rgba(244,255,216,0.18)]">
+                                {isVideoReference ? (
+                                  <svg aria-hidden="true" className="size-7" viewBox="0 0 24 24">
+                                    <path
+                                      d="M5 6.5A2.5 2.5 0 0 1 7.5 4h6A2.5 2.5 0 0 1 16 6.5v11A2.5 2.5 0 0 1 13.5 20h-6A2.5 2.5 0 0 1 5 17.5v-11Zm11 3.25 3.67-2.1A.9.9 0 0 1 21 8.43v7.14a.9.9 0 0 1-1.33.78L16 14.25v-4.5Z"
+                                      fill="currentColor"
+                                    />
+                                  </svg>
+                                ) : (
+                                  <svg aria-hidden="true" className="size-7" viewBox="0 0 24 24">
+                                    <path
+                                      d="M6.5 4.5h11A2.5 2.5 0 0 1 20 7v10a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17V7a2.5 2.5 0 0 1 2.5-2.5Zm0 1.5A1 1 0 0 0 5.5 7v7.8l3.36-3.36a1.75 1.75 0 0 1 2.48 0l1.16 1.16.86-.86a1.75 1.75 0 0 1 2.48 0l2.66 2.66V7a1 1 0 0 0-1-1h-11Zm3.5 4.25a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5Z"
+                                      fill="currentColor"
+                                    />
+                                  </svg>
+                                )}
+                              </span>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#b4d37a]">{autoReferenceKindLabel}</p>
+                            </div>
+
+                            <div className="relative z-10 flex items-center justify-between gap-2 border-t border-[#c7ff27]/14 pt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#b4d37a]">
+                              <span>Live</span>
+                              <span className="h-px flex-1 bg-[#c7ff27]/16" />
+                              <span>Ready</span>
+                            </div>
+                          </div>
+                        ) : previewSrc ? (
                           isVideoReference ? (
                             <>
                               <video className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" src={previewSrc} />
@@ -261,15 +304,13 @@ export function WorkspaceGrid({
                           <div
                             className={cx(
                               "workspace-row-image-label flex flex-col items-center justify-center gap-3 text-center",
-                              effectiveAutoPromptImage ? autoMessageClass : "text-[color:var(--text-muted)]",
+                              "text-[color:var(--text-muted)]",
                             )}
                           >
                             <span
                               className={cx(
                                 "inline-flex size-14 items-center justify-center rounded-2xl border transition",
-                                effectiveAutoPromptImage
-                                  ? "border-[#5f8628] bg-[#3b5718] text-[#dcf6a0]"
-                                  : "border-[color:var(--surface-border)] bg-[color:var(--surface-card)] text-[color:var(--text-muted)]",
+                                "border-[color:var(--surface-border)] bg-[color:var(--surface-card)] text-[color:var(--text-muted)]",
                               )}
                             >
                               {isVideoReference ? (
@@ -289,7 +330,7 @@ export function WorkspaceGrid({
                               )}
                             </span>
                             <p className="text-xs font-semibold uppercase tracking-[0.2em]">
-                              {effectiveAutoPromptImage ? referenceCopy.autoLabel : referenceCopy.emptyLabel}
+                              {referenceCopy.emptyLabel}
                             </p>
                           </div>
                         )}
@@ -428,8 +469,17 @@ export function WorkspaceGrid({
                       )}
                     >
                       {board.settings.autoPromptGen ? (
-                        <div className="workspace-row-prompt-input flex h-full min-h-[188px] w-full items-center justify-center rounded-lg border border-[#5f8628] bg-[#2f4513] px-4 py-4 text-center text-sm font-semibold leading-6 text-[#dcf6a0]">
-                          <span className="line-clamp-6">{row.prompt.trim() || "Auto prompt enabled"}</span>
+                        <div className="workspace-row-prompt-auto-card relative flex h-full min-h-[188px] w-full items-center justify-center overflow-hidden rounded-lg border border-[#79a82c]/60 p-4 text-[#f4ffd8]">
+                          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#f4ffd8]/45" />
+                          <span className="relative inline-flex max-w-full items-center justify-center gap-3 rounded-2xl border border-[#c7ff27]/25 bg-[#c7ff27]/10 px-5 py-4 text-center text-lg font-extrabold uppercase tracking-[0.18em] text-[#f4ffd8] shadow-[inset_0_1px_0_rgba(244,255,216,0.18)]">
+                            <svg aria-hidden="true" className="size-6 flex-none" viewBox="0 0 20 20">
+                              <path
+                                d="M9.1 2.4a.9.9 0 0 1 1.8 0l.16 1.26a4.5 4.5 0 0 0 3.88 3.88l1.26.16a.9.9 0 0 1 0 1.8l-1.26.16a4.5 4.5 0 0 0-3.88 3.88l-.16 1.26a.9.9 0 0 1-1.8 0l-.16-1.26a4.5 4.5 0 0 0-3.88-3.88L3.8 9.5a.9.9 0 0 1 0-1.8l1.26-.16a4.5 4.5 0 0 0 3.88-3.88L9.1 2.4Zm6.34 11.04a.65.65 0 0 1 1.12 0l.36.64.64.36a.65.65 0 0 1 0 1.12l-.64.36-.36.64a.65.65 0 0 1-1.12 0l-.36-.64-.64-.36a.65.65 0 0 1 0-1.12l.64-.36.36-.64Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                            <span>Auto Prompt</span>
+                          </span>
                         </div>
                       ) : (
                         <textarea

@@ -238,6 +238,18 @@ export async function listPlatformNotifications(currentUser: AuthUser | null) {
     .map((notification) => presentPlatformNotification(notification, store));
 }
 
+export async function clearPlatformNotifications(currentUser: AuthUser | null) {
+  const viewer = requireAuthenticatedUser(currentUser);
+  assertPlatformAdmin(viewer);
+
+  await updateStore((current) => {
+    current.platformNotifications = [];
+    return current;
+  });
+
+  return true;
+}
+
 export async function requestBillingFollowUp(currentUser: AuthUser | null) {
   const viewer = requireAuthenticatedUser(currentUser);
   const timestamp = new Date().toISOString();

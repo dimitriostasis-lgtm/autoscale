@@ -2,6 +2,7 @@ import type { GraphQLContext } from "../types/context.js";
 import type { Role } from "../types/domain.js";
 
 import {
+  clearPlatformNotifications,
   createAgency,
   createUser,
   deleteAgency,
@@ -44,6 +45,8 @@ export const userResolvers = {
       args: { agencyId: string; input: AgencyBillingSettings },
       context: GraphQLContext,
     ) => updateAgencyBillingSettings(context.currentUser, args.agencyId, args.input),
+    clearPlatformNotifications: async (_parent: unknown, _args: unknown, context: GraphQLContext) =>
+      clearPlatformNotifications(context.currentUser),
     requestBillingFollowUp: async (_parent: unknown, _args: unknown, context: GraphQLContext) =>
       requestBillingFollowUp(context.currentUser),
     createUser: async (

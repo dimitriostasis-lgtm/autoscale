@@ -1,4 +1,5 @@
 import type { BoardSettings } from "../../types";
+import { cx } from "../../lib/cx";
 import {
   generationModelOptions,
   getAspectRatioOptionsForGenerationModel,
@@ -92,6 +93,8 @@ export function SettingsPanel({
   const showFaceSwapControls = generationKind === "image";
   const showGlobalReferences = false;
   const promptAutomationLocked = settings.generationModel === "kling_motion_control";
+  const promptAutomationOn = settings.autoPromptGen && !promptAutomationLocked;
+  const referenceAutomationOn = settings.autoPromptImage;
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
   const poseWorkerModelControlLocked = poseWorkerModelLocked || isNsfwPoseMultiplierLayout;
@@ -348,11 +351,12 @@ export function SettingsPanel({
             <div className="space-y-2">
               <span className="text-sm font-semibold text-white/76">{promptAutomationLabel}</span>
               <button
-                className={
-                  settings.autoPromptGen && !promptAutomationLocked
-                    ? "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                    : "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131] disabled:cursor-not-allowed disabled:opacity-50"
-                }
+                className={cx(
+                  "workspace-auto-prompt-toggle relative grid w-full grid-cols-[1.75rem_1fr_1.75rem] items-center overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+                  promptAutomationOn
+                    ? "workspace-auto-prompt-toggle--on border-[#7aa321]/70 text-[#f4ffd8] hover:brightness-105"
+                    : "border-white/8 bg-[#262626] text-white/76 hover:bg-[#313131]",
+                )}
                 disabled={promptAutomationLocked}
                 onClick={() => {
                   if (!promptAutomationLocked) {
@@ -361,9 +365,30 @@ export function SettingsPanel({
                 }}
                 type="button"
               >
-                <span aria-hidden="true" />
+                <span
+                  className={cx(
+                    "inline-flex h-6 w-6 items-center justify-center rounded-full border",
+                    promptAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12 text-[#f4ffd8]" : "border-current/12 text-white/44",
+                  )}
+                  aria-hidden="true"
+                >
+                  <svg className="size-3.5" viewBox="0 0 20 20">
+                    <path
+                      d="M9.1 2.4a.9.9 0 0 1 1.8 0l.16 1.26a4.5 4.5 0 0 0 3.88 3.88l1.26.16a.9.9 0 0 1 0 1.8l-1.26.16a4.5 4.5 0 0 0-3.88 3.88l-.16 1.26a.9.9 0 0 1-1.8 0l-.16-1.26a4.5 4.5 0 0 0-3.88-3.88L3.8 9.5a.9.9 0 0 1 0-1.8l1.26-.16a4.5 4.5 0 0 0 3.88-3.88L9.1 2.4Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
                 <span className="text-center">{promptAutomationLocked ? "Unsupported" : settings.autoPromptGen ? "Auto Prompt On" : "Auto Prompt Off"}</span>
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
+                <span
+                  className={cx(
+                    "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs",
+                    promptAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12" : "border-current/20",
+                  )}
+                  aria-hidden="true"
+                >
+                  {promptAutomationOn ? <span className="workspace-auto-prompt-live-dot" /> : "*"}
+                </span>
               </button>
               {promptAutomationLocked ? (
                 <p className="text-xs leading-5 text-white/48">Kling Motion Control does not support text prompts or text prompt automation.</p>
@@ -375,11 +400,12 @@ export function SettingsPanel({
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">{promptImageAutomationLabel}</span>
                 <button
-                  className={
-                    settings.autoPromptImage
-                      ? "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                      : "grid w-full grid-cols-[1.25rem_1fr_1.25rem] items-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
-                  }
+                  className={cx(
+                    "workspace-auto-reference-toggle relative grid w-full grid-cols-[1.75rem_1fr_1.75rem] items-center overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-semibold transition",
+                    referenceAutomationOn
+                      ? "workspace-auto-reference-toggle--on border-[#7aa321]/70 text-[#f4ffd8] hover:brightness-105"
+                      : "border-white/8 bg-[#262626] text-white/76 hover:bg-[#313131]",
+                  )}
                   onClick={() => {
                     const nextAutoPromptImage = !settings.autoPromptImage;
                     onSettingsChange({
@@ -390,9 +416,39 @@ export function SettingsPanel({
                   }}
                   type="button"
                 >
-                  <span aria-hidden="true" />
+                  <span
+                    className={cx(
+                      "inline-flex h-6 w-6 items-center justify-center rounded-full border",
+                      referenceAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12 text-[#f4ffd8]" : "border-current/12 text-white/44",
+                    )}
+                    aria-hidden="true"
+                  >
+                    {videoGenerationModel ? (
+                      <svg className="size-3.5" viewBox="0 0 20 20">
+                        <path
+                          d="M4.5 5.75A2.25 2.25 0 0 1 6.75 3.5h5.5a2.25 2.25 0 0 1 2.25 2.25v8.5a2.25 2.25 0 0 1-2.25 2.25h-5.5a2.25 2.25 0 0 1-2.25-2.25v-8.5Zm10 3.05 2.64-1.5a.65.65 0 0 1 .98.56v4.28a.65.65 0 0 1-.98.56l-2.64-1.5V8.8Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    ) : (
+                      <svg className="size-3.5" viewBox="0 0 20 20">
+                        <path
+                          d="M4.75 3.75h10.5a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H4.75a2 2 0 0 1-2-2v-8.5a2 2 0 0 1 2-2Zm0 1.5a.5.5 0 0 0-.5.5v6.2l2.76-2.76a1.5 1.5 0 0 1 2.12 0l1.01 1.01.7-.7a1.5 1.5 0 0 1 2.12 0l2.29 2.29V5.75a.5.5 0 0 0-.5-.5H4.75Zm3.5 3.25a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    )}
+                  </span>
                   <span className="text-center">{promptImageAutomationButtonLabel}</span>
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-current/20 text-xs">*</span>
+                  <span
+                    className={cx(
+                      "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs",
+                      referenceAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12" : "border-current/20",
+                    )}
+                    aria-hidden="true"
+                  >
+                    {referenceAutomationOn ? <span className="workspace-auto-prompt-live-dot" /> : "*"}
+                  </span>
                 </button>
               </div>
             ) : null}

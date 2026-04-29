@@ -11,6 +11,7 @@ import {
 } from "../queries/model";
 import {
   AGENCIES_QUERY,
+  CLEAR_PLATFORM_NOTIFICATIONS_MUTATION,
   CREATE_AGENCY_MUTATION,
   CREATE_USER_MUTATION,
   DELETE_AGENCY_MUTATION,
@@ -71,6 +72,7 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
   const [updateManagerPermissionsMutation] = useMutation(UPDATE_MANAGER_PERMISSIONS_MUTATION);
   const [updateUserOrganizationMutation] = useMutation(UPDATE_USER_ORGANIZATION_MUTATION);
   const [setUserActiveMutation] = useMutation(SET_USER_ACTIVE_MUTATION);
+  const [clearPlatformNotificationsMutation] = useMutation(CLEAR_PLATFORM_NOTIFICATIONS_MUTATION);
   const [resetUserPasswordMutation] = useMutation<{ resetUserPassword: { temporaryPassword: string } }>(
     RESET_USER_PASSWORD_MUTATION,
   );
@@ -110,6 +112,10 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
       onCreateInfluencerModel={async (input) => {
         await createInfluencerModelMutation({ variables: { input } });
         await refreshAll();
+      }}
+      onClearPlatformNotifications={async () => {
+        await clearPlatformNotificationsMutation();
+        await refetchNotifications();
       }}
       onOpenAgencyInfluencerBuilder={onOpenAgencyInfluencerBuilder}
       onUpdateInfluencerModelProfile={async (influencerModelId, input) => {

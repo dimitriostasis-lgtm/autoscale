@@ -40,6 +40,7 @@ import {
   normalizeVideoDurationForGenerationModel,
   resolutionLabels,
   theme,
+  voiceGenerationModelOptions,
   videoGenerationModelOptions,
   videoNsfwGenerationModelOptions,
   workerModelLabels,
@@ -128,8 +129,8 @@ const workspaceModeGenerationModelOptions: Partial<Record<WorkspaceMode, string[
   "image-nsfw": ["sd_4_5", "sdxl"],
   "video-sfw": [...videoGenerationModelOptions],
   "video-nsfw": [...videoNsfwGenerationModelOptions],
-  "voice-sfw": [...imageGenerationModelOptions],
-  "voice-nsfw": [...imageGenerationModelOptions],
+  "voice-sfw": [...voiceGenerationModelOptions],
+  "voice-nsfw": [...voiceGenerationModelOptions],
 };
 
 function resolveWorkspaceGenerationModels(mode: WorkspaceMode, modelGenerationModels: string[]): string[] {
@@ -1472,9 +1473,9 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const isActiveFaceSwapLayout = board?.settings.sdxlWorkspaceMode === "FACE_SWAP";
   const boardLayoutControl = showBoardLayoutControl ? (
     <label className="flex items-center gap-2">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">Layout</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Layout</span>
       <select
-        className="h-11 w-[240px] rounded-xl border border-white/8 bg-[#2b2b2b] px-3 text-xs font-semibold text-white/82 outline-none transition hover:bg-[#313131] focus:border-[#4e6b22]"
+        className="h-11 w-[240px] rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] outline-none transition hover:bg-[color:var(--surface-soft-hover)] focus:border-[color:var(--focus-ring)]"
         onChange={(event) => handleLayoutModeChange(event.target.value as BoardSettings["sdxlWorkspaceMode"])}
         value={activeLayoutMode}
       >

@@ -27,6 +27,7 @@ export const workerModelLabels: Record<string, string> = {
   kling_3_0: "Kling 3.0",
   kling_motion_control: "Kling Motion Control",
   grok_imagine: "Grok Imagine",
+  eleven_v3: "Eleven v3",
 };
 
 export const resolutionLabels: Record<string, string> = {
@@ -47,7 +48,8 @@ export const qualityLabels: Record<string, string> = {
 export const imageGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
 export const videoGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"] as const;
 export const videoNsfwGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "grok_imagine"] as const;
-export const generationModelOptions = [...imageGenerationModelOptions, ...videoGenerationModelOptions] as const;
+export const voiceGenerationModelOptions = ["eleven_v3"] as const;
+export const generationModelOptions = [...imageGenerationModelOptions, ...videoGenerationModelOptions, ...voiceGenerationModelOptions] as const;
 export const poseMultiplierGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2"] as const;
 export const resolutionOptions = ["1k", "2k", "4k"] as const;
 export const poseMultiplierResolutionOptions = ["2k", "4k"] as const;

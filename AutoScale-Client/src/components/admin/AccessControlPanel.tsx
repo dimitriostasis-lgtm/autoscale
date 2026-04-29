@@ -24,6 +24,7 @@ interface AccessControlPanelProps {
   onRenameAgency: (agencyId: string, name: string) => Promise<void>;
   onDeleteAgency: (agencyId: string) => Promise<void>;
   onUpdateAgencyBillingSettings: (agencyId: string, input: AgencyBillingSettings) => Promise<void>;
+  onClearPlatformNotifications: () => Promise<void>;
   onCreateUser: (input: {
     name: string;
     email: string;
@@ -667,6 +668,7 @@ export function AccessControlPanel({
   onRenameAgency,
   onDeleteAgency,
   onUpdateAgencyBillingSettings,
+  onClearPlatformNotifications,
   onCreateUser,
   onRenameUser,
   onCreateInfluencerModel,
@@ -689,6 +691,7 @@ export function AccessControlPanel({
   const editAvatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [isClearingPlatformNotifications, setIsClearingPlatformNotifications] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
   const [platformAgencySearch, setPlatformAgencySearch] = useState("");
@@ -703,6 +706,7 @@ export function AccessControlPanel({
   const [newAgencyName, setNewAgencyName] = useState("");
   const [agencyDrafts, setAgencyDrafts] = useState<Record<string, string>>({});
   const [agencyBillingDrafts, setAgencyBillingDrafts] = useState<Record<string, AgencyBillingSettingsDraft>>({});
+  const [expandedAgencyBillingId, setExpandedAgencyBillingId] = useState<string | null>(null);
   const [agencyPendingDeletionId, setAgencyPendingDeletionId] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -1413,6 +1417,19 @@ export function AccessControlPanel({
     }
   }
 
+  async function handleClearPlatformNotifications(): Promise<void> {
+    setIsClearingPlatformNotifications(true);
+    const result = await executeAction(
+      onClearPlatformNotifications,
+      "Cleared platform notifications.",
+      "global",
+    );
+    if (result.ok) {
+      setNotice(null);
+    }
+    setIsClearingPlatformNotifications(false);
+  }
+
   if (!selectedUser || !accountDraft) {
     return <div className={theme.cardStrong + " glass-panel p-10 text-white/58"}>No visible accounts.</div>;
   }
@@ -1918,6 +1935,71 @@ export function AccessControlPanel({
     }
   }
 
+  const platformNotificationsSummary = (
+    <div
+      id="access-platform-notifications"
+      className={cx(
+        "border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-6 transition sm:px-7",
+        platformNotifications.length ? "py-5" : "py-3 opacity-45 hover:opacity-70",
+      )}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Platform Notifications</p>
+          {platformNotifications.length ? (
+            <p className="mt-1 text-sm text-[color:var(--text-muted)]">
+              Billing follow-up requests from agency admins appear here as soon as they click the request button.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-[color:var(--text-muted)]">No follow-up requests.</p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span
+            className={cx(
+              "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]",
+              platformNotifications.length
+                ? "border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] text-[color:var(--accent-text)]"
+                : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-muted)]",
+            )}
+          >
+            {platformNotifications.length} request{platformNotifications.length === 1 ? "" : "s"}
+          </span>
+          {platformNotifications.length ? (
+            <button
+              className={theme.buttonSecondary + " rounded-xl px-3 py-2 text-xs"}
+              disabled={isClearingPlatformNotifications}
+              onClick={() => void handleClearPlatformNotifications()}
+              type="button"
+            >
+              {isClearingPlatformNotifications ? "Clearing..." : "Clear"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {platformNotifications.length ? (
+        <div className="mt-4 divide-y divide-[color:var(--surface-border)] overflow-hidden rounded-[22px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)]">
+          {platformNotifications.slice(0, 3).map((notification) => (
+            <div key={notification.id} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-[color:var(--text-strong)]">{notification.message}</p>
+                <p className="mt-1 truncate text-xs text-[color:var(--text-muted)]">
+                  {notification.requesterName}
+                  {notification.requesterEmail ? ` - ${notification.requesterEmail}` : ""}
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-xs font-semibold text-[color:var(--text-main)]">{notification.agencyName || "No agency"}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{formatTimestamp(notification.createdAt)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {renderNotice("global")}
@@ -2360,6 +2442,8 @@ export function AccessControlPanel({
               </p>
             </div>
           </div>
+
+          {platformNotificationsSummary}
 
           <div className="border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-6 py-6 sm:px-7 sm:py-7">
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -3315,49 +3399,6 @@ export function AccessControlPanel({
 
       {isPlatformAdmin ? (
         <div className="space-y-6">
-          <section id="access-platform-notifications" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
-            <div className="border-b border-white/8 px-5 py-5 sm:px-6" style={sectionHeaderGlowStyle}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-white/42">Platform Notifications</p>
-                  <h3 className="font-display mt-2 text-2xl text-white">Follow-up requests</h3>
-                  <p className="mt-3 max-w-3xl text-sm leading-7 text-white/56">
-                    Billing follow-up requests from agency admins appear here as soon as they click the request button.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-right">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Requests</p>
-                  <p className="mt-1 text-lg font-semibold text-white">{platformNotifications.length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="divide-y divide-white/8">
-              {platformNotifications.slice(0, 6).map((notification) => (
-                <div key={notification.id} className="grid gap-3 bg-[color:var(--surface-card)] px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-white">{notification.message}</p>
-                    <p className="mt-1 text-sm text-white/52">
-                      {notification.requesterName}
-                      {notification.requesterEmail ? ` - ${notification.requesterEmail}` : ""}
-                    </p>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-sm font-semibold text-white">{notification.agencyName || "No agency"}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/42">{formatTimestamp(notification.createdAt)}</p>
-                  </div>
-                </div>
-              ))}
-
-              {!platformNotifications.length ? (
-                <div className="bg-[color:var(--surface-card)] px-5 py-8 text-sm text-white/52 sm:px-6">
-                  No follow-up requests yet.
-                </div>
-              ) : null}
-            </div>
-          </section>
-
-          <div className="space-y-6">
           <section id="access-agency-settings" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
             <div className="border-b border-white/8 px-5 py-5 sm:px-6 sm:py-6" style={sectionHeaderGlowStyle}>
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -3411,7 +3452,7 @@ export function AccessControlPanel({
             </div>
 
             <div className="max-h-[860px] overflow-y-auto">
-              <div className="sticky top-0 z-10 hidden grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] gap-px bg-white/8 text-xs font-semibold uppercase tracking-[0.16em] text-white/42 lg:grid">
+              <div className="sticky top-0 z-10 hidden grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] gap-px bg-[color:var(--surface-border)] text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:grid">
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Agency</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Roster</div>
                 <div className="bg-[color:var(--surface-card)] px-4 py-3">Influencers</div>
@@ -3419,10 +3460,11 @@ export function AccessControlPanel({
                 <div className="bg-[color:var(--surface-card)] px-4 py-3 text-right">Actions</div>
               </div>
 
-              <div className="divide-y divide-white/8">
+              <div className="divide-y divide-[color:var(--surface-border)]">
                 {agencySettingsRows.map((row) => {
                   const agency = row.agency;
                   const agencyBillingDraft = agencyBillingDrafts[agency.id] ?? buildAgencyBillingSettingsDraft(row.billingSettings);
+                  const billingSettingsExpanded = expandedAgencyBillingId === agency.id;
                   const agencyScopedMembers = users.filter((user) => user.agencyId === agency.id && user.role !== "PLATFORM_ADMIN");
                   const retainedAdmins = users.filter((user) => user.agencyId === agency.id && user.role === "PLATFORM_ADMIN");
                   const deleteSummary = `${agencyScopedMembers.length} scoped account${agencyScopedMembers.length === 1 ? "" : "s"} affected${
@@ -3430,23 +3472,23 @@ export function AccessControlPanel({
                   }`;
 
                   return (
-                    <div key={agency.id} className="grid gap-4 bg-[color:var(--surface-card)] px-4 py-4 text-sm transition hover:bg-[color:var(--surface-soft-hover)] lg:grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] lg:items-center">
+                    <div key={agency.id} className="grid gap-4 border-b border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-4 text-sm transition last:border-b-0 hover:bg-[color:var(--surface-soft-hover)] lg:grid-cols-[minmax(220px,1.15fr)_220px_190px_minmax(260px,1fr)_170px] lg:items-center">
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-white">{agency.name}</p>
-                        <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-white/42">{agency.slug}</p>
-                        <p className="mt-1 text-xs text-white/42">Created {new Date(agency.createdAt).toLocaleDateString()}</p>
+                        <p className="truncate font-semibold text-[color:var(--text-strong)]">{agency.name}</p>
+                        <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{agency.slug}</p>
+                        <p className="mt-1 text-xs text-[color:var(--text-muted)]">Created {new Date(agency.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/42 lg:hidden">Roster</p>
-                        <p className="font-semibold text-white">{row.memberCount} total / {row.activeAccounts} active</p>
-                        <p className="mt-1 text-xs text-white/48">
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:hidden">Roster</p>
+                        <p className="font-semibold text-[color:var(--text-strong)]">{row.memberCount} total / {row.activeAccounts} active</p>
+                        <p className="mt-1 text-xs text-[color:var(--text-muted)]">
                           {agency.adminCount} admins / {agency.managerCount} managers / {agency.userCount} users
                         </p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/42 lg:hidden">Influencers</p>
-                        <p className="font-semibold text-white">{row.assignedInfluencers} / {row.influencerCapacity} owned</p>
-                        <p className={cx("mt-1 text-xs", row.overCapacityCount > 0 ? "text-red-100/72" : "text-white/48")}>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] lg:hidden">Influencers</p>
+                        <p className="font-semibold text-[color:var(--text-strong)]">{row.assignedInfluencers} / {row.influencerCapacity} owned</p>
+                        <p className={cx("mt-1 text-xs", row.overCapacityCount > 0 ? "text-red-100/72" : "text-[color:var(--text-muted)]")}>
                           {row.overCapacityCount > 0 ? `${row.overCapacityCount} over capacity` : `${row.openInfluencerSlots} slots open`}
                         </p>
                       </div>
@@ -3459,6 +3501,26 @@ export function AccessControlPanel({
                         />
                       </label>
                       <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                        <button
+                          aria-expanded={billingSettingsExpanded}
+                          className={cx(
+                            "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition",
+                            billingSettingsExpanded
+                              ? "border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-[color:var(--accent-text)]"
+                              : "border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-main)] hover:bg-[color:var(--surface-soft-hover)]",
+                          )}
+                          onClick={() => setExpandedAgencyBillingId((current) => (current === agency.id ? null : agency.id))}
+                          title="Billing & allowance settings"
+                          type="button"
+                        >
+                          <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20">
+                            <path
+                              d="M8.95 2.25h2.1l.42 1.92c.43.14.84.31 1.22.52l1.67-1.06 1.49 1.49-1.06 1.67c.21.38.38.79.52 1.22l1.92.42v2.1l-1.92.42a5.62 5.62 0 0 1-.52 1.22l1.06 1.67-1.49 1.49-1.67-1.06c-.38.21-.79.38-1.22.52l-.42 1.92h-2.1l-.42-1.92a5.62 5.62 0 0 1-1.22-.52l-1.67 1.06-1.49-1.49 1.06-1.67a5.62 5.62 0 0 1-.52-1.22l-1.92-.42v-2.1l1.92-.42c.14-.43.31-.84.52-1.22L4.15 5.12l1.49-1.49 1.67 1.06c.38-.21.79-.38 1.22-.52l.42-1.92ZM10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          Settings
+                        </button>
                         <button className={theme.buttonSecondary} onClick={() => void handleRenameAgency(agency)} type="button">
                           Rename
                         </button>
@@ -3466,11 +3528,12 @@ export function AccessControlPanel({
                           Delete
                         </button>
                       </div>
-                      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 lg:col-span-5">
+                      {billingSettingsExpanded ? (
+                      <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-4 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-strong)_5%,transparent)] lg:col-span-5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Billing Settings</p>
-                            <p className="mt-2 text-sm leading-6 text-white/52">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">BILLING & ALLOWANCE SETTINGS</p>
+                            <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">
                               Set the subscription details and limits shown in agency billing and enforced for agency-owned influencer capacity.
                             </p>
                           </div>
@@ -3488,7 +3551,7 @@ export function AccessControlPanel({
                             ["teamSeatAllowance", "Team Seat Allowance", "Agency seats"],
                           ].map(([field, label, hint]) => (
                             <label key={field} className="block space-y-2">
-                              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/46">{label}</span>
+                              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)]">{label}</span>
                               <input
                                 className={theme.input}
                                 min="0"
@@ -3497,11 +3560,12 @@ export function AccessControlPanel({
                                 type="number"
                                 value={agencyBillingDraft[field as keyof AgencyBillingSettings]}
                               />
-                              <span className="block text-xs text-white/42">{hint}</span>
+                              <span className="block text-xs text-[color:var(--text-muted)]">{hint}</span>
                             </label>
                           ))}
                         </div>
                       </div>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -3679,8 +3743,6 @@ export function AccessControlPanel({
               </form>
             </section>
           ) : null}
-          </div>
-
           <section id="access-influencer-profiles" className={theme.cardStrong + " glass-panel max-h-[980px] scroll-mt-32 overflow-y-auto p-0"}>
             <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
               <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencers</p>

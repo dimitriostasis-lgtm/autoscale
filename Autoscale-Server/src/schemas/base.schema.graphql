@@ -338,6 +338,7 @@ type Mutation {
   renameAgency(agencyId: ID!, name: String!): Agency!
   deleteAgency(agencyId: ID!): Boolean!
   updateAgencyBillingSettings(agencyId: ID!, input: AgencyBillingSettingsInput!): Agency!
+  clearPlatformNotifications: Boolean!
   requestBillingFollowUp: PlatformNotification!
   createUser(input: CreateUserInput!): User!
   renameUser(userId: ID!, name: String!): User!

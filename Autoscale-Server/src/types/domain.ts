@@ -65,7 +65,8 @@ export type ReferenceSourceType = "UPLOAD" | "ASSET";
 export const IMAGE_WORKER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
 export const VIDEO_WORKER_GENERATION_MODELS = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"] as const;
 export const VIDEO_NSFW_WORKER_GENERATION_MODELS = ["sd_2_0", "sd_2_0_fast", "grok_imagine"] as const;
-export const SUPPORTED_WORKER_GENERATION_MODELS = [...IMAGE_WORKER_GENERATION_MODELS, ...VIDEO_WORKER_GENERATION_MODELS] as const;
+export const VOICE_WORKER_GENERATION_MODELS = ["eleven_v3"] as const;
+export const SUPPORTED_WORKER_GENERATION_MODELS = [...IMAGE_WORKER_GENERATION_MODELS, ...VIDEO_WORKER_GENERATION_MODELS, ...VOICE_WORKER_GENERATION_MODELS] as const;
 
 export type WorkerGenerationModel = (typeof SUPPORTED_WORKER_GENERATION_MODELS)[number];
 

@@ -4,31 +4,71 @@
       "id": "d3f20f4a-cd4b-44f8-8c54-b9e4a5e4f69d",
       "slug": "northstar-creative",
       "name": "Northstar Creative",
-      "createdAt": "2026-04-21T10:01:08.196Z"
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "billingSettings": {
+        "monthlySubscriptionPrice": 7500,
+        "includedMonthlyCredits": 1000,
+        "aiInfluencerAllowance": 2,
+        "workspaceTabAllowance": 9,
+        "parallelRowGenerations": 8,
+        "teamSeatAllowance": 4
+      }
     },
     {
       "id": "30008f4b-5af7-4181-a4c3-f99285d60434",
       "slug": "lattice-social",
       "name": "Lattice Social",
-      "createdAt": "2026-04-21T10:01:08.196Z"
+      "createdAt": "2026-04-21T10:01:08.196Z",
+      "billingSettings": {
+        "monthlySubscriptionPrice": 7500,
+        "includedMonthlyCredits": 1000,
+        "aiInfluencerAllowance": 2,
+        "workspaceTabAllowance": 9,
+        "parallelRowGenerations": 8,
+        "teamSeatAllowance": 4
+      }
     },
     {
       "id": "360b69c5-37e1-4cbc-9e54-f8fe0269533b",
       "slug": "autoscale-group",
       "name": "AutoScale Group",
-      "createdAt": "2026-04-21T14:14:58.994Z"
+      "createdAt": "2026-04-21T14:14:58.994Z",
+      "billingSettings": {
+        "monthlySubscriptionPrice": 7500,
+        "includedMonthlyCredits": 1000,
+        "aiInfluencerAllowance": 2,
+        "workspaceTabAllowance": 9,
+        "parallelRowGenerations": 8,
+        "teamSeatAllowance": 4
+      }
     },
     {
       "id": "c2674896-733a-480a-946c-36a02dd254a6",
       "slug": "valera",
       "name": "Valera",
-      "createdAt": "2026-04-21T15:10:23.646Z"
+      "createdAt": "2026-04-21T15:10:23.646Z",
+      "billingSettings": {
+        "monthlySubscriptionPrice": 7500,
+        "includedMonthlyCredits": 1000,
+        "aiInfluencerAllowance": 2,
+        "workspaceTabAllowance": 9,
+        "parallelRowGenerations": 8,
+        "teamSeatAllowance": 4
+      }
     },
     {
       "id": "bd79d664-4217-478f-ba1c-970d550671be",
       "slug": "fanvella",
       "name": "Fanvella",
-      "createdAt": "2026-04-22T11:43:32.861Z"
+      "createdAt": "2026-04-22T11:43:32.861Z",
+      "billingSettings": {
+        "monthlySubscriptionPrice": 7500,
+        "includedMonthlyCredits": 1000,
+        "aiInfluencerAllowance": 2,
+        "workspaceTabAllowance": 9,
+        "parallelRowGenerations": 8,
+        "teamSeatAllowance": 4
+      }
     }
   ],
   "users": [
@@ -203,7 +243,8 @@
         "sd_2_0_fast",
         "kling_3_0",
         "kling_motion_control",
-        "grok_imagine"
+        "grok_imagine",
+        "eleven_v3"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
@@ -243,7 +284,8 @@
         "sd_2_0_fast",
         "kling_3_0",
         "kling_motion_control",
-        "grok_imagine"
+        "grok_imagine",
+        "eleven_v3"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
@@ -283,7 +325,8 @@
         "sd_2_0_fast",
         "kling_3_0",
         "kling_motion_control",
-        "grok_imagine"
+        "grok_imagine",
+        "eleven_v3"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
@@ -323,7 +366,8 @@
         "sd_2_0_fast",
         "kling_3_0",
         "kling_motion_control",
-        "grok_imagine"
+        "grok_imagine",
+        "eleven_v3"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
@@ -369,7 +413,8 @@
         "sd_2_0_fast",
         "kling_3_0",
         "kling_motion_control",
-        "grok_imagine"
+        "grok_imagine",
+        "eleven_v3"
       ],
       "createdAt": "2026-04-25T17:54:51.040Z"
     }
@@ -447,7 +492,8 @@
         "poseMultiplierGenerationModel": "kling_o1",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -462,7 +508,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         },
         {
           "id": "a733466f-fb8d-4802-8e5a-fabecae9edc8",
@@ -476,7 +523,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         },
         {
           "id": "15688a21-b485-4921-8d4a-063a653fad30",
@@ -490,7 +538,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         },
         {
           "id": "2d443819-4f65-4eca-84c0-6d1200ea0407",
@@ -504,7 +553,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         }
       ]
     },
@@ -579,7 +629,8 @@
         "poseMultiplierGenerationModel": "sd_4_5",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -594,7 +645,8 @@
           "lastRunAt": null,
           "poseMultiplier": 4,
           "faceSwap": true,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         }
       ]
     },
@@ -669,7 +721,8 @@
         "poseMultiplierGenerationModel": "sd_4_5",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -684,7 +737,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         },
         {
           "id": "ab7e3c17-008e-4d76-b7b8-fe3393d18ee9",
@@ -698,7 +752,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         },
         {
           "id": "9a3cee66-2aaa-482a-9394-7b3c367cb9e0",
@@ -712,7 +767,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         },
         {
           "id": "53103554-66e1-41c0-ae81-74b2e9ae3baa",
@@ -726,7 +782,8 @@
           "lastRunAt": null,
           "poseMultiplier": 1,
           "faceSwap": false,
-          "posePromptTemplates": null
+          "posePromptTemplates": null,
+          "upscale": false
         }
       ]
     },
@@ -801,7 +858,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -816,7 +874,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "f529372c-e40e-4cf7-b059-ffcaa22998c9",
@@ -830,7 +889,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "5d8753d2-f7a1-4c44-b0f3-0b2d8aa6d391",
@@ -844,7 +904,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "f5a8b59a-d17d-4814-b3c0-8dd6aca17610",
@@ -858,7 +919,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -933,7 +995,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -948,7 +1011,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "fe34f052-fc0a-4ac1-935c-b768ac82464e",
@@ -962,7 +1026,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "6391f393-371d-480d-b2b6-78d173f64a99",
@@ -976,7 +1041,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "2d0a9cb6-48bc-4b07-99b5-fde1737ee9a2",
@@ -990,7 +1056,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1065,7 +1132,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -1080,7 +1148,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "2a1ac536-640b-4e58-98dd-dd7537585c86",
@@ -1094,7 +1163,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "979a1303-c17c-4c00-b172-a992caefd165",
@@ -1108,7 +1178,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "40d7fbdb-fcb0-4ac6-8a87-419a79cfd98e",
@@ -1122,7 +1193,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1197,7 +1269,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -1212,7 +1285,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "90162930-a247-4052-810b-9e3ec05bb666",
@@ -1226,7 +1300,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "6fa0b1c9-4f1e-4e1b-95cf-309e9479e2ae",
@@ -1240,7 +1315,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "e7424944-1d42-48ed-8f7d-4cd8cf13df88",
@@ -1254,7 +1330,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1329,7 +1406,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -1344,7 +1422,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "1de19f91-e7fc-443b-b98b-c7da847e84fa",
@@ -1358,7 +1437,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "50a9d473-79fe-4540-9e75-73478b13db38",
@@ -1372,7 +1452,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "5ae1ad02-0bfd-4b10-bc3e-153a67b11111",
@@ -1386,7 +1467,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1461,7 +1543,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -1476,7 +1559,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "b1724827-503a-4e6c-a657-5658efefdd52",
@@ -1490,7 +1574,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "cedf77f4-812c-4d14-b0a1-98e77dd568e5",
@@ -1504,7 +1589,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "ec6ea003-8240-49af-8a0c-e249d20b074b",
@@ -1518,7 +1604,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1593,7 +1680,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -1608,7 +1696,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "0d4755d3-14a3-4d3e-89cd-24a2733755f1",
@@ -1622,7 +1711,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "2a7f2b43-4c77-48c7-956c-1054279d5422",
@@ -1636,7 +1726,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "28b7271e-cd1b-43a9-bdca-c9d62a1bb112",
@@ -1650,7 +1741,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1785,7 +1877,8 @@
           }
         ],
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -1800,7 +1893,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "d1cfc507-6ed7-4ffe-93b8-711bf4e473cd",
@@ -1814,7 +1908,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "38c3d0d5-e9e2-46bd-a824-d320e9813f26",
@@ -1828,7 +1923,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "da071928-bba3-4aca-ab09-45f9d1cd72c0",
@@ -1842,7 +1938,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1917,7 +2014,8 @@
           }
         ],
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -1932,7 +2030,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "650e5179-0263-4399-924d-ec76a522ebe6",
@@ -1946,7 +2045,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "2a05b88f-bb08-458e-b533-df1c07ad1aee",
@@ -1960,7 +2060,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "1a3158a0-6a7c-48f2-a7f9-1371b6f5ee80",
@@ -1974,7 +2075,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -1984,17 +2086,20 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_video_sfw__:Table 1",
       "createdAt": "2026-04-26T15:09:09.064Z",
-      "updatedAt": "2026-04-28T14:44:41.538Z",
+      "updatedAt": "2026-04-29T11:38:44.559Z",
       "settings": {
-        "generationModel": "kling_3_0",
+        "generationModel": "grok_imagine",
         "resolution": "720p",
+        "poseMultiplierResolution": "2k",
         "videoDurationSeconds": 3,
         "quality": "medium",
         "aspectRatio": "auto",
         "quantity": 1,
+        "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierEnabled": false,
         "poseMultiplier": 1,
         "poseMultiplierGenerationModel": "nb_pro",
+        "upscale": false,
         "faceSwap": false,
         "autoPromptGen": false,
         "autoPromptImage": false,
@@ -2047,9 +2152,7 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ],
-        "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        ]
       },
       "rows": [
         {
@@ -2064,7 +2167,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "d1a31837-1372-4834-9854-9a396f361dcc",
@@ -2078,7 +2182,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "eaa2cc52-436b-43ed-9597-819b9d046c68",
@@ -2092,7 +2197,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "9068d4cc-594d-4a46-80fa-4702d2053a00",
@@ -2106,7 +2212,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -2116,9 +2223,9 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_voice_sfw__:Table 1",
       "createdAt": "2026-04-26T15:09:11.241Z",
-      "updatedAt": "2026-04-28T16:40:12.289Z",
+      "updatedAt": "2026-04-29T11:42:03.641Z",
       "settings": {
-        "generationModel": "nb_pro",
+        "generationModel": "eleven_v3",
         "resolution": "2k",
         "poseMultiplierResolution": "2k",
         "videoDurationSeconds": null,
@@ -2129,6 +2236,7 @@
         "poseMultiplierEnabled": false,
         "poseMultiplier": 1,
         "poseMultiplierGenerationModel": "nb_pro",
+        "upscale": false,
         "faceSwap": false,
         "autoPromptGen": false,
         "autoPromptImage": false,
@@ -2196,7 +2304,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "6b72517e-0083-4e21-91ae-3dae0e693f50",
@@ -2211,7 +2320,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "5565fc59-bc4c-407a-8527-9cfb82ff0ed3",
@@ -2226,7 +2336,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -2301,7 +2412,8 @@
         "poseMultiplierGenerationModel": "nb_pro",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -2316,7 +2428,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "783ad0d2-2d74-4858-95c6-376464bb194d",
@@ -2330,7 +2443,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "fb19465d-2c2b-4820-9fc1-83f6c400e924",
@@ -2344,7 +2458,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "b32272f2-3247-4b39-8c57-284ca7f3a3bb",
@@ -2358,7 +2473,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -2433,7 +2549,8 @@
         "poseMultiplierGenerationModel": "kling_o1",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -2448,7 +2565,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "7d206b8a-cd58-467f-b62e-e499fd2130c7",
@@ -2462,7 +2580,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "355f0d20-39a9-4d71-9bfb-ba631aedea13",
@@ -2476,7 +2595,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "35eedfda-54fc-4780-95d7-d5f02e27c563",
@@ -2490,7 +2610,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -2565,7 +2686,8 @@
         "poseMultiplierGenerationModel": "kling_o1",
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -2580,7 +2702,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "34a6afba-9c7e-4b15-a61e-2b96980d6451",
@@ -2594,7 +2717,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "6a5a0ad8-4063-4b78-bf65-b9200453a085",
@@ -2608,7 +2732,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "4b72c1e2-8083-4eda-898c-0eeb055bf789",
@@ -2622,7 +2747,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -2697,7 +2823,8 @@
           }
         ],
         "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierResolution": "2k"
+        "poseMultiplierResolution": "2k",
+        "upscale": false
       },
       "rows": [
         {
@@ -2712,7 +2839,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "124a6dc4-0ad5-495a-b171-7efedeb7ed83",
@@ -2726,7 +2854,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "54fef180-21db-4288-a882-89b1d28c9d83",
@@ -2740,7 +2869,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "a98fe8ce-5845-4592-a97b-37e53c1fc3cd",
@@ -2754,7 +2884,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -2764,20 +2895,21 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_nsfw__:Table 3",
       "createdAt": "2026-04-28T16:46:58.485Z",
-      "updatedAt": "2026-04-28T16:58:20.383Z",
+      "updatedAt": "2026-04-28T18:36:18.651Z",
       "settings": {
-        "generationModel": "sd_4_5",
+        "generationModel": "sdxl",
         "resolution": "2k",
         "poseMultiplierResolution": "2k",
         "videoDurationSeconds": null,
         "quality": "medium",
-        "aspectRatio": "auto",
+        "aspectRatio": "1:1",
         "quantity": 1,
-        "sdxlWorkspaceMode": "POSE_MULTIPLIER",
-        "poseMultiplierEnabled": true,
+        "sdxlWorkspaceMode": "FACE_SWAP",
+        "poseMultiplierEnabled": false,
         "poseMultiplier": 4,
-        "poseMultiplierGenerationModel": "sdxl",
-        "faceSwap": false,
+        "poseMultiplierGenerationModel": "nb_pro",
+        "upscale": false,
+        "faceSwap": true,
         "autoPromptGen": false,
         "autoPromptImage": false,
         "posePromptMode": "AUTO",
@@ -2839,13 +2971,14 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": false,
+          "faceSwap": true,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "1e07eb7a-993e-476d-bed0-67a9375b1bcb",
@@ -2854,13 +2987,14 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": false,
+          "faceSwap": true,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "d2d1d782-c542-47fd-8c4f-77640d812cab",
@@ -2869,13 +3003,14 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": false,
+          "faceSwap": true,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "312419e2-9138-450a-9287-5f1daeeb061b",
@@ -2884,13 +3019,14 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": false,
+          "faceSwap": true,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
@@ -2965,7 +3101,8 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ]
+        ],
+        "upscale": false
       },
       "rows": [
         {
@@ -2981,7 +3118,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "08d65dfd-b9de-4d8d-98fa-8805e8aa3167",
@@ -2996,7 +3134,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "12d0a935-3fd7-45e8-b49a-871bd9290eb5",
@@ -3011,7 +3150,8 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         },
         {
           "id": "e4647cf1-a217-4e69-9ae6-dbf2ab2e1148",
@@ -3026,29 +3166,236 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": null,
+          "upscale": false
         }
       ]
     },
     {
-      "id": "2be2d86c-07b2-4592-bc08-dac642032f28",
+      "id": "702dc4b9-7254-4acb-b238-d1273a69cf0c",
       "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "Table 2",
-      "createdAt": "2026-04-28T17:20:59.877Z",
-      "updatedAt": "2026-04-28T17:40:11.952Z",
+      "createdAt": "2026-04-28T18:32:59.165Z",
+      "updatedAt": "2026-04-29T11:42:58.914Z",
       "settings": {
-        "generationModel": "gpt_2",
+        "generationModel": "nb_pro",
         "resolution": "2k",
         "poseMultiplierResolution": "2k",
         "videoDurationSeconds": null,
         "quality": "medium",
         "aspectRatio": "auto",
         "quantity": 1,
-        "sdxlWorkspaceMode": "POSE_MULTIPLIER",
-        "poseMultiplierEnabled": true,
-        "poseMultiplier": 4,
-        "poseMultiplierGenerationModel": "kling_o1",
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 2,
+        "poseMultiplierGenerationModel": "nb_pro",
+        "upscale": false,
+        "faceSwap": true,
+        "autoPromptGen": false,
+        "autoPromptImage": false,
+        "posePromptMode": "AUTO",
+        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+        "posePromptTemplates": [
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
+          "Keep the same framing and styling while varying the body pose for each multiplied shot."
+        ],
+        "globalReferences": [
+          {
+            "id": "fa8dd121-22d4-44e3-b207-6f37b0d39784",
+            "slotIndex": 0,
+            "label": "Global 1",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "23cf3d87-1142-4618-8704-196df63bb0c2",
+            "slotIndex": 1,
+            "label": "Global 2",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "1c066eca-e395-4e4c-a013-6cfa3fff1d23",
+            "slotIndex": 2,
+            "label": "Global 3",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          },
+          {
+            "id": "e322bebf-bdd3-4925-8029-336addae1ee5",
+            "slotIndex": 3,
+            "label": "Global 4",
+            "sourceType": "UPLOAD",
+            "assetId": null,
+            "assetUrl": null,
+            "uploadPath": null,
+            "uploadUrl": null
+          }
+        ]
+      },
+      "rows": [
+        {
+          "id": "529eb09f-8614-4972-9609-2b93a5e32859",
+          "orderIndex": 0,
+          "label": "1",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "6cee93da-0914-4588-907f-4c8347009c7f",
+          "orderIndex": 1,
+          "label": "2",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "341d2405-301a-4951-bf5a-2e0bb1d2f6ac",
+          "orderIndex": 2,
+          "label": "3",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "daff9d88-f944-4402-8e58-09059c9d7c0e",
+          "orderIndex": 3,
+          "label": "4",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "a5811f2c-e75c-49b9-a3f6-a8f474ae8df6",
+          "orderIndex": 4,
+          "label": "5",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "f27aa837-8d86-469f-94ab-b0f630c8a965",
+          "orderIndex": 5,
+          "label": "6",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "36783412-d25d-45b3-b2a6-9326a237fc21",
+          "orderIndex": 6,
+          "label": "7",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        },
+        {
+          "id": "c89dafac-814a-4115-a20d-bdd4ba62e37c",
+          "orderIndex": 7,
+          "label": "8",
+          "prompt": "",
+          "poseMultiplier": 2,
+          "posePromptTemplates": null,
+          "upscale": false,
+          "faceSwap": true,
+          "reference": null,
+          "audioReference": null,
+          "status": "IDLE",
+          "errorMessage": null,
+          "outputAssetIds": [],
+          "lastRunAt": null
+        }
+      ]
+    },
+    {
+      "id": "43fec363-e752-4c6c-a5f6-22bddc248060",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "name": "Table 2",
+      "createdAt": "2026-04-28T21:21:34.608Z",
+      "updatedAt": "2026-04-28T21:21:34.608Z",
+      "settings": {
+        "generationModel": "nb_pro",
+        "resolution": "2k",
+        "poseMultiplierResolution": "2k",
+        "videoDurationSeconds": null,
+        "quality": "medium",
+        "aspectRatio": "3:4",
+        "quantity": 4,
+        "sdxlWorkspaceMode": "DEFAULT",
+        "poseMultiplierEnabled": false,
+        "poseMultiplier": 1,
+        "poseMultiplierGenerationModel": "nb_pro",
+        "upscale": false,
         "faceSwap": false,
         "autoPromptGen": false,
         "autoPromptImage": false,
@@ -3062,7 +3409,7 @@
         ],
         "globalReferences": [
           {
-            "id": "5d28c164-9e5d-4fb1-89e1-c71f3ae42f3f",
+            "id": "fd502811-179b-4337-add2-69a0ff8b7cdb",
             "slotIndex": 0,
             "label": "Global 1",
             "sourceType": "UPLOAD",
@@ -3072,7 +3419,7 @@
             "uploadUrl": null
           },
           {
-            "id": "6cd16577-fe3f-44a3-9f5f-8442074a95db",
+            "id": "505af005-ae94-460b-b7fb-d29e9cd94f20",
             "slotIndex": 1,
             "label": "Global 2",
             "sourceType": "UPLOAD",
@@ -3082,7 +3429,7 @@
             "uploadUrl": null
           },
           {
-            "id": "6b4d459f-afb1-470a-92da-f5b1790f8586",
+            "id": "080363f6-532c-4f68-ac93-3735dffb615c",
             "slotIndex": 2,
             "label": "Global 3",
             "sourceType": "UPLOAD",
@@ -3092,7 +3439,7 @@
             "uploadUrl": null
           },
           {
-            "id": "5d84cc87-d3ee-40e3-aed4-ea67e3d731f6",
+            "id": "0d0fd6af-f7a0-4d4d-af34-59d7133f53bd",
             "slotIndex": 3,
             "label": "Global 4",
             "sourceType": "UPLOAD",
@@ -3105,12 +3452,13 @@
       },
       "rows": [
         {
-          "id": "0e8e85ea-d9bd-4bb5-a0b9-99830653377e",
+          "id": "94d73ac4-d927-4811-9945-926d5088c579",
           "orderIndex": 0,
           "label": "1",
           "prompt": "",
-          "poseMultiplier": 4,
+          "poseMultiplier": 1,
           "posePromptTemplates": null,
+          "upscale": false,
           "faceSwap": false,
           "reference": null,
           "audioReference": null,
@@ -3120,12 +3468,13 @@
           "lastRunAt": null
         },
         {
-          "id": "61bbea36-faae-4cb8-a942-f527609ff7fa",
+          "id": "dbe3ffcb-d9b8-4411-b62d-42a26560bf07",
           "orderIndex": 1,
           "label": "2",
           "prompt": "",
-          "poseMultiplier": 4,
+          "poseMultiplier": 1,
           "posePromptTemplates": null,
+          "upscale": false,
           "faceSwap": false,
           "reference": null,
           "audioReference": null,
@@ -3135,12 +3484,13 @@
           "lastRunAt": null
         },
         {
-          "id": "7d3d8224-971e-4bd2-b233-dc5bc62d6845",
+          "id": "e3951424-0e36-452a-b89c-337cc248e54f",
           "orderIndex": 2,
           "label": "3",
           "prompt": "",
-          "poseMultiplier": 4,
+          "poseMultiplier": 1,
           "posePromptTemplates": null,
+          "upscale": false,
           "faceSwap": false,
           "reference": null,
           "audioReference": null,
@@ -3150,12 +3500,13 @@
           "lastRunAt": null
         },
         {
-          "id": "c27e5ac9-3453-4e8e-be02-24a4020c40f3",
+          "id": "a92422ba-51ae-4c48-9cdf-2460252fbf79",
           "orderIndex": 3,
           "label": "4",
           "prompt": "",
-          "poseMultiplier": 4,
+          "poseMultiplier": 1,
           "posePromptTemplates": null,
+          "upscale": false,
           "faceSwap": false,
           "reference": null,
           "audioReference": null,
@@ -3167,5 +3518,6 @@
       ]
     }
   ],
-  "assets": []
+  "assets": [],
+  "platformNotifications": []
 }

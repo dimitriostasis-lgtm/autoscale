@@ -122,6 +122,12 @@ export const REQUEST_BILLING_FOLLOW_UP_MUTATION = gql`
   }
 `;
 
+export const CLEAR_PLATFORM_NOTIFICATIONS_MUTATION = gql`
+  mutation ClearPlatformNotifications {
+    clearPlatformNotifications
+  }
+`;
+
 export const USERS_QUERY = gql`
   query Users {
     users {
