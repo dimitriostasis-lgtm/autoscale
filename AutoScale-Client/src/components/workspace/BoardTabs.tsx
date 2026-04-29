@@ -79,6 +79,7 @@ export function BoardTabs({ boards, activeBoardId, onSelect, onCreate, onDelete,
         </div>
         {rightAddon ? <div className="hidden shrink-0 items-center pb-1 lg:flex">{rightAddon}</div> : null}
       </div>
+      {rightAddon ? <div className="mt-2 flex items-center overflow-x-auto pb-1 lg:hidden">{rightAddon}</div> : null}
     </div>
   );
 }

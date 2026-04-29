@@ -1797,7 +1797,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const activeLayoutMode = board?.settings.sdxlWorkspaceMode ?? "DEFAULT";
   const isActiveFaceSwapLayout = board?.settings.sdxlWorkspaceMode === "FACE_SWAP";
   const boardLayoutControl = showBoardLayoutControl ? (
-    <label className="flex items-center gap-2">
+    <label className="flex min-w-0 items-center gap-2">
       <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Layout</span>
       <select
         className="h-11 w-[240px] rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] outline-none transition hover:bg-[color:var(--surface-soft-hover)] focus:border-[color:var(--focus-ring)]"
@@ -1843,7 +1843,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                 </span>
               )}
               {mode === "playground" ? null : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
                     Clear table
                   </button>
