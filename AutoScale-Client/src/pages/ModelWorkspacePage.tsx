@@ -1880,6 +1880,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                     await refetchBoard();
                   }}
                   onCommitRow={(input) => handleCommitRow(input)}
+                  denseLayout={!sharedControlsCollapsed}
                   onDeleteRow={async (rowId) => {
                     await deleteRowMutation({ variables: { boardId: board.id, rowId } });
                     await refetchBoard();

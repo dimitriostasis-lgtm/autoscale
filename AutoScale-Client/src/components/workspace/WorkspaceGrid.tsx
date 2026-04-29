@@ -35,6 +35,7 @@ interface WorkspaceGridProps {
   onDeleteRow: (rowId: string) => Promise<void> | void;
   onAddRow: () => Promise<void> | void;
   showAudioReferenceColumn: boolean;
+  denseLayout?: boolean;
 }
 
 function statusClass(status: WorkspaceRow["status"]): string {
@@ -72,6 +73,7 @@ export function WorkspaceGrid({
   onPickAudioReference,
   onDeleteRow,
   onAddRow,
+  denseLayout = false,
 }: WorkspaceGridProps) {
   const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({});
   const [improvingPromptRowId, setImprovingPromptRowId] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export function WorkspaceGrid({
   const autoSurfaceClass = "border-[#4e6b22] bg-[#314513]";
   const controlColumnCount = [showPoseColumn, showUpscaleColumn, showFaceSwapColumn].filter(Boolean).length;
   const showRowControlColumns = controlColumnCount > 0;
-  const gridColumns = isFaceSwapWorkspaceLayout
+  const relaxedGridColumns = isFaceSwapWorkspaceLayout
     ? "grid-cols-[56px_minmax(260px,0.9fr)_minmax(180px,0.48fr)_minmax(0,0.7fr)_96px]"
     : showPoseColumn && isPoseMultiplierWorkspaceLayout
     ? "grid-cols-[56px_repeat(5,minmax(0,1fr))_96px]"
@@ -124,7 +126,27 @@ export function WorkspaceGrid({
     : referenceColumnLocked
       ? "grid-cols-[56px_minmax(150px,0.58fr)_minmax(0,1.25fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_96px]"
       : "grid-cols-[56px_repeat(4,minmax(0,1fr))_96px]";
-  const minGridWidth = isFaceSwapWorkspaceLayout
+  const denseGridColumns = isFaceSwapWorkspaceLayout
+    ? "grid-cols-[44px_repeat(3,minmax(0,1fr))_64px]"
+    : showPoseColumn && isPoseMultiplierWorkspaceLayout
+    ? "grid-cols-[44px_repeat(5,minmax(0,1fr))_64px]"
+    : showRowControlColumns && controlColumnCount === 3
+      ? "grid-cols-[44px_repeat(7,minmax(0,1fr))_64px]"
+    : showRowControlColumns && controlColumnCount === 2
+      ? "grid-cols-[44px_repeat(6,minmax(0,1fr))_64px]"
+    : showRowControlColumns
+      ? "grid-cols-[44px_repeat(5,minmax(0,1fr))_64px]"
+    : showAudioReferenceColumn
+      ? "grid-cols-[44px_repeat(5,minmax(0,1fr))_64px]"
+    : isVideoReference && !showPromptColumn
+      ? "grid-cols-[44px_repeat(3,minmax(0,1fr))_64px]"
+    : isVideoReference
+      ? "grid-cols-[44px_repeat(4,minmax(0,1fr))_64px]"
+    : referenceColumnLocked
+      ? "grid-cols-[44px_repeat(4,minmax(0,1fr))_64px]"
+      : "grid-cols-[44px_repeat(4,minmax(0,1fr))_64px]";
+  const gridColumns = denseLayout ? denseGridColumns : relaxedGridColumns;
+  const relaxedMinGridWidth = isFaceSwapWorkspaceLayout
     ? "min-w-[980px]"
     : showPoseColumn && isPoseMultiplierWorkspaceLayout
     ? "min-w-[1320px]"
@@ -141,6 +163,24 @@ export function WorkspaceGrid({
               : referenceColumnLocked
                 ? "min-w-[980px]"
                 : "min-w-[1120px]";
+  const denseMinGridWidth = isFaceSwapWorkspaceLayout
+    ? "min-w-[760px]"
+    : showPoseColumn && isPoseMultiplierWorkspaceLayout
+    ? "min-w-[928px]"
+    : showRowControlColumns && controlColumnCount === 3
+      ? "min-w-[1032px]"
+    : showRowControlColumns && controlColumnCount === 2
+      ? "min-w-[968px]"
+      : showRowControlColumns
+        ? "min-w-[904px]"
+        : showAudioReferenceColumn
+          ? "min-w-[940px]"
+          : isVideoReference
+            ? "min-w-[850px]"
+            : referenceColumnLocked
+              ? "min-w-[800px]"
+              : "min-w-[820px]";
+  const minGridWidth = denseLayout ? denseMinGridWidth : relaxedMinGridWidth;
   const cellClass = "border-r border-[color:var(--surface-border)] px-3 py-3";
   const panelClass = "h-full rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-3";
   const stackedControlPanelClass = cx(panelClass, "flex flex-col gap-2");
