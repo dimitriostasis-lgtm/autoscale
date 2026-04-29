@@ -379,63 +379,6 @@ export function SettingsPanel({
               </label>
             ) : null}
 
-            {!isFaceSwapWorkspaceLayout ? (
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-white/76">{promptAutomationLabel}</span>
-              <div className="group/prompt-lock relative" title={promptAutomationLockReason}>
-              <button
-                className={cx(
-                  "workspace-auto-prompt-toggle relative grid w-full grid-cols-[1.75rem_1fr_1.75rem] items-center overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
-                  promptAutomationOn
-                    ? "workspace-auto-prompt-toggle--on border-[#7aa321]/70 text-[#f4ffd8] hover:brightness-105"
-                    : "border-white/8 bg-[#262626] text-white/76 hover:bg-[#313131]",
-                )}
-                disabled={promptAutomationLocked}
-                title={promptAutomationLockReason}
-                onClick={() => {
-                  if (!promptAutomationLocked) {
-                    onSettingsChange({ ...settings, autoPromptGen: !settings.autoPromptGen });
-                  }
-                }}
-                type="button"
-              >
-                <span
-                  className={cx(
-                    "inline-flex h-6 w-6 items-center justify-center rounded-full border",
-                    promptAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12 text-[#f4ffd8]" : "border-current/12 text-white/44",
-                  )}
-                  aria-hidden="true"
-                >
-                  <svg className="size-3.5" viewBox="0 0 20 20">
-                    <path
-                      d="M9.1 2.4a.9.9 0 0 1 1.8 0l.16 1.26a4.5 4.5 0 0 0 3.88 3.88l1.26.16a.9.9 0 0 1 0 1.8l-1.26.16a4.5 4.5 0 0 0-3.88 3.88l-.16 1.26a.9.9 0 0 1-1.8 0l-.16-1.26a4.5 4.5 0 0 0-3.88-3.88L3.8 9.5a.9.9 0 0 1 0-1.8l1.26-.16a4.5 4.5 0 0 0 3.88-3.88L9.1 2.4Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </span>
-                <span className="text-center">{promptAutomationUnsupported ? "Unsupported" : promptAutomationOn ? "Auto Prompt On" : "Auto Prompt Off"}</span>
-                <span
-                  className={cx(
-                    "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs",
-                    promptAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12" : "border-current/20",
-                  )}
-                  aria-hidden="true"
-                >
-                  {promptAutomationOn ? <span className="workspace-auto-prompt-live-dot" /> : "*"}
-                </span>
-              </button>
-              {promptAutomationLockReason ? (
-                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 max-w-64 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs leading-5 text-white/66 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/prompt-lock:opacity-100">
-                  {promptAutomationLockReason}
-                </div>
-              ) : null}
-              </div>
-              {promptAutomationUnsupported ? (
-                <p className="text-xs leading-5 text-white/48">{promptAutomationLockReason}</p>
-              ) : null}
-            </div>
-            ) : null}
-
             {showImageReferenceAutomation ? (
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">{promptImageAutomationLabel}</span>
@@ -491,6 +434,63 @@ export function SettingsPanel({
                   </span>
                 </button>
               </div>
+            ) : null}
+
+            {!isFaceSwapWorkspaceLayout ? (
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-white/76">{promptAutomationLabel}</span>
+              <div className="group/prompt-lock relative" title={promptAutomationLockReason}>
+              <button
+                className={cx(
+                  "workspace-auto-prompt-toggle relative grid w-full grid-cols-[1.75rem_1fr_1.75rem] items-center overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+                  promptAutomationOn
+                    ? "workspace-auto-prompt-toggle--on border-[#7aa321]/70 text-[#f4ffd8] hover:brightness-105"
+                    : "border-white/8 bg-[#262626] text-white/76 hover:bg-[#313131]",
+                )}
+                disabled={promptAutomationLocked}
+                title={promptAutomationLockReason}
+                onClick={() => {
+                  if (!promptAutomationLocked) {
+                    onSettingsChange({ ...settings, autoPromptGen: !settings.autoPromptGen });
+                  }
+                }}
+                type="button"
+              >
+                <span
+                  className={cx(
+                    "inline-flex h-6 w-6 items-center justify-center rounded-full border",
+                    promptAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12 text-[#f4ffd8]" : "border-current/12 text-white/44",
+                  )}
+                  aria-hidden="true"
+                >
+                  <svg className="size-3.5" viewBox="0 0 20 20">
+                    <path
+                      d="M9.1 2.4a.9.9 0 0 1 1.8 0l.16 1.26a4.5 4.5 0 0 0 3.88 3.88l1.26.16a.9.9 0 0 1 0 1.8l-1.26.16a4.5 4.5 0 0 0-3.88 3.88l-.16 1.26a.9.9 0 0 1-1.8 0l-.16-1.26a4.5 4.5 0 0 0-3.88-3.88L3.8 9.5a.9.9 0 0 1 0-1.8l1.26-.16a4.5 4.5 0 0 0 3.88-3.88L9.1 2.4Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+                <span className="text-center">{promptAutomationUnsupported ? "Unsupported" : promptAutomationOn ? "Auto Prompt On" : "Auto Prompt Off"}</span>
+                <span
+                  className={cx(
+                    "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs",
+                    promptAutomationOn ? "border-[#c7ff27]/25 bg-[#c7ff27]/12" : "border-current/20",
+                  )}
+                  aria-hidden="true"
+                >
+                  {promptAutomationOn ? <span className="workspace-auto-prompt-live-dot" /> : "*"}
+                </span>
+              </button>
+              {promptAutomationLockReason ? (
+                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 max-w-64 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs leading-5 text-white/66 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/prompt-lock:opacity-100">
+                  {promptAutomationLockReason}
+                </div>
+              ) : null}
+              </div>
+              {promptAutomationUnsupported ? (
+                <p className="text-xs leading-5 text-white/48">{promptAutomationLockReason}</p>
+              ) : null}
+            </div>
             ) : null}
 
             {showPoseMultiplierSharedOptions ? (
