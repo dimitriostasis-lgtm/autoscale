@@ -3442,7 +3442,7 @@ export function AccessControlPanel({
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-white/42">Agencies</p>
-                  <h3 className="font-display mt-2 text-2xl text-white">Agency settings</h3>
+                  <h3 className="font-display mt-2 text-2xl text-white sm:text-3xl">Agency settings</h3>
                   <p className="mt-3 max-w-3xl text-sm leading-7 text-white/56">
                     Create, rename, remove, and tune agency billing settings from one operations view.
                   </p>
@@ -3462,30 +3462,73 @@ export function AccessControlPanel({
                   </div>
                 </div>
               </div>
+            </div>
 
-              <form className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px]" onSubmit={handleCreateAgency}>
-                <input className={theme.input} placeholder="Create a new agency" value={newAgencyName} onChange={(event) => setNewAgencyName(event.target.value)} />
-                <button className={theme.buttonPrimary + " w-full"} type="submit">
-                  Create
-                </button>
-              </form>
+            <div className="border-b border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-4 sm:p-6">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                <div className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Create agency</p>
+                      <h4 className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">Add a new agency workspace</h4>
+                      <p className="mt-2 max-w-xl text-sm leading-6 text-[color:var(--text-muted)]">
+                        Create the agency container first, then assign accounts, influencer capacity, billing, and allowance settings from the roster below.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
+                      New
+                    </span>
+                  </div>
 
-              {renderNotice("agencySettings", "mt-4")}
-              {renderNotice("agencyBillingSettings", "mt-4")}
+                  <form className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleCreateAgency}>
+                    <label className="block min-w-0 space-y-2">
+                      <span className="sr-only">Agency name</span>
+                      <input
+                        className={theme.input}
+                        onChange={(event) => setNewAgencyName(event.target.value)}
+                        placeholder="Agency name"
+                        value={newAgencyName}
+                      />
+                    </label>
+                    <button className={theme.buttonPrimary + " w-full sm:w-auto"} type="submit">
+                      Create agency
+                    </button>
+                  </form>
 
-              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px]">
-                <input
-                  className={theme.input}
-                  onChange={(event) => setAgencySettingsSearch(event.target.value)}
-                  placeholder="Search agency name or slug"
-                  value={agencySettingsSearch}
-                />
-                <select className={theme.input} onChange={(event) => setAgencySettingsSort(event.target.value as AgencySettingsSort)} value={agencySettingsSort}>
-                  <option value="NAME">Sort by name</option>
-                  <option value="MEMBERS">Most members</option>
-                  <option value="ACTIVE">Most active</option>
-                  <option value="ADMINS">Most admins</option>
-                </select>
+                  {renderNotice("agencySettings", "mt-4")}
+                </div>
+
+                <div className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Agency roster</p>
+                      <h4 className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">Find and manage agencies</h4>
+                      <p className="mt-2 max-w-xl text-sm leading-6 text-[color:var(--text-muted)]">
+                        Search, sort, rename, remove, or open billing and allowance settings without leaving this panel.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
+                      {agencySettingsRows.length} shown
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px]">
+                    <input
+                      className={theme.input}
+                      onChange={(event) => setAgencySettingsSearch(event.target.value)}
+                      placeholder="Search agency name or slug"
+                      value={agencySettingsSearch}
+                    />
+                    <select className={theme.input} onChange={(event) => setAgencySettingsSort(event.target.value as AgencySettingsSort)} value={agencySettingsSort}>
+                      <option value="NAME">Sort by name</option>
+                      <option value="MEMBERS">Most members</option>
+                      <option value="ACTIVE">Most active</option>
+                      <option value="ADMINS">Most admins</option>
+                    </select>
+                  </div>
+
+                  {renderNotice("agencyBillingSettings", "mt-4")}
+                </div>
               </div>
             </div>
 

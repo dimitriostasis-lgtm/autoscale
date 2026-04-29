@@ -337,6 +337,14 @@ function buildBoardNameForWorkspaceMode(mode: WorkspaceMode, index: number): str
   return prefix ? `${prefix}${label}` : label;
 }
 
+function shouldUseTapModeMenu(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.matchMedia("(hover: none), (pointer: coarse), (max-width: 639px)").matches;
+}
+
 function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: WorkspaceMode; onSelectMode: (mode: WorkspaceMode) => void }) {
   const [openKind, setOpenKind] = useState<WorkspaceGenerationKind | null>(null);
   const activeMeta = activeMode === "playground" ? null : workspaceModeMetaByMode[activeMode];
@@ -359,12 +367,12 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
               }
             }}
             onFocus={() => {
-              if (hasSafetyMenu) {
+              if (hasSafetyMenu && !shouldUseTapModeMenu()) {
                 setOpenKind(menu.kind);
               }
             }}
             onMouseEnter={() => {
-              if (hasSafetyMenu) {
+              if (hasSafetyMenu && !shouldUseTapModeMenu()) {
                 setOpenKind(menu.kind);
               }
             }}
@@ -378,6 +386,11 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
                 activeMenu ? "bg-lime-300 text-black" : "text-white/54 hover:bg-white/[0.06] hover:text-white/82",
               )}
               onClick={() => {
+                if (hasSafetyMenu && shouldUseTapModeMenu()) {
+                  setOpenKind((current) => (current === menu.kind ? null : menu.kind));
+                  return;
+                }
+
                 setOpenKind(null);
                 onSelectMode(defaultMode);
               }}
@@ -392,7 +405,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
             </button>
 
             {isOpen ? (
-              <div className="absolute left-0 top-full z-30 mt-1 w-36 overflow-hidden rounded-2xl border border-white/10 bg-[#202020] p-1 shadow-[0_18px_42px_rgba(0,0,0,0.42)]">
+              <div className="absolute inset-x-0 top-full z-30 mt-1 min-w-36 overflow-hidden rounded-2xl border border-white/10 bg-[#202020] p-1 shadow-[0_18px_42px_rgba(0,0,0,0.42)] sm:left-0 sm:right-auto sm:w-36">
                 {menu.modes.map((item) => {
                   const active = activeMode === item.mode;
 
@@ -400,7 +413,7 @@ function GenerationModeMenus({ activeMode, onSelectMode }: { activeMode: Workspa
                     <button
                       key={item.mode}
                       className={cx(
-                        "block w-full rounded-xl px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.14em] transition",
+                        "block w-full rounded-xl px-3 py-2 text-center text-xs font-semibold uppercase tracking-[0.14em] transition sm:text-left",
                         active ? "bg-lime-300 text-black" : "text-white/62 hover:bg-white/[0.06] hover:text-white",
                       )}
                       onClick={() => {
