@@ -224,6 +224,26 @@ function previewSourceForReference(reference: ReferenceSelection): string | null
   return reference.asset?.url || reference.assetUrl || reference.uploadUrl || null;
 }
 
+function improveVoiceoverPromptDraft(prompt: string): string {
+  const normalized = prompt
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.!?;:])/g, "$1")
+    .trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  const sentenceCase = normalized.replace(/(^|[.!?]\s+)([a-z])/g, (match) => match.toUpperCase());
+  const punctuated = /[.!?]$/.test(sentenceCase) ? sentenceCase : `${sentenceCase}.`;
+
+  if (/^Voiceover direction:/i.test(punctuated)) {
+    return punctuated;
+  }
+
+  return `Voiceover direction: deliver this naturally, clearly, and with a polished human cadence.\n\n${punctuated}`;
+}
+
 function filledGlobalReferences(settings: BoardSettings): ReferenceSelection[] {
   return settings.globalReferences
     .filter((reference) => previewSourceForReference(reference))
@@ -439,20 +459,26 @@ function PlaygroundSurface({
   assets,
   board,
   onPickReference,
+  onUploadReference,
   onSettingsChange,
   onUploadReferences,
+  subjectName,
 }: {
   allowedGenerationModels: string[];
   assets: GeneratedAsset[];
   board: WorkspaceBoard | null;
   onPickReference: (slotIndex: number) => void;
+  onUploadReference: (slotIndex: number, file: File) => Promise<void> | void;
   onSettingsChange: (nextSettings: BoardSettings) => void;
   onUploadReferences: (slotIndex: number, files: File[]) => Promise<void> | void;
+  subjectName: string;
 }) {
   const [prompt, setPrompt] = useState("");
   const [referenceMenuPosition, setReferenceMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const [draggedReferenceId, setDraggedReferenceId] = useState<string | null>(null);
   const [referenceDropIndex, setReferenceDropIndex] = useState<number | null>(null);
+  const [voicePlaygroundMode, setVoicePlaygroundMode] = useState<"VOICEOVER" | "CHANGE_VOICE">("VOICEOVER");
+  const [improvingVoicePrompt, setImprovingVoicePrompt] = useState(false);
   const [referenceDragPreview, setReferenceDragPreview] = useState<{
     reference: ReferenceSelection;
     x: number;
@@ -466,6 +492,7 @@ function PlaygroundSurface({
   const referenceTileElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const referenceMenuRef = useRef<HTMLDivElement | null>(null);
   const addReferenceButtonRef = useRef<HTMLButtonElement | null>(null);
+  const voiceVideoInputRef = useRef<HTMLInputElement | null>(null);
   const referenceRailRef = useRef<HTMLDivElement | null>(null);
   const visibleAssets = assets.slice(0, 18);
 
@@ -530,6 +557,7 @@ function PlaygroundSurface({
   const settings = board.settings;
   const generationModel = settings.generationModel;
   const videoGenerationModel = isVideoGenerationModel(generationModel);
+  const voiceGenerationModel = voiceGenerationModelOptions.includes(generationModel as (typeof voiceGenerationModelOptions)[number]);
   const aspectRatioLocked = generationModel === "kling_motion_control" || isPoseMultiplierWorkspace(generationModel, settings.sdxlWorkspaceMode);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(generationModel);
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(generationModel);
@@ -541,7 +569,10 @@ function PlaygroundSurface({
   const videoModelSelectOptions = allowedGenerationModels.filter(
     (option) => videoGenerationModelOptions.includes(option as (typeof videoGenerationModelOptions)[number]) || videoNsfwGenerationModelOptions.includes(option as (typeof videoNsfwGenerationModelOptions)[number]),
   );
+  const voiceModelSelectOptions = allowedGenerationModels.filter((option) => voiceGenerationModelOptions.includes(option as (typeof voiceGenerationModelOptions)[number]));
   const activeGlobalReferences = filledGlobalReferences(settings);
+  const voiceVideoReference = voiceGenerationModel ? activeGlobalReferences[0] ?? null : null;
+  const lockedVoiceSubjectName = subjectName.trim() || "Current influencer";
   const draggedReference = draggedReferenceId ? activeGlobalReferences.find((reference) => reference.id === draggedReferenceId) ?? null : null;
   const referencesWithoutDragged = draggedReference
     ? activeGlobalReferences.filter((reference) => reference.id !== draggedReference.id)
@@ -586,6 +617,29 @@ function PlaygroundSurface({
       upscale: nextSdxlDefaultWorkspace ? settings.upscale : false,
       faceSwap: settings.faceSwap,
     });
+  }
+
+  function handleVoiceVideoFiles(files: FileList | File[]): void {
+    const file = Array.from(files)[0];
+    if (!file) {
+      return;
+    }
+
+    void onUploadReference(0, file);
+  }
+
+  function handleImproveVoicePrompt(): void {
+    const currentPrompt = prompt.trim();
+
+    if (!currentPrompt || improvingVoicePrompt) {
+      return;
+    }
+
+    setImprovingVoicePrompt(true);
+    window.setTimeout(() => {
+      setPrompt(improveVoiceoverPromptDraft(currentPrompt));
+      setImprovingVoicePrompt(false);
+    }, 250);
   }
 
   const controlClass =
@@ -666,6 +720,135 @@ function PlaygroundSurface({
       >
         <fieldset className="flex min-w-0 flex-col gap-4 rounded-[22px] border border-[color:var(--surface-border)] p-4 sm:p-5 lg:flex-row lg:items-end">
           <div className="min-w-0 flex-1 space-y-3">
+            {voiceGenerationModel ? (
+              <div className="rounded-[20px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] p-3 shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-strong)_7%,transparent)] transition-colors duration-300">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--text-muted)]">Voice model</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[color:var(--text-strong)]">Eleven v3</p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-2 text-right transition-colors duration-300">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Subject voice locked</p>
+                      <p className="mt-0.5 max-w-[13rem] truncate text-xs font-semibold text-[color:var(--text-strong)]">{lockedVoiceSubjectName}</p>
+                    </div>
+                    <div className="grid grid-cols-2 rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-1 shadow-[0_10px_30px_rgba(0,0,0,0.10)] transition-colors duration-300">
+                      {[
+                        ["VOICEOVER", "Voiceover"],
+                        ["CHANGE_VOICE", "Change Voice"],
+                      ].map(([value, label]) => {
+                        const active = voicePlaygroundMode === value;
+                        return (
+                          <button
+                            key={value}
+                            className={cx(
+                              "h-9 rounded-lg px-3 text-xs font-semibold transition duration-200",
+                              active
+                                ? "bg-[color:var(--accent-main)] text-[color:var(--accent-foreground)] shadow-[0_10px_24px_color-mix(in_srgb,var(--accent-main)_24%,transparent)]"
+                                : "text-[color:var(--text-muted)] hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-main)]",
+                            )}
+                            onClick={() => setVoicePlaygroundMode(value as "VOICEOVER" | "CHANGE_VOICE")}
+                            type="button"
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  {voicePlaygroundMode === "CHANGE_VOICE" ? (
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_9.5rem]">
+                      <input
+                        ref={voiceVideoInputRef}
+                        accept="video/mp4,video/quicktime,video/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          handleVoiceVideoFiles(event.target.files ?? []);
+                          event.target.value = "";
+                        }}
+                        type="file"
+                      />
+                      <div
+                        className="group flex min-h-[118px] items-center rounded-xl border border-dashed border-[color:var(--surface-border-strong)] bg-[color:var(--surface-card)] p-4 transition duration-200 hover:border-[color:var(--focus-ring)] hover:bg-[color:var(--surface-soft-hover)]"
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "copy";
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          handleVoiceVideoFiles(event.dataTransfer.files);
+                        }}
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="grid size-12 shrink-0 place-items-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] text-[color:var(--text-muted)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-strong)_10%,transparent),0_12px_24px_rgba(0,0,0,0.16)] transition group-hover:text-[color:var(--text-strong)]">
+                            <svg aria-hidden="true" className="size-5" viewBox="0 0 24 24">
+                              <path
+                                d="M5 6.5A2.5 2.5 0 0 1 7.5 4h6A2.5 2.5 0 0 1 16 6.5V9l3.54-2.02A1 1 0 0 1 21 7.85v8.3a1 1 0 0 1-1.46.89L16 15v2.5A2.5 2.5 0 0 1 13.5 20h-6A2.5 2.5 0 0 1 5 17.5v-11Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{voiceVideoReference ? voiceVideoReference.label : "Reference Video"}</p>
+                            <p className="mt-1 text-xs leading-5 text-[color:var(--text-muted)]">
+                              {voiceVideoReference ? "Drop a new video here to replace it." : "Drag and drop a video here."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                        <button
+                          className="inline-flex h-14 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)]"
+                          onClick={() => voiceVideoInputRef.current?.click()}
+                          type="button"
+                        >
+                          Choose from files
+                        </button>
+                        <button
+                          className="inline-flex h-14 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)]"
+                          onClick={() => onPickReference(0)}
+                          type="button"
+                        >
+                          Gallery
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        className="absolute right-3 top-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
+                        disabled={!prompt.trim() || improvingVoicePrompt}
+                        onClick={handleImproveVoicePrompt}
+                        title="Improve the current voiceover prompt without turning on Auto Prompt."
+                        type="button"
+                      >
+                        <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
+                          <path
+                            d="M10.9 2.9c.08-.48.76-.48.84 0l.18 1.1a5.28 5.28 0 0 0 4.36 4.36l1.1.18c.48.08.48.76 0 .84l-1.1.18a5.28 5.28 0 0 0-4.36 4.36l-.18 1.1c-.08.48-.76.48-.84 0l-.18-1.1a5.28 5.28 0 0 0-4.36-4.36l-1.1-.18c-.48-.08-.48-.76 0-.84l1.1-.18A5.28 5.28 0 0 0 10.72 4l.18-1.1Z"
+                            fill="currentColor"
+                          />
+                          <path
+                            d="M4.72 12.75c.06-.3.48-.3.54 0l.08.39a2.4 2.4 0 0 0 1.9 1.9l.39.08c.3.06.3.48 0 .54l-.39.08a2.4 2.4 0 0 0-1.9 1.9l-.08.39c-.06.3-.48.3-.54 0l-.08-.39a2.4 2.4 0 0 0-1.9-1.9l-.39-.08c-.3-.06-.3-.48 0-.54l.39-.08a2.4 2.4 0 0 0 1.9-1.9l.08-.39Z"
+                            fill="currentColor"
+                          />
+                        </svg>
+                        {improvingVoicePrompt ? "Improving" : "Improve prompt"}
+                      </button>
+                      <textarea
+                        className="min-h-[118px] w-full resize-none rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 pb-3 pt-12 text-sm leading-6 text-[color:var(--text-strong)] outline-none transition placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--focus-ring)] focus:bg-[color:var(--surface-soft-hover)]"
+                        onChange={(event) => setPrompt(event.target.value)}
+                        placeholder="Write the voiceover script for Eleven v3"
+                        value={prompt}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
             <div
               className="relative flex min-h-16 items-center gap-2 overflow-x-auto overflow-y-visible pb-2"
               onPointerCancel={finishReferenceDrag}
@@ -809,6 +992,8 @@ function PlaygroundSurface({
               placeholder="Describe the scene you imagine"
               value={prompt}
             />
+              </>
+            )}
 
             <div className="flex flex-wrap items-center gap-2">
               <select aria-label="Worker model" className={controlClass + " min-w-40"} disabled={!board} onChange={(event) => updateGenerationModel(event.target.value)} value={generationModel}>
@@ -830,40 +1015,48 @@ function PlaygroundSurface({
                     ))}
                   </optgroup>
                 ) : null}
-                <optgroup label="Voice models">
-                  <option disabled value="__voice_models_coming_soon">
-                    Coming soon
-                  </option>
-                </optgroup>
+                {voiceModelSelectOptions.length ? (
+                  <optgroup label="Voice models">
+                    {voiceModelSelectOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {workerModelLabels[option]}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
               </select>
 
-              <select
-                aria-label="Resolution"
-                className={controlClass + " w-24"}
-                disabled={!board}
-                onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
-                value={settings.resolution}
-              >
-                {allowedResolutionOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {resolutionLabels[option]}
-                  </option>
-                ))}
-              </select>
+              {!voiceGenerationModel ? (
+                <>
+                  <select
+                    aria-label="Resolution"
+                    className={controlClass + " w-24"}
+                    disabled={!board}
+                    onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
+                    value={settings.resolution}
+                  >
+                    {allowedResolutionOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {resolutionLabels[option]}
+                      </option>
+                    ))}
+                  </select>
 
-              <select
-                aria-label="Aspect ratio"
-                className={controlClass + " w-24 disabled:cursor-not-allowed disabled:opacity-55"}
-                disabled={!board || aspectRatioLocked}
-                onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
-                value={normalizeBoardAspectRatio(generationModel, settings.aspectRatio, settings.sdxlWorkspaceMode)}
-              >
-                {displayedAspectRatioOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option.toUpperCase()}
-                  </option>
-                ))}
-              </select>
+                  <select
+                    aria-label="Aspect ratio"
+                    className={controlClass + " w-24 disabled:cursor-not-allowed disabled:opacity-55"}
+                    disabled={!board || aspectRatioLocked}
+                    onChange={(event) => onSettingsChange({ ...settings, aspectRatio: event.target.value })}
+                    value={normalizeBoardAspectRatio(generationModel, settings.aspectRatio, settings.sdxlWorkspaceMode)}
+                  >
+                    {displayedAspectRatioOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
 
               {allowedVideoDurationOptions.length ? (
                 <select
@@ -881,7 +1074,7 @@ function PlaygroundSurface({
                 </select>
               ) : null}
 
-              {!videoGenerationModel ? (
+              {!videoGenerationModel && !voiceGenerationModel ? (
                 <div className="flex h-10 items-center gap-1 rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-2">
                   <button
                     aria-label="Decrease quantity"
@@ -919,7 +1112,7 @@ function PlaygroundSurface({
             </div>
           </div>
 
-          <button className={theme.buttonPrimary + " h-20 w-full rounded-2xl px-6 text-sm lg:w-36"} disabled={!prompt.trim()} type="submit">
+          <button className={theme.buttonPrimary + " h-20 w-full rounded-2xl px-6 text-sm lg:w-36"} disabled={voiceGenerationModel && voicePlaygroundMode === "CHANGE_VOICE" ? !voiceVideoReference : !prompt.trim()} type="submit">
             Generate
           </button>
         </fieldset>
@@ -1539,7 +1732,9 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
             board={board}
             onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex, source: "tray" })}
             onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
+            onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
             onUploadReferences={(slotIndex, files) => void handleUploadGlobalReferences(slotIndex, files)}
+            subjectName={model?.name ?? ""}
           />
         ) : (
         <div
