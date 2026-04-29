@@ -495,7 +495,7 @@ export function SettingsPanel({
 
             {showPoseMultiplierSharedOptions ? (
               <div className="space-y-2">
-                <span className="text-sm font-semibold text-white/76">Pose multiplier</span>
+                <span className="text-sm font-semibold text-white/76">Pose Multiplier</span>
                 {!isSdxlDefaultWorkspace ? (
                   <>
                 <div className="group/pose relative">
@@ -621,20 +621,21 @@ export function SettingsPanel({
               </div>
             ) : null}
 
-            {showPoseMultiplierSharedOptions ? (
+            {showPoseMultiplierSharedOptions && poseMultiplierEnabled ? (
               <div className="space-y-2">
-                <span className="text-sm font-semibold text-white/76">Pose multiplier prompt mode</span>
+                <span className="text-sm font-semibold text-white/76">Pose Multiplier Prompt Guide</span>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     className={
                       settings.posePromptMode === "AUTO"
-                        ? "inline-flex items-center justify-center rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
-                        : "inline-flex items-center justify-center rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
+                        ? "inline-flex items-center justify-center gap-2 rounded-xl border border-[#4e6b22] bg-[#4d7311] px-3 py-2.5 text-sm font-semibold text-[#f4ffd8] transition hover:bg-[#598515]"
+                        : "inline-flex items-center justify-center gap-2 rounded-xl border border-white/8 bg-[#262626] px-3 py-2.5 text-sm font-semibold text-white/76 transition hover:bg-[#313131]"
                     }
                     onClick={() => onSettingsChange({ ...settings, posePromptMode: "AUTO" })}
                     type="button"
                   >
-                    Auto mode
+                    <span>Auto Mode</span>
+                    {settings.posePromptMode === "AUTO" ? <span className="workspace-auto-prompt-live-dot" aria-hidden="true" /> : null}
                   </button>
                   <button
                     className={
@@ -645,14 +646,10 @@ export function SettingsPanel({
                     onClick={() => onSettingsChange({ ...settings, posePromptMode: "CUSTOM" })}
                     type="button"
                   >
-                    Custom prompt
+                    Custom Prompt
                   </button>
                 </div>
-                {settings.posePromptMode === "AUTO" ? (
-                  <div className="rounded-xl border border-white/8 bg-[#262626] px-3 py-3 text-sm leading-6 text-white/58">
-                    Backend default pose-expansion prompt will be used automatically for the selected multiplier.
-                  </div>
-                ) : (
+                {settings.posePromptMode === "CUSTOM" ? (
                   <div className="space-y-3">
                     <p className="text-sm leading-6 text-white/54">Each prompt maps to one generated image in the multiplied output set.</p>
                     {posePromptTemplates.slice(0, visiblePosePromptCount).map((template, index) => (
@@ -676,7 +673,7 @@ export function SettingsPanel({
                       </label>
                     ))}
                   </div>
-                )}
+                ) : null}
               </div>
             ) : null}
 
@@ -694,13 +691,13 @@ export function SettingsPanel({
                       onClick={() => onSettingsChange({ ...settings, upscale: !settings.upscale })}
                       type="button"
                     >
-                      {settings.upscale ? "Enabled for all rows" : "Disabled for all rows"}
+                      {settings.upscale ? "On" : "Off"}
                     </button>
                   </div>
                 ) : null}
 
                 <div className="space-y-2">
-                  <span className="text-sm font-semibold text-white/76">Face swap</span>
+                  <span className="text-sm font-semibold text-white/76">Face Swap</span>
                   <button
                     className={
                       isFaceSwapWorkspaceLayout || settings.faceSwap
@@ -715,7 +712,7 @@ export function SettingsPanel({
                     }}
                     type="button"
                   >
-                    {isFaceSwapWorkspaceLayout || settings.faceSwap ? "Enabled for all rows" : "Disabled for all rows"}
+                    {isFaceSwapWorkspaceLayout || settings.faceSwap ? "On" : "Off"}
                   </button>
                 </div>
               </>

@@ -562,17 +562,24 @@ export function WorkspaceGrid({
                       )}
                     >
                       {board.settings.autoPromptGen ? (
-                        <div className="workspace-row-prompt-auto-card relative flex h-full min-h-[188px] w-full items-center justify-center overflow-hidden rounded-lg border border-[#79a82c]/60 p-4 text-[#f4ffd8]">
+                        <div className="workspace-row-prompt-auto-card relative flex h-full min-h-[188px] w-full items-center justify-center overflow-hidden rounded-lg border border-[#79a82c]/60 p-3 text-[#f4ffd8]">
                           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#f4ffd8]/45" />
-                          <span className="relative inline-flex max-w-full items-center justify-center gap-3 rounded-2xl border border-[#c7ff27]/25 bg-[#c7ff27]/10 px-5 py-4 text-center text-lg font-extrabold uppercase tracking-[0.18em] text-[#f4ffd8] shadow-[inset_0_1px_0_rgba(244,255,216,0.18)]">
-                            <svg aria-hidden="true" className="size-6 flex-none" viewBox="0 0 20 20">
+                          <span className="pointer-events-none absolute right-3 top-3 z-20 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-full border border-[#c7ff27]/25 bg-[#c7ff27]/12 px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#f4ffd8] shadow-[inset_0_1px_0_rgba(244,255,216,0.18),0_8px_18px_rgba(0,0,0,0.18)]">
+                            <svg aria-hidden="true" className="size-3.5 flex-none" viewBox="0 0 20 20">
                               <path
                                 d="M9.1 2.4a.9.9 0 0 1 1.8 0l.16 1.26a4.5 4.5 0 0 0 3.88 3.88l1.26.16a.9.9 0 0 1 0 1.8l-1.26.16a4.5 4.5 0 0 0-3.88 3.88l-.16 1.26a.9.9 0 0 1-1.8 0l-.16-1.26a4.5 4.5 0 0 0-3.88-3.88L3.8 9.5a.9.9 0 0 1 0-1.8l1.26-.16a4.5 4.5 0 0 0 3.88-3.88L9.1 2.4Zm6.34 11.04a.65.65 0 0 1 1.12 0l.36.64.64.36a.65.65 0 0 1 0 1.12l-.64.36-.36.64a.65.65 0 0 1-1.12 0l-.36-.64-.64-.36a.65.65 0 0 1 0-1.12l.64-.36.36-.64Z"
                                 fill="currentColor"
                               />
                             </svg>
-                            <span>Auto Prompt</span>
+                            <span className="truncate">Auto Prompt</span>
+                            <span className="workspace-auto-prompt-live-dot ml-0.5 flex-none scale-75" aria-hidden="true" />
                           </span>
+                          <svg aria-hidden="true" className="pointer-events-none size-12 text-[#f4ffd8]/30" viewBox="0 0 20 20">
+                            <path
+                              d="M9.1 2.4a.9.9 0 0 1 1.8 0l.16 1.26a4.5 4.5 0 0 0 3.88 3.88l1.26.16a.9.9 0 0 1 0 1.8l-1.26.16a4.5 4.5 0 0 0-3.88 3.88l-.16 1.26a.9.9 0 0 1-1.8 0l-.16-1.26a4.5 4.5 0 0 0-3.88-3.88L3.8 9.5a.9.9 0 0 1 0-1.8l1.26-.16a4.5 4.5 0 0 0 3.88-3.88L9.1 2.4Zm6.34 11.04a.65.65 0 0 1 1.12 0l.36.64.64.36a.65.65 0 0 1 0 1.12l-.64.36-.36.64a.65.65 0 0 1-1.12 0l-.36-.64-.64-.36a.65.65 0 0 1 0-1.12l.64-.36.36-.64Z"
+                              fill="currentColor"
+                            />
+                          </svg>
                         </div>
                       ) : (
                         <div className="relative h-full min-h-[188px]">
@@ -631,13 +638,20 @@ export function WorkspaceGrid({
                         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
                         <div
                           className={cx(
-                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                            "inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition",
                             poseMultiplierEnabled
                               ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
                               : "border-white/8 bg-[#222222] text-white/62",
                           )}
                         >
-                          {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
+                          {poseMultiplierEnabled ? (
+                            <>
+                              <span>{row.poseMultiplier}x</span>
+                              {board.settings.posePromptMode === "AUTO" ? <span className="workspace-auto-prompt-live-dot" aria-hidden="true" /> : null}
+                            </>
+                          ) : (
+                            "Off"
+                          )}
                         </div>
                         {isPoseMultiplierWorkspaceLayout ? renderOutputGrid(row, awaitingOutput, true) : awaitingOutput ? (
                           <div className={pendingJobClass}>
