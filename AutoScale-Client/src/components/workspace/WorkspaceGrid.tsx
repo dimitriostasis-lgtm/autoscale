@@ -108,7 +108,7 @@ export function WorkspaceGrid({
   const controlColumnCount = [showPoseColumn, showUpscaleColumn, showFaceSwapColumn].filter(Boolean).length;
   const showRowControlColumns = controlColumnCount > 0;
   const relaxedGridColumns = isFaceSwapWorkspaceLayout
-    ? "grid-cols-[56px_minmax(260px,0.9fr)_minmax(180px,0.48fr)_minmax(0,0.7fr)_96px]"
+    ? "grid-cols-[56px_repeat(3,minmax(0,1fr))_96px]"
     : showPoseColumn && isPoseMultiplierWorkspaceLayout
     ? "grid-cols-[56px_repeat(5,minmax(0,1fr))_96px]"
     : showRowControlColumns && controlColumnCount === 3
@@ -120,9 +120,9 @@ export function WorkspaceGrid({
     : showAudioReferenceColumn
       ? "grid-cols-[56px_minmax(132px,0.5fr)_minmax(220px,0.85fr)_minmax(0,1.15fr)_minmax(0,1.05fr)_minmax(0,0.8fr)_96px]"
     : isVideoReference && !showPromptColumn
-      ? "grid-cols-[56px_minmax(240px,0.9fr)_minmax(0,1.35fr)_minmax(0,0.82fr)_96px]"
+      ? "grid-cols-[56px_repeat(3,minmax(0,1fr))_96px]"
     : isVideoReference
-      ? "grid-cols-[56px_minmax(210px,0.72fr)_minmax(0,1.35fr)_minmax(0,1.05fr)_minmax(0,0.78fr)_96px]"
+      ? "grid-cols-[56px_repeat(4,minmax(0,1fr))_96px]"
     : referenceColumnLocked
       ? "grid-cols-[56px_minmax(150px,0.58fr)_minmax(0,1.25fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_96px]"
       : "grid-cols-[56px_repeat(4,minmax(0,1fr))_96px]";
