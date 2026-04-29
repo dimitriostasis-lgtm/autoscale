@@ -124,8 +124,16 @@ export function SettingsPanel({
               title="Hide shared controls"
               type="button"
             >
-              <span className="xl:hidden">^</span>
-              <span className="hidden xl:inline">&lt;</span>
+              <svg aria-hidden="true" className="size-4 xl:-rotate-90" viewBox="0 0 20 20">
+                <path
+                  d="M5.25 12.25 10 7.5l4.75 4.75"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
             </button>
           ) : null}
         </div>

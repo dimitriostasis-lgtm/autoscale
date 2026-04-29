@@ -1852,7 +1852,16 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                         <span className="font-display mt-2 block text-xl text-white">Shared controls</span>
                       </span>
                       <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-base font-bold leading-none text-white/68 transition hover:bg-white/[0.08] hover:text-white">
-                        v
+                        <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20">
+                          <path
+                            d="M5.25 7.75 10 12.5l4.75-4.75"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="1.8"
+                          />
+                        </svg>
                       </span>
                     </button>
                     <button
@@ -1862,7 +1871,16 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                       type="button"
                     >
                       <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-lg font-bold leading-none">
-                        &gt;
+                        <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20">
+                          <path
+                            d="M7.75 5.25 12.5 10l-4.75 4.75"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="1.8"
+                          />
+                        </svg>
                       </span>
                       <span className="rotate-180 text-[10px] font-semibold uppercase tracking-[0.2em] [writing-mode:vertical-rl]">
                         Shared controls
