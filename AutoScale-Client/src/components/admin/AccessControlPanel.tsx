@@ -708,6 +708,9 @@ export function AccessControlPanel({
   const [agencyBillingDrafts, setAgencyBillingDrafts] = useState<Record<string, AgencyBillingSettingsDraft>>({});
   const [expandedAgencyBillingId, setExpandedAgencyBillingId] = useState<string | null>(null);
   const [agencyPendingDeletionId, setAgencyPendingDeletionId] = useState<string | null>(null);
+  const [userPendingDeletionId, setUserPendingDeletionId] = useState<string | null>(null);
+  const [managerPermissionsExpanded, setManagerPermissionsExpanded] = useState(false);
+  const [influencerAccessExpanded, setInfluencerAccessExpanded] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: "",
     email: "",
@@ -877,6 +880,7 @@ export function AccessControlPanel({
     users.find((user) => user.id === currentUser.id) ||
     users[0] ||
     null;
+  const userPendingDeletion = users.find((user) => user.id === userPendingDeletionId) || null;
 
   useEffect(() => {
     if (!selectedUser) {
@@ -1475,6 +1479,16 @@ export function AccessControlPanel({
       managerPermissionDraft.canResetPasswords !== normalizedSelectedManagerPermissions.canResetPasswords ||
       managerPermissionDraft.canManageAssignments !== normalizedSelectedManagerPermissions.canManageAssignments ||
       managerPermissionDraft.canManageCredits !== normalizedSelectedManagerPermissions.canManageCredits);
+  const deleteAccountHelper =
+    !canDeleteSelected
+      ? "You can review this account, but deleting it is outside your current permission boundary."
+      : selectedUser.role === "AGENCY_ADMIN"
+      ? "Deleting this agency admin removes their login, workspace boards, and generated assets. The agency and its other accounts remain available."
+      : selectedUser.role === "AGENCY_MANAGER"
+        ? "Deleting this manager removes their login, manager permissions, workspace boards, and generated assets."
+        : selectedUser.role === "USER"
+          ? "Deleting this user removes their login, direct influencer grants, workspace boards, and generated assets."
+          : "Deleting this platform admin removes their login, workspace boards, and generated assets.";
   const hasInfluencerAvailabilityChanges =
     Boolean(selectedInfluencer) && !sameIdSet(influencerAgencyDraft, selectedInfluencer.assignedAgencyIds);
   const selectedInfluencerCurrentAgencyId = selectedInfluencer?.assignedAgencyIds[0] || "";
@@ -1811,16 +1825,14 @@ export function AccessControlPanel({
   }
 
   async function handleDeleteUser(): Promise<void> {
-    if (!canDeleteSelected) {
+    if (!canDeleteSelected || !userPendingDeletion) {
       return;
     }
 
-    if (!window.confirm(`Delete ${selectedUser.name}? This removes their boards and generated assets.`)) {
-      return;
-    }
-
-    const result = await executeAction(() => onDeleteUser(selectedUser.id), `Deleted ${selectedUser.name}.`, "deleteAccount");
+    const deletedUserName = userPendingDeletion.name;
+    const result = await executeAction(() => onDeleteUser(userPendingDeletion.id), `Deleted ${deletedUserName}.`, "deleteAccount");
     if (result.ok) {
+      setUserPendingDeletionId(null);
       setSelectedUserId(null);
     }
   }
@@ -3172,65 +3184,94 @@ export function AccessControlPanel({
           </div>
 
           {selectedUser.role === "AGENCY_MANAGER" ? (
-            <div className="mt-6 rounded-[28px] border border-white/8 bg-black/14 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="relative mt-6 rounded-[28px] border border-white/8 bg-black/14 p-5 pr-16">
+              <button
+                aria-expanded={managerPermissionsExpanded}
+                aria-label={managerPermissionsExpanded ? "Collapse manager permissions" : "Expand manager permissions"}
+                className="absolute right-5 top-5 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105"
+                onClick={() => setManagerPermissionsExpanded((current) => !current)}
+                type="button"
+              >
+                {managerPermissionsExpanded ? "-" : "+"}
+              </button>
+
+              <div className="flex w-full flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-white">Manager permissions</p>
                   <p className="mt-2 max-w-2xl text-sm leading-7 text-white/56">
                     These toggles control whether a manager can suspend users, delete users, reset passwords, manage influencer assignments, or manage agency credit controls for users inside their agency.
                   </p>
                 </div>
+                <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/62">
+                    {managerPermissionOptions.filter(({ key }) => managerPermissionDraft[key]).length} enabled
+                  </span>
+                </div>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {managerPermissionOptions.map(({ key, label }) => (
-                  <label
-                    key={key}
-                    className={cx(
-                      "flex items-center justify-between gap-3 rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-white/72",
-                      !canEditManagerPermissions && "cursor-not-allowed opacity-60",
-                    )}
-                  >
-                    <span>{label}</span>
-                    <input
-                      checked={managerPermissionDraft[key]}
-                      className={!canEditManagerPermissions ? "cursor-not-allowed" : undefined}
-                      disabled={!canEditManagerPermissions}
-                      onChange={(event) =>
-                        setManagerPermissionDraft((current) => ({
-                          ...current,
-                          [key]: event.target.checked,
-                        }))
-                      }
-                      type="checkbox"
-                    />
-                  </label>
-                ))}
-              </div>
+              {managerPermissionsExpanded ? (
+                <>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {managerPermissionOptions.map(({ key, label }) => (
+                      <label
+                        key={key}
+                        className={cx(
+                          "flex items-center justify-between gap-3 rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-white/72",
+                          !canEditManagerPermissions && "cursor-not-allowed opacity-60",
+                        )}
+                      >
+                        <span>{label}</span>
+                        <input
+                          checked={managerPermissionDraft[key]}
+                          className={!canEditManagerPermissions ? "cursor-not-allowed" : undefined}
+                          disabled={!canEditManagerPermissions}
+                          onChange={(event) =>
+                            setManagerPermissionDraft((current) => ({
+                              ...current,
+                              [key]: event.target.checked,
+                            }))
+                          }
+                          type="checkbox"
+                        />
+                      </label>
+                    ))}
+                  </div>
 
-              {renderNotice("managerPermissions", "mt-5")}
+                  {renderNotice("managerPermissions", "mt-5")}
 
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button className={theme.buttonPrimary} disabled={!canEditManagerPermissions || !hasManagerPermissionChanges} onClick={() => void handleApplyManagerPermissions()} type="button">
-                  Apply manager permissions
-                </button>
-                {!canEditManagerPermissions ? (
-                  <p className="text-sm text-white/48">Only platform admins and the agency admin for this manager’s agency can edit these permissions.</p>
-                ) : null}
-              </div>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <button className={theme.buttonPrimary} disabled={!canEditManagerPermissions || !hasManagerPermissionChanges} onClick={() => void handleApplyManagerPermissions()} type="button">
+                      Apply manager permissions
+                    </button>
+                    {!canEditManagerPermissions ? (
+                      <p className="text-sm text-white/48">Only platform admins and the agency admin for this manager’s agency can edit these permissions.</p>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
 
           {!isPlatformAdmin ? (
-          <div className="mt-6 rounded-[28px] border border-white/8 bg-black/14 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="relative mt-6 rounded-[28px] border border-white/8 bg-black/14 p-5 pr-16">
+            <button
+              aria-expanded={influencerAccessExpanded}
+              aria-label={influencerAccessExpanded ? "Collapse influencer access" : "Expand influencer access"}
+              className="absolute right-5 top-5 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105"
+              onClick={() => setInfluencerAccessExpanded((current) => !current)}
+              type="button"
+            >
+              {influencerAccessExpanded ? "-" : "+"}
+            </button>
+
+            <div className="flex w-full flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-white">Influencer access</p>
                 <p className="mt-2 max-w-2xl text-sm leading-7 text-white/56">
                   Users and managers receive direct influencer assignments. Agency-owned influencers are capacity at the agency level; direct assignments are the per-account grants below.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex shrink-0 flex-wrap gap-2">
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/62">
                   {selectedUser.effectiveModelIds.length} effective access
                 </span>
@@ -3240,7 +3281,7 @@ export function AccessControlPanel({
               </div>
             </div>
 
-            {selectedUser.role === "USER" || selectedUser.role === "AGENCY_MANAGER" ? (
+            {influencerAccessExpanded && (selectedUser.role === "USER" || selectedUser.role === "AGENCY_MANAGER") ? (
               <>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {assignableModels.map((model) => {
@@ -3310,7 +3351,7 @@ export function AccessControlPanel({
                   ) : null}
                 </div>
               </>
-            ) : selectedUser.role === "AGENCY_ADMIN" ? (
+            ) : influencerAccessExpanded && selectedUser.role === "AGENCY_ADMIN" ? (
               <div className="mt-5 space-y-5">
                 <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-white/58">
                   Agency admins inherit every influencer owned by their agency. Platform admins can assign unowned influencers, remove current ownership, or transfer exclusive ownership from another agency.
@@ -3364,34 +3405,31 @@ export function AccessControlPanel({
                   <p className="text-sm text-white/48">Only platform admins can change agency-level influencer ownership.</p>
                 ) : null}
               </div>
-            ) : (
+            ) : influencerAccessExpanded ? (
               <div className="mt-5 rounded-3xl border border-white/8 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-white/58">
                 {selectedUser.role === "PLATFORM_ADMIN"
                   ? "Platform admins can access the full influencer model library across the platform."
                   : "This role does not use individual influencer assignment cards."}
               </div>
-            )}
+            ) : null}
           </div>
           ) : null}
 
-          <div className="mt-6 rounded-[28px] border border-rose-400/18 bg-rose-400/8 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-rose-100">Delete account</p>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-rose-100/70">
-                  Account deletion stays bound to your role. Platform admins can delete globally, agency admins can delete managers and users in their own agency, and managers can only delete users in their assigned agencies if that specific permission has been enabled.
-                </p>
-              </div>
-              <button className={theme.buttonDanger} disabled={!canDeleteSelected} onClick={() => void handleDeleteUser()} type="button">
-                Delete account
+          <div className="mt-6 flex flex-wrap items-start justify-between gap-4 border-t border-[color:var(--surface-border)] pt-5">
+            <div className="flex flex-wrap items-start gap-3">
+              <button
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[color:var(--danger-border)] bg-[color:var(--danger-bg)] px-4 text-sm font-semibold text-[color:var(--danger-text)] transition hover:bg-[color:var(--danger-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={!canDeleteSelected}
+                onClick={() => setUserPendingDeletionId(selectedUser.id)}
+                type="button"
+              >
+                Delete
               </button>
+              <p className="max-w-2xl text-sm leading-6 text-[color:var(--text-muted)]">{deleteAccountHelper}</p>
             </div>
-            {renderNotice("deleteAccount", "mt-4")}
-            {!canDeleteSelected ? (
-              <p className="mt-4 text-sm text-rose-100/62">
-                You can review this account, but deleting it is outside your current permission boundary.
-              </p>
-            ) : null}
+            <div className="basis-full">
+              {renderNotice("deleteAccount")}
+            </div>
           </div>
           </div>
         </div>
@@ -4270,6 +4308,60 @@ export function AccessControlPanel({
             </aside>
           </form>
         </section>
+      ) : null}
+
+      {userPendingDeletion ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-md">
+          <div className={cx(theme.cardStrong, "glass-panel w-full max-w-xl p-6 sm:p-7")}>
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 pb-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-rose-200/68">Confirm deletion</p>
+                <h3 className="font-display mt-2 text-3xl text-white">Delete account?</h3>
+                <p className="mt-3 max-w-lg text-sm leading-7 text-white/58">
+                  You are about to delete <span className="font-semibold text-white">{userPendingDeletion.name}</span>.
+                </p>
+              </div>
+              <button className={theme.buttonSecondary} onClick={() => setUserPendingDeletionId(null)} type="button">
+                Cancel
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-[28px] border border-rose-400/20 bg-rose-400/10 p-5">
+                <p className="text-sm font-semibold text-rose-100">This action cannot be undone.</p>
+                <p className="mt-2 text-sm leading-7 text-rose-100/76">
+                  Account deletion stays bound to your role. Platform admins can delete globally, agency admins can delete managers and users in their own agency, and managers can only delete users in assigned agencies when deletion permission is enabled. Deleting this account also removes its workspace boards and generated assets.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Role</p>
+                  <p className="mt-3 text-sm font-semibold text-white">{roleLabel(userPendingDeletion.role)}</p>
+                </div>
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Agency</p>
+                  <p className="mt-3 truncate text-sm font-semibold text-white">{userPendingDeletion.agencyName || "Platform"}</p>
+                </div>
+                <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Influencers</p>
+                  <p className="mt-3 text-sm font-semibold text-white">{userPendingDeletion.assignedModelIds.length} direct</p>
+                </div>
+              </div>
+
+              {renderNotice("deleteAccount")}
+
+              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-white/8 pt-5">
+                <button className={theme.buttonSecondary} onClick={() => setUserPendingDeletionId(null)} type="button">
+                  Cancel
+                </button>
+                <button className={theme.buttonDanger} onClick={() => void handleDeleteUser()} type="button">
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {influencerPendingDeletion ? (
