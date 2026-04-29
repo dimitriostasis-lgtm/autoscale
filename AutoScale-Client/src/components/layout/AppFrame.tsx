@@ -89,6 +89,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
   const isAgencyAdmin = currentUser.role === "AGENCY_ADMIN";
   const accessOptions = accessJumpOptions(currentUser);
   const [isAccessMenuOpen, setIsAccessMenuOpen] = useState(false);
+  const [mobileHeaderCollapsed, setMobileHeaderCollapsed] = useState(false);
   const accessMenuCloseTimerRef = useRef<number | null>(null);
 
   function openAccessMenu(): void {
@@ -147,7 +148,37 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
     <div className="app-shell-grid">
       <header className="sticky top-0 z-40 border-b border-[color:var(--surface-border)] bg-[color:var(--header-bg)] backdrop-blur-2xl">
         <div className="mx-auto flex max-w-[1800px] flex-col gap-4 px-4 py-4 lg:px-8 lg:py-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <button
+            aria-expanded={!mobileHeaderCollapsed}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 py-3 text-left transition hover:bg-[color:var(--surface-soft-hover)] md:hidden"
+            onClick={() => setMobileHeaderCollapsed((current) => !current)}
+            title={mobileHeaderCollapsed ? "Show header menu" : "Hide header menu"}
+            type="button"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)]">
+                <img alt="" aria-hidden="true" className="h-9 w-9 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.28)]" src={autoscaleGroupLogo} />
+              </span>
+              <span className="min-w-0">
+                <span className="font-display block truncate text-base text-[color:var(--text-strong)]">AutoScale Group</span>
+                <span className="block truncate text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-muted)]">{roleLabel(currentUser.role)}</span>
+              </span>
+            </span>
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] text-[color:var(--text-main)]">
+              <svg aria-hidden="true" className={cx("size-4 transition-transform", mobileHeaderCollapsed ? "" : "rotate-180")} viewBox="0 0 20 20">
+                <path
+                  d="M5.25 7.75 10 12.5l4.75-4.75"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
+            </span>
+          </button>
+
+          <div className={cx("flex-col gap-4 md:flex md:flex-row md:items-center md:justify-between", mobileHeaderCollapsed ? "hidden" : "flex")}>
             <div className="flex min-w-0 flex-col gap-4 md:flex-1 md:flex-row md:items-center md:gap-6">
               <button
                 aria-label="AutoScale Group home"
