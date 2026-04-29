@@ -579,8 +579,13 @@ function PlaygroundSurface({
           ))}
 
           {!visibleAssets.length ? (
-            <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[color:var(--surface-card)] px-6 text-center">
-              <img alt="Ready to bring your idea to life?" className="w-full max-w-[680px] select-none object-contain opacity-95" draggable={false} src={playgroundReadyImage} />
+            <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[color:var(--surface-card-strong)] px-6 text-center">
+              <img
+                alt="Ready to bring your idea to life?"
+                className="w-full max-w-[680px] select-none object-contain opacity-80 [mask-image:radial-gradient(ellipse_at_center,black_52%,rgba(0,0,0,0.78)_70%,transparent_100%)]"
+                draggable={false}
+                src={playgroundReadyImage}
+              />
             </div>
           ) : null}
         </div>
@@ -737,10 +742,10 @@ function PlaygroundSurface({
         ))}
 
         {!visibleAssets.length ? (
-          <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[color:var(--surface-card)] px-6 text-center">
+          <div className="sm:col-span-2 xl:col-span-3 2xl:col-span-4 flex min-h-[420px] items-center justify-center bg-[color:var(--surface-card-strong)] px-6 text-center">
             <img
               alt="Ready to bring your idea to life?"
-              className="w-full max-w-[680px] select-none object-contain opacity-95"
+              className="w-full max-w-[680px] select-none object-contain opacity-80 [mask-image:radial-gradient(ellipse_at_center,black_52%,rgba(0,0,0,0.78)_70%,transparent_100%)]"
               draggable={false}
               src={playgroundReadyImage}
             />
