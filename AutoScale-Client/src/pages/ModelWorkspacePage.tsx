@@ -994,6 +994,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const client = useApolloClient();
   const [pickerState, setPickerState] = useState<PickerState | null>(null);
   const [poseLayoutBoardIds, setPoseLayoutBoardIds] = useState<Record<string, boolean>>({});
+  const [sharedControlsCollapsed, setSharedControlsCollapsed] = useState(false);
 
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<{ influencerModel: InfluencerModel | null }>(
     INFLUENCER_MODEL_QUERY,
@@ -1541,22 +1542,44 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
             onUploadReferences={(slotIndex, files) => void handleUploadGlobalReferences(slotIndex, files)}
           />
         ) : (
-        <div className="grid min-h-[68vh] gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div
+          className={cx(
+            "grid min-h-[68vh] gap-0 transition-[grid-template-columns] duration-200 ease-out",
+            sharedControlsCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)]" : "xl:grid-cols-[320px_minmax(0,1fr)]",
+          )}
+        >
           {selectedBoardLoading && !board ? (
             <div className="xl:col-span-2 h-[50vh] animate-pulse bg-white/[0.03]" />
           ) : board ? (
             <>
               <div className="border-b border-white/8 bg-[#202020] xl:border-r xl:border-b-0">
-                <SettingsPanel
-                  allowedGenerationModels={activeGenerationModelOptions}
-                  generationKind={activeModeMeta?.kind ?? "image"}
-                  onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex })}
-                  onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
-                  onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
-                  poseWorkerModelLocked={mode === "image-nsfw"}
-                  settings={board.settings}
-                  workspaceSafety={activeModeMeta?.safetyLabel ?? "SFW"}
-                />
+                {sharedControlsCollapsed ? (
+                  <button
+                    className="flex h-full min-h-[68vh] w-full flex-col items-center gap-4 px-2 py-4 text-white/64 transition hover:bg-white/[0.03] hover:text-white"
+                    onClick={() => setSharedControlsCollapsed(false)}
+                    title="Show shared controls"
+                    type="button"
+                  >
+                    <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-lg font-bold leading-none">
+                      &gt;
+                    </span>
+                    <span className="rotate-180 text-[10px] font-semibold uppercase tracking-[0.2em] [writing-mode:vertical-rl]">
+                      Shared controls
+                    </span>
+                  </button>
+                ) : (
+                  <SettingsPanel
+                    allowedGenerationModels={activeGenerationModelOptions}
+                    generationKind={activeModeMeta?.kind ?? "image"}
+                    onCollapse={() => setSharedControlsCollapsed(true)}
+                    onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex })}
+                    onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
+                    onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
+                    poseWorkerModelLocked={mode === "image-nsfw"}
+                    settings={board.settings}
+                    workspaceSafety={activeModeMeta?.safetyLabel ?? "SFW"}
+                  />
+                )}
               </div>
 
               <div className="min-w-0 bg-[#171717]">

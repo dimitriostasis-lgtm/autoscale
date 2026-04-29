@@ -30,6 +30,7 @@ interface SettingsPanelProps {
   generationKind: "image" | "video" | "voice";
   workspaceSafety?: "SFW" | "NSFW";
   poseWorkerModelLocked?: boolean;
+  onCollapse?: () => void;
   onSettingsChange: (nextSettings: BoardSettings) => void;
   onUploadReference: (slotIndex: number, file: File) => Promise<void> | void;
   onPickReference: (slotIndex: number) => void;
@@ -41,6 +42,7 @@ export function SettingsPanel({
   generationKind,
   workspaceSafety = "SFW",
   poseWorkerModelLocked = false,
+  onCollapse,
   onSettingsChange,
   onUploadReference,
   onPickReference,
@@ -110,9 +112,21 @@ export function SettingsPanel({
   return (
     <section className="h-full bg-[#202020] text-white">
       <div className="border-b border-white/8 px-5 py-4">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Workspace rail</p>
-          <h3 className="font-display mt-2 text-xl text-white">Shared controls</h3>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">Workspace rail</p>
+            <h3 className="font-display mt-2 text-xl text-white">Shared controls</h3>
+          </div>
+          {onCollapse ? (
+            <button
+              className="inline-flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-base font-bold leading-none text-white/68 transition hover:bg-white/[0.08] hover:text-white"
+              onClick={onCollapse}
+              title="Hide shared controls"
+              type="button"
+            >
+              &lt;
+            </button>
+          ) : null}
         </div>
       </div>
 
