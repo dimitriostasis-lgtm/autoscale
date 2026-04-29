@@ -92,8 +92,17 @@ export function SettingsPanel({
   const showUpscaleControls = generationKind === "image" && isSdxlDefaultWorkspace;
   const showFaceSwapControls = generationKind === "image";
   const showGlobalReferences = false;
-  const promptAutomationLocked = settings.generationModel === "kling_motion_control";
-  const promptAutomationOn = settings.autoPromptGen && !promptAutomationLocked;
+  const promptAutomationUnsupported = settings.generationModel === "kling_motion_control";
+  const promptAutomationReferenceLocked = showImageReferenceAutomation && settings.autoPromptImage && !promptAutomationUnsupported;
+  const promptAutomationLocked = promptAutomationUnsupported || promptAutomationReferenceLocked;
+  const promptAutomationOn = (settings.autoPromptGen || promptAutomationReferenceLocked) && !promptAutomationUnsupported;
+  const promptAutomationLockReason = promptAutomationUnsupported
+    ? "Kling Motion Control does not support text prompts or text prompt automation."
+    : promptAutomationReferenceLocked
+      ? videoGenerationModel
+        ? "Auto Prompt stays on while Auto Video is enabled because the video reference needs a generated text prompt."
+        : "Auto Prompt stays on while Auto Image is enabled because the image reference needs a generated text prompt."
+      : undefined;
   const referenceAutomationOn = settings.autoPromptImage;
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
@@ -142,7 +151,7 @@ export function SettingsPanel({
                     aspectRatio: normalizeBoardAspectRatio(nextGenerationModel, settings.aspectRatio, nextSdxlWorkspaceMode),
                     quantity: nextPoseMultiplierWorkspace ? 1 : nextQuantity,
                     sdxlWorkspaceMode: nextSdxlWorkspaceMode,
-                    autoPromptGen: nextGenerationModel === "kling_motion_control" ? false : settings.autoPromptGen,
+                    autoPromptGen: nextGenerationModel === "kling_motion_control" ? false : settings.autoPromptImage ? true : settings.autoPromptGen,
                     autoPromptImage: nextPoseMultiplierWorkspace ? false : settings.autoPromptImage,
                     poseMultiplierEnabled: nextPoseMultiplierWorkspace ? true : nextSdxlDefaultWorkspace ? false : nextQuantity === 1 && !nextVideoGenerationModel ? settings.poseMultiplierEnabled : false,
                     poseMultiplierGenerationModel: nextPoseMultiplierGenerationModel,
@@ -350,6 +359,7 @@ export function SettingsPanel({
             {!isFaceSwapWorkspaceLayout ? (
             <div className="space-y-2">
               <span className="text-sm font-semibold text-white/76">{promptAutomationLabel}</span>
+              <div className="group/prompt-lock relative" title={promptAutomationLockReason}>
               <button
                 className={cx(
                   "workspace-auto-prompt-toggle relative grid w-full grid-cols-[1.75rem_1fr_1.75rem] items-center overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
@@ -358,6 +368,7 @@ export function SettingsPanel({
                     : "border-white/8 bg-[#262626] text-white/76 hover:bg-[#313131]",
                 )}
                 disabled={promptAutomationLocked}
+                title={promptAutomationLockReason}
                 onClick={() => {
                   if (!promptAutomationLocked) {
                     onSettingsChange({ ...settings, autoPromptGen: !settings.autoPromptGen });
@@ -379,7 +390,7 @@ export function SettingsPanel({
                     />
                   </svg>
                 </span>
-                <span className="text-center">{promptAutomationLocked ? "Unsupported" : settings.autoPromptGen ? "Auto Prompt On" : "Auto Prompt Off"}</span>
+                <span className="text-center">{promptAutomationUnsupported ? "Unsupported" : promptAutomationOn ? "Auto Prompt On" : "Auto Prompt Off"}</span>
                 <span
                   className={cx(
                     "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs",
@@ -390,8 +401,14 @@ export function SettingsPanel({
                   {promptAutomationOn ? <span className="workspace-auto-prompt-live-dot" /> : "*"}
                 </span>
               </button>
-              {promptAutomationLocked ? (
-                <p className="text-xs leading-5 text-white/48">Kling Motion Control does not support text prompts or text prompt automation.</p>
+              {promptAutomationLockReason ? (
+                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 max-w-64 rounded-xl border border-white/10 bg-[#1b1b1b] px-3 py-2 text-xs leading-5 text-white/66 opacity-0 shadow-[0_18px_36px_rgba(0,0,0,0.35)] transition duration-150 group-hover/prompt-lock:opacity-100">
+                  {promptAutomationLockReason}
+                </div>
+              ) : null}
+              </div>
+              {promptAutomationUnsupported ? (
+                <p className="text-xs leading-5 text-white/48">{promptAutomationLockReason}</p>
               ) : null}
             </div>
             ) : null}

@@ -140,6 +140,12 @@ export function WorkspaceGrid({
   const panelClass = "h-full rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] p-3";
   const stackedControlPanelClass = cx(panelClass, "flex flex-col gap-2");
   const pendingJobClass = "mt-1 flex min-h-[148px] flex-1 items-center justify-center rounded-lg border border-dashed border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]";
+  const skippedPanelClass = cx(
+    stackedControlPanelClass,
+    "relative overflow-hidden border-dashed bg-[color:var(--surface-soft)] text-[color:var(--text-muted)]",
+  );
+  const skippedBadgeClass =
+    "relative z-10 mt-1 flex min-h-[148px] flex-1 items-center justify-center rounded-lg border border-dashed border-[color:var(--surface-border)] bg-[color:var(--surface-card)]/72 px-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--text-muted)] backdrop-blur-sm";
   const autoReferenceTitle = isVideoReference ? "Auto video" : "Auto image";
   const autoReferenceKindLabel = isVideoReference ? "Video reference" : "Image reference";
   const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false) => (
@@ -187,6 +193,9 @@ export function WorkspaceGrid({
             const promptLockedByAudioReference = showAudioReferenceColumn && Boolean(audioReference);
             const awaitingOutput = !row.outputAssets.length;
             const poseMultiplierEnabled = board.settings.poseMultiplierEnabled;
+            const poseColumnSkipped = showPoseColumn && !isPoseMultiplierWorkspaceLayout && !poseMultiplierEnabled;
+            const faceSwapColumnSkipped = showFaceSwapColumn && !isFaceSwapWorkspaceLayout && !row.faceSwap;
+            const upscaleColumnSkipped = showUpscaleColumn && !row.upscale;
             return (
               <div
                 key={row.id}
@@ -502,63 +511,107 @@ export function WorkspaceGrid({
 
                 {showPoseColumn ? (
                   <div className={cellClass}>
-                    <div className={stackedControlPanelClass}>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
-                      <div
-                        className={cx(
-                          "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                          poseMultiplierEnabled
-                            ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
-                            : "border-white/8 bg-[#222222] text-white/62",
-                        )}
-                      >
-                        {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
-                      </div>
-                      {isPoseMultiplierWorkspaceLayout ? renderOutputGrid(row, awaitingOutput, true) : awaitingOutput ? (
-                        <div className={pendingJobClass}>
-                          Pending
+                    {poseColumnSkipped ? (
+                      <div className={skippedPanelClass}>
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--text-strong)_8%,transparent),transparent_62%)] opacity-70" />
+                        <div className="relative z-10 blur-[1px]">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Multiplier</p>
+                          <div className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-2 text-sm font-semibold opacity-55">
+                            Off
+                          </div>
                         </div>
-                      ) : null}
-                    </div>
+                        <div className={skippedBadgeClass}>
+                          Skipped
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={stackedControlPanelClass}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Multiplier</p>
+                        <div
+                          className={cx(
+                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                            poseMultiplierEnabled
+                              ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
+                              : "border-white/8 bg-[#222222] text-white/62",
+                          )}
+                        >
+                          {poseMultiplierEnabled ? `${row.poseMultiplier}x` : "Off"}
+                        </div>
+                        {isPoseMultiplierWorkspaceLayout ? renderOutputGrid(row, awaitingOutput, true) : awaitingOutput ? (
+                          <div className={pendingJobClass}>
+                            Pending
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
                 {showUpscaleColumn ? (
                   <div className={cellClass}>
-                    <div className={stackedControlPanelClass}>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Upscale</p>
-                      <button
-                        className={cx(
-                          "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                          row.upscale
-                            ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
-                            : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
-                        )}
-                        onClick={() => void onCommitRow({ rowId: row.id, upscale: !row.upscale })}
-                        type="button"
-                      >
-                        {row.upscale ? "On" : "Off"}
-                      </button>
-                      {awaitingOutput ? (
-                        <div className={pendingJobClass}>
-                          Pending
+                    {upscaleColumnSkipped ? (
+                      <div className={skippedPanelClass}>
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--text-strong)_8%,transparent),transparent_62%)] opacity-70" />
+                        <div className="relative z-10 blur-[1px]">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Upscale</p>
+                          <div className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-2 text-sm font-semibold opacity-55">
+                            Off
+                          </div>
                         </div>
-                      ) : null}
-                    </div>
+                        <div className={skippedBadgeClass}>
+                          Skipped
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={stackedControlPanelClass}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Upscale</p>
+                        <button
+                          className={cx(
+                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                            row.upscale
+                              ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
+                              : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
+                          )}
+                          onClick={() => void onCommitRow({ rowId: row.id, upscale: !row.upscale })}
+                          type="button"
+                        >
+                          {row.upscale ? "On" : "Off"}
+                        </button>
+                        {awaitingOutput ? (
+                          <div className={pendingJobClass}>
+                            Pending
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
                 {showFaceSwapColumn ? (
                   <div className={cellClass}>
-                    <div className={stackedControlPanelClass}>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Swap</p>
-                      <button
-                        className={cx(
-                          "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                          row.faceSwap
-                            ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
-                            : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
-                        )}
+                    {faceSwapColumnSkipped ? (
+                      <div className={skippedPanelClass}>
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--text-strong)_8%,transparent),transparent_62%)] opacity-70" />
+                        <div className="relative z-10 blur-[1px]">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Swap</p>
+                          <div className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-2 text-sm font-semibold opacity-55">
+                            Off
+                          </div>
+                        </div>
+                        <div className={skippedBadgeClass}>
+                          Skipped
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={stackedControlPanelClass}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/34">Swap</p>
+                        <button
+                          className={cx(
+                            "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
+                            row.faceSwap
+                              ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
+                              : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
+                          )}
                           disabled={isFaceSwapWorkspaceLayout}
                           onClick={() => {
                             if (!isFaceSwapWorkspaceLayout) {
@@ -569,12 +622,13 @@ export function WorkspaceGrid({
                         >
                           {isFaceSwapWorkspaceLayout || row.faceSwap ? "On" : "Off"}
                         </button>
-                      {!isPoseMultiplierWorkspaceLayout && awaitingOutput ? (
-                        <div className={pendingJobClass}>
-                          Pending
-                        </div>
-                      ) : null}
-                    </div>
+                        {!isPoseMultiplierWorkspaceLayout && awaitingOutput ? (
+                          <div className={pendingJobClass}>
+                            Pending
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
