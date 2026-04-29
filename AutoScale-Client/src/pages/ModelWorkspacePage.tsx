@@ -176,7 +176,7 @@ type PickerState =
   | { kind: "row"; row: WorkspaceRow }
   | { kind: "row-video"; row: WorkspaceRow }
   | { kind: "row-audio"; row: WorkspaceRow }
-  | { kind: "global"; slotIndex: number; source?: "tray" };
+  | { kind: "global"; slotIndex: number; source?: "tray"; variant?: "image" | "video" };
 
 const maxPlaygroundReferenceCount = 10;
 
@@ -501,7 +501,7 @@ function PlaygroundSurface({
   allowedGenerationModels: string[];
   assets: GeneratedAsset[];
   board: WorkspaceBoard | null;
-  onPickReference: (slotIndex: number) => void;
+  onPickReference: (slotIndex: number, variant?: "image" | "video") => void;
   onUploadReference: (slotIndex: number, file: File) => Promise<void> | void;
   onSettingsChange: (nextSettings: BoardSettings) => void;
   onUploadReferences: (slotIndex: number, files: File[]) => Promise<void> | void;
@@ -846,7 +846,7 @@ function PlaygroundSurface({
                           </button>
                           <button
                             className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] sm:flex-none"
-                            onClick={() => onPickReference(0)}
+                            onClick={() => onPickReference(0, "video")}
                             type="button"
                           >
                             Gallery
@@ -946,7 +946,7 @@ function PlaygroundSurface({
                       </button>
                       <button
                         className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-main)] transition duration-200 hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] sm:flex-none"
-                        onClick={() => onPickReference(0)}
+                        onClick={() => onPickReference(0, "video")}
                         type="button"
                       >
                         Gallery
@@ -1861,7 +1861,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
             allowedGenerationModels={activeGenerationModelOptions}
             assets={assets}
             board={board}
-            onPickReference={(slotIndex) => setPickerState({ kind: "global", slotIndex, source: "tray" })}
+            onPickReference={(slotIndex, variant = "image") => setPickerState({ kind: "global", slotIndex, source: "tray", variant })}
             onSettingsChange={(nextSettings) => void handleSettingsChange(nextSettings)}
             onUploadReference={(slotIndex, file) => void handleUploadGlobalReference(slotIndex, file)}
             onUploadReferences={(slotIndex, files) => void handleUploadGlobalReferences(slotIndex, files)}
@@ -2001,7 +2001,15 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         onSelect={(asset) => void handleSelectAsset(asset)}
         open={Boolean(pickerState)}
         slug={slug}
-        variant={pickerState?.kind === "row-audio" ? "audio" : pickerState?.kind === "row-video" ? "video" : "image"}
+        variant={
+          pickerState?.kind === "row-audio"
+            ? "audio"
+            : pickerState?.kind === "row-video"
+              ? "video"
+              : pickerState?.kind === "global"
+                ? pickerState.variant ?? "image"
+                : "image"
+        }
       />
     </div>
   );

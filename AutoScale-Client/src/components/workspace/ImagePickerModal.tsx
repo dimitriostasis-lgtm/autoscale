@@ -6,6 +6,7 @@ import {
   buildGalleryFolderGroups,
   defaultGalleryFolderId,
   findFolder,
+  matchesImageAsset,
   matchesVideoAsset,
   matchesVoiceAsset,
   readStoredCustomFolderGroups,
@@ -32,7 +33,20 @@ export function ImagePickerModal({ open, slug, assets, variant = "image", onClos
   const [customFolderGroups, setCustomFolderGroups] = useState(() => readStoredCustomFolderGroups(slug));
   const [customFolders, setCustomFolders] = useState(() => readStoredCustomFolders(slug));
   const deferredQuery = useDeferredValue(query);
-  const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups), [customFolderGroups, customFolders]);
+  const allFolderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups), [customFolderGroups, customFolders]);
+  const folderGroups = useMemo(() => {
+    const allowedMediaFolderId = variant === "audio" ? voiceFolderId : variant === "video" ? videoFolderId : defaultGalleryFolderId;
+
+    return allFolderGroups.flatMap((group) => {
+      if (group.id === "media-folders") {
+        const items = group.items.filter((item) => item.id === allowedMediaFolderId);
+
+        return items.length ? [{ ...group, items }] : [];
+      }
+
+      return variant === "image" ? [group] : [];
+    });
+  }, [allFolderGroups, variant]);
   const selectedFolder = useMemo(
     () => findFolder(selectedFolderId, folderGroups) ?? findFolder(defaultFolderId, folderGroups),
     [defaultFolderId, folderGroups, selectedFolderId],
@@ -45,7 +59,7 @@ export function ImagePickerModal({ open, slug, assets, variant = "image", onClos
       if (variant === "video") {
         return assets.filter(matchesVideoAsset);
       }
-      return assets;
+      return assets.filter(matchesImageAsset);
     },
     [assets, variant],
   );

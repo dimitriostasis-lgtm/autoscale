@@ -91,7 +91,7 @@ export function WorkspaceGrid({
         selectedLabel: "Video reference",
         autoLabel: "Auto video",
         uploadLabel: "Upload video",
-        pickLabel: "Pick video",
+        pickLabel: "Pick from Gallery",
         clearLabel: "Clear video",
         accept: "video/*,.mp4,.mov,.m4v,.webm",
       }
@@ -100,7 +100,7 @@ export function WorkspaceGrid({
         selectedLabel: "Image reference",
         autoLabel: "Auto image",
         uploadLabel: "Upload image",
-        pickLabel: "Pick image",
+        pickLabel: "Pick from Gallery",
         clearLabel: "Clear image",
         accept: "image/*",
       };
@@ -534,7 +534,7 @@ export function WorkspaceGrid({
                           onClick={() => onPickAudioReference(row)}
                           type="button"
                         >
-                          Pick from gallery
+                          Pick from Gallery
                         </button>
                         {audioReference ? (
                           <button

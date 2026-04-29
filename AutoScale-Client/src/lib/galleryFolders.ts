@@ -61,7 +61,7 @@ export function matchesVoiceAsset(asset: GeneratedAsset): boolean {
   return voiceAssetPattern.test(buildAssetSearchText(asset)) || audioAssetExtensionPattern.test(asset.fileName);
 }
 
-function matchesImageAsset(asset: GeneratedAsset): boolean {
+export function matchesImageAsset(asset: GeneratedAsset): boolean {
   return !matchesVideoAsset(asset) && !matchesVoiceAsset(asset);
 }
 
