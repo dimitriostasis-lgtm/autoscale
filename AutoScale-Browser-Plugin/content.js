@@ -7,6 +7,20 @@
   const AUDIO_EXTENSIONS = /\.(aac|flac|m4a|mp3|oga|ogg|opus|wav|webm)(\?|#|$)/i;
   const VIDEO_EXTENSIONS = /\.(m4v|mov|mp4|webm)(\?|#|$)/i;
   const IMAGE_EXTENSIONS = /\.(avif|bmp|gif|jpe?g|png|webp)(\?|#|$)/i;
+  const AUTOSCALE_LOCAL_CLIENT_PORTS = new Set(["3000", "4173", "5173", "5174"]);
+
+  function isAutoScalePage() {
+    const host = window.location.hostname.toLowerCase();
+    const port = window.location.port;
+    const loopbackHost = host === "localhost" || host === "127.0.0.1" || host === "::1";
+    const privateLanHost = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host) || host.endsWith(".local");
+
+    return host.includes("autoscale") || ((loopbackHost || privateLanHost) && AUTOSCALE_LOCAL_CLIENT_PORTS.has(port));
+  }
+
+  if (isAutoScalePage()) {
+    return;
+  }
 
   let activeTarget = null;
   let activeAsset = null;
