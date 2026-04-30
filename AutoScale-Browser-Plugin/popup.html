@@ -8,86 +8,193 @@
   </head>
   <body>
     <main class="shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">AutoScale</p>
-          <h1>Robot Capture</h1>
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-mark"><img src="assets/autoscale-group-logo.svg" alt="" /></span>
+          <div class="min">
+            <p class="eyebrow">AutoScale</p>
+            <h1>Robot Console</h1>
+          </div>
         </div>
         <span class="status-pill" id="authStatus">Offline</span>
       </header>
 
-      <section class="panel" id="loginPanel">
+      <section class="card login-card" id="loginPanel">
         <form id="loginForm">
           <label>
             API URL
             <input id="serverUrl" name="serverUrl" autocomplete="url" placeholder="http://localhost:4000" />
           </label>
-          <label>
-            Email
-            <input id="email" name="email" autocomplete="email" type="email" />
-          </label>
-          <label>
-            Password
-            <input id="password" name="password" autocomplete="current-password" type="password" />
-          </label>
-          <button class="primary" id="loginButton" type="submit">Log in</button>
+          <div class="two-col">
+            <label>
+              Email
+              <input id="email" name="email" autocomplete="email" type="email" />
+            </label>
+            <label>
+              Password
+              <input id="password" name="password" autocomplete="current-password" type="password" />
+            </label>
+          </div>
+          <div class="login-actions">
+            <button class="primary" id="loginButton" type="submit">Log in</button>
+            <button class="secondary" id="defaultAdminButton" type="button">Default admin</button>
+          </div>
         </form>
       </section>
 
-      <section class="panel hidden" id="workspacePanel">
-        <div class="account-row">
-          <div class="min">
-            <p class="label">Signed in</p>
-            <p class="strong" id="userLabel">-</p>
-          </div>
-          <button class="ghost" id="logoutButton" type="button">Log out</button>
-        </div>
-
-        <label>
-          Influencer profile
-          <select id="modelSelect"></select>
-        </label>
-
-        <div class="config-grid">
-          <fieldset>
-            <legend>Images</legend>
-            <div class="segmented" data-kind="image">
-              <button data-value="sfw" type="button">SFW</button>
-              <button data-value="nsfw" type="button">NSFW</button>
+      <section class="workspace hidden" id="workspacePanel">
+        <section class="card account-card">
+          <div class="account-row">
+            <div class="min">
+              <p class="label">Signed in</p>
+              <p class="strong" id="userLabel">-</p>
             </div>
-          </fieldset>
-          <fieldset>
-            <legend>Videos</legend>
-            <div class="segmented" data-kind="video">
-              <button data-value="sfw" type="button">SFW</button>
-              <button data-value="nsfw" type="button">NSFW</button>
+            <button class="ghost" id="logoutButton" type="button">Log out</button>
+          </div>
+
+          <label>
+            Influencer profile
+            <select id="modelSelect"></select>
+          </label>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Routing</p>
+              <h2>Capture Targets</h2>
             </div>
-          </fieldset>
-          <fieldset>
-            <legend>Audio</legend>
-            <div class="audio-note">Voice table</div>
-          </fieldset>
-        </div>
+          </div>
+          <div class="route-grid">
+            <fieldset class="route-card">
+              <legend>Images</legend>
+              <div class="segmented" data-kind="image">
+                <button data-value="sfw" type="button">SFW</button>
+                <button data-value="nsfw" type="button">NSFW</button>
+              </div>
+            </fieldset>
+            <fieldset class="route-card">
+              <legend>Videos</legend>
+              <div class="segmented" data-kind="video">
+                <button data-value="sfw" type="button">SFW</button>
+                <button data-value="nsfw" type="button">NSFW</button>
+              </div>
+            </fieldset>
+            <fieldset class="route-card">
+              <legend>Audio</legend>
+              <div class="audio-note">Voice table</div>
+            </fieldset>
+          </div>
+        </section>
 
-        <div class="counts" aria-label="Session asset counts">
-          <div>
-            <span id="imageCount">0</span>
-            <small>Images</small>
+        <section class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Workflow</p>
+              <h2>Run Setup</h2>
+            </div>
           </div>
-          <div>
-            <span id="videoCount">0</span>
-            <small>Videos</small>
+          <div class="two-col">
+            <label>
+              Workflow
+              <select id="workflowSelect"></select>
+            </label>
+            <label>
+              Run target
+              <select id="runTargetSelect">
+                <option value="captured">Captured tables</option>
+                <option value="image">Image tables</option>
+                <option value="video">Video tables</option>
+                <option value="audio">Audio tables</option>
+                <option value="all-configured">All configured</option>
+              </select>
+            </label>
           </div>
-          <div>
-            <span id="audioCount">0</span>
-            <small>Audio</small>
-          </div>
-        </div>
+        </section>
 
-        <div class="actions">
-          <button class="secondary" id="refreshButton" type="button">Refresh</button>
-          <button class="primary" id="runButton" type="button">Run Workflow</button>
-        </div>
+        <section class="card controls-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Image Gen</p>
+              <h2>Layout & Quality</h2>
+            </div>
+          </div>
+          <div class="controls-grid">
+            <label>
+              Layout
+              <select id="imageLayoutSelect">
+                <option value="DEFAULT">Default</option>
+                <option value="POSE_MULTIPLIER">Pose Multiplier</option>
+                <option value="FACE_SWAP">FaceSwap</option>
+              </select>
+            </label>
+            <label>
+              Model
+              <select id="imageModelSelect"></select>
+            </label>
+            <label>
+              Resolution
+              <select id="imageResolutionSelect"></select>
+            </label>
+            <label>
+              Aspect
+              <select id="imageAspectRatioSelect"></select>
+            </label>
+            <label>
+              Quantity
+              <select id="imageQuantitySelect"></select>
+            </label>
+          </div>
+        </section>
+
+        <section class="card controls-card">
+          <div class="section-head compact">
+            <div>
+              <p class="eyebrow">Video & Audio</p>
+              <h2>Media Settings</h2>
+            </div>
+          </div>
+          <div class="controls-grid media-grid">
+            <label>
+              Video model
+              <select id="videoModelSelect"></select>
+            </label>
+            <label>
+              Video resolution
+              <select id="videoResolutionSelect"></select>
+            </label>
+            <label>
+              Duration
+              <select id="videoDurationSelect"></select>
+            </label>
+            <label>
+              Audio model
+              <select id="audioModelSelect"></select>
+            </label>
+          </div>
+        </section>
+
+        <section class="card footer-card">
+          <div class="counts" aria-label="Session asset counts">
+            <div>
+              <span id="imageCount">0</span>
+              <small>Images</small>
+            </div>
+            <div>
+              <span id="videoCount">0</span>
+              <small>Videos</small>
+            </div>
+            <div>
+              <span id="audioCount">0</span>
+              <small>Audio</small>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="secondary" id="refreshButton" type="button">Refresh</button>
+            <button class="primary" id="runButton" type="button">Run Workflow</button>
+          </div>
+        </section>
       </section>
 
       <p class="message" id="message" role="status"></p>

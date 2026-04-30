@@ -77,6 +77,7 @@ export function WorkspaceGrid({
 }: WorkspaceGridProps) {
   const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({});
   const [improvingPromptRowId, setImprovingPromptRowId] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<{ src: string; label: string; error?: string | null } | null>(null);
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode);
   const isFaceSwapWorkspaceLayout = board.settings.sdxlWorkspaceMode === "FACE_SWAP";
   const isVideoReference = referenceMediaKind === "video";
@@ -205,6 +206,21 @@ export function WorkspaceGrid({
       return next;
     });
   }, [board.rows]);
+
+  useEffect(() => {
+    if (!videoPreview) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setVideoPreview(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [videoPreview]);
 
   function handlePromptDraftChange(rowId: string, prompt: string): void {
     setPromptDrafts((current) => ({ ...current, [rowId]: prompt }));
@@ -374,6 +390,19 @@ export function WorkspaceGrid({
                             <>
                               <video className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" src={previewSrc} />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/20" />
+                              <button
+                                aria-label={`Preview ${row.reference?.label || referenceCopy.selectedLabel}`}
+                                className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 text-white transition hover:bg-black/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/70"
+                                onClick={() => setVideoPreview({ src: previewSrc, label: row.reference?.label || referenceCopy.selectedLabel, error: null })}
+                                title="Preview video"
+                                type="button"
+                              >
+                                <span className="inline-flex size-14 items-center justify-center rounded-full border border-white/18 bg-black/48 text-white shadow-[0_16px_40px_rgba(0,0,0,0.42)] backdrop-blur-md transition hover:scale-105 hover:border-lime-200/55 hover:bg-lime-300/16 hover:text-lime-100">
+                                  <svg aria-hidden="true" className="ml-0.5 size-6" viewBox="0 0 24 24">
+                                    <path d="M8.5 5.8v12.4L18.5 12 8.5 5.8Z" fill="currentColor" />
+                                  </svg>
+                                </span>
+                              </button>
                               <div className="relative mt-auto flex w-full flex-col items-center gap-2 self-end">
                                 <p className="line-clamp-2 text-sm font-semibold leading-5 text-white">{row.reference?.label || referenceCopy.selectedLabel}</p>
                                 <span className="rounded-full border border-lime-300/15 bg-lime-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-lime-100/80">
@@ -783,6 +812,73 @@ export function WorkspaceGrid({
           })}
         </div>
       </div>
+
+      {videoPreview ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/74 p-4 backdrop-blur-md"
+          onClick={() => setVideoPreview(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Video preview"
+        >
+          <div
+            className="w-[min(92vw,860px)] overflow-hidden rounded-2xl border border-white/12 bg-[#151515] shadow-[0_28px_90px_rgba(0,0,0,0.52)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">Video reference</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white">{videoPreview.label}</p>
+              </div>
+              <button
+                aria-label="Close video preview"
+                className="inline-grid size-9 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/68 transition hover:bg-white/[0.1] hover:text-white"
+                onClick={() => setVideoPreview(null)}
+                type="button"
+              >
+                <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20">
+                  <path
+                    d="M5.22 5.22a.75.75 0 0 1 1.06 0L10 8.94l3.72-3.72a.75.75 0 1 1 1.06 1.06L11.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06L10 11.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06L8.94 10 5.22 6.28a.75.75 0 0 1 0-1.06Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="bg-black">
+              {videoPreview.error ? (
+                <div className="border-b border-rose-300/18 bg-rose-500/10 px-4 py-3 text-sm leading-6 text-rose-100">
+                  {videoPreview.error}
+                </div>
+              ) : null}
+              <video
+                autoPlay
+                className="max-h-[76vh] w-full bg-black object-contain"
+                controls
+                onError={() =>
+                  setVideoPreview((current) =>
+                    current
+                      ? {
+                          ...current,
+                          error:
+                            "This uploaded reference is not playable as a standalone browser video. The plugin likely captured a streaming fragment instead of the full video file.",
+                        }
+                      : current,
+                  )
+                }
+                playsInline
+                preload="auto"
+                src={videoPreview.src}
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3 text-xs text-white/48">
+              <span className="truncate">Source: {videoPreview.src}</span>
+              <a className="font-semibold text-lime-100/80 transition hover:text-lime-100" href={videoPreview.src} rel="noreferrer" target="_blank">
+                Open file
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="border-t border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
         <button className={theme.buttonSecondary + " rounded-lg border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-2 text-xs text-[color:var(--text-main)] hover:bg-[color:var(--surface-soft-hover)]"} disabled={board.rows.length >= 8} onClick={() => void onAddRow()} type="button">

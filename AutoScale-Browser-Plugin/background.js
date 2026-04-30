@@ -38,6 +38,21 @@ const DEFAULT_STATE = {
     image: "sfw",
     video: "sfw",
   },
+  workflow: {
+    selectedWorkflowId: "default-platform",
+    runTarget: "captured",
+  },
+  config: {
+    imageLayout: "DEFAULT",
+    imageModel: "nb_pro",
+    imageResolution: "2k",
+    imageAspectRatio: "3:4",
+    imageQuantity: 4,
+    videoModel: "sd_2_0",
+    videoResolution: "720p",
+    videoDurationSeconds: 4,
+    audioModel: "eleven_v3",
+  },
   sessionCounts: {
     image: 0,
     video: 0,
@@ -92,6 +107,9 @@ const MODELS_QUERY = `
       slug
       name
       handle
+      defaultPlatformWorkflowName
+      platformWorkflowCount
+      customWorkflowCount
       allowedGenerationModels
       boards {
         id
@@ -220,6 +238,8 @@ function mergeState(value = {}) {
     ...DEFAULT_STATE,
     ...value,
     safety: { ...DEFAULT_STATE.safety, ...(value.safety || {}) },
+    workflow: { ...DEFAULT_STATE.workflow, ...(value.workflow || {}) },
+    config: { ...DEFAULT_STATE.config, ...(value.config || {}) },
     sessionCounts: { ...DEFAULT_STATE.sessionCounts, ...(value.sessionCounts || {}) },
     touchedBoardIds: Array.isArray(value.touchedBoardIds) ? value.touchedBoardIds : [],
     models: Array.isArray(value.models) ? value.models : [],
@@ -456,9 +476,19 @@ function settingsInput(settings) {
   };
 }
 
-function normalizeSettingsForMode(settings, mode, allowedGenerationModels) {
-  const generationModel = selectGenerationModel(mode, allowedGenerationModels, settings.generationModel);
-  const sdxlWorkspaceMode = isImageModel(generationModel) ? settings.sdxlWorkspaceMode || "DEFAULT" : "DEFAULT";
+function normalizeSettingsForMode(settings, mode, allowedGenerationModels, config = DEFAULT_STATE.config) {
+  const preferredGenerationModel = mode.startsWith("image-")
+    ? config.imageModel
+    : mode.startsWith("video-")
+      ? config.videoModel
+      : mode.startsWith("voice-")
+        ? config.audioModel
+        : settings.generationModel;
+  const generationModel = selectGenerationModel(mode, allowedGenerationModels, preferredGenerationModel || settings.generationModel);
+  const requestedImageLayout = ["DEFAULT", "POSE_MULTIPLIER", "FACE_SWAP"].includes(config.imageLayout)
+    ? config.imageLayout
+    : settings.sdxlWorkspaceMode || "DEFAULT";
+  const sdxlWorkspaceMode = mode.startsWith("image-") && isImageModel(generationModel) ? requestedImageLayout : "DEFAULT";
   const isPoseLayout = isPoseWorkspace(generationModel, sdxlWorkspaceMode);
   const isFaceSwapLayout = sdxlWorkspaceMode === "FACE_SWAP";
   const isSdxlDefault = generationModel === "sdxl" && !isPoseLayout && !isFaceSwapLayout;
@@ -467,16 +497,23 @@ function normalizeSettingsForMode(settings, mode, allowedGenerationModels) {
     : POSE_MODELS.includes(generationModel)
       ? generationModel
       : POSE_MODELS[0];
-  const quantity = isPoseLayout || isFaceSwapLayout ? 1 : Math.max(1, Math.min(getMaxQuantity(generationModel), settings.quantity || 1));
+  const requestedResolution = mode.startsWith("video-")
+    ? config.videoResolution
+    : mode.startsWith("image-")
+      ? config.imageResolution
+      : settings.resolution;
+  const requestedAspectRatio = mode.startsWith("image-") ? config.imageAspectRatio : settings.aspectRatio;
+  const requestedQuantity = mode.startsWith("image-") ? Number(config.imageQuantity) : settings.quantity || 1;
+  const quantity = isPoseLayout || isFaceSwapLayout ? 1 : Math.max(1, Math.min(getMaxQuantity(generationModel), requestedQuantity || 1));
 
   return {
     ...settings,
     generationModel,
-    resolution: normalizeResolution(generationModel, settings.resolution),
-    poseMultiplierResolution: normalizePoseResolution(settings.poseMultiplierResolution || settings.resolution, poseMultiplierGenerationModel),
-    videoDurationSeconds: normalizeVideoDuration(generationModel, settings.videoDurationSeconds),
+    resolution: normalizeResolution(generationModel, requestedResolution),
+    poseMultiplierResolution: normalizePoseResolution(settings.poseMultiplierResolution || requestedResolution, poseMultiplierGenerationModel),
+    videoDurationSeconds: normalizeVideoDuration(generationModel, Number(config.videoDurationSeconds) || settings.videoDurationSeconds),
     quality: normalizeQuality(generationModel, settings.quality),
-    aspectRatio: normalizeAspectRatio(generationModel, settings.aspectRatio, sdxlWorkspaceMode),
+    aspectRatio: normalizeAspectRatio(generationModel, requestedAspectRatio, sdxlWorkspaceMode),
     quantity: generationModel === "eleven_v3" ? 1 : quantity,
     sdxlWorkspaceMode,
     poseMultiplierEnabled: isPoseLayout ? true : isSdxlDefault ? false : quantity === 1 ? Boolean(settings.poseMultiplierEnabled) : false,
@@ -510,8 +547,8 @@ async function getBoard(boardId) {
   return data.workspaceBoard;
 }
 
-async function ensureBoardSettings(board, mode, model) {
-  const normalized = normalizeSettingsForMode(board.settings, mode, model.allowedGenerationModels || []);
+async function ensureBoardSettings(board, mode, model, state) {
+  const normalized = normalizeSettingsForMode(board.settings, mode, model.allowedGenerationModels || [], state.config);
   if (!settingsChanged(board.settings, normalized)) {
     return board;
   }
@@ -545,7 +582,7 @@ async function prepareTargetBoard(kind, mode, state) {
   const modeBoards = boardsForMode(model, mode);
 
   for (const boardSummary of modeBoards) {
-    let board = await ensureBoardSettings(await getBoard(boardSummary.id), mode, model);
+    let board = await ensureBoardSettings(await getBoard(boardSummary.id), mode, model, state);
     const rows = [...board.rows].sort((left, right) => left.orderIndex - right.orderIndex);
     const emptyRow = rows.find((row) => !rowHasReference(row, kind));
     if (emptyRow) {
@@ -569,7 +606,7 @@ async function prepareTargetBoard(kind, mode, state) {
     name: buildBoardNameForMode(mode, modeBoards.length + 1),
     sourceBoardId,
   });
-  const createdBoard = await ensureBoardSettings(await getBoard(data.createBoard.id), mode, model);
+  const createdBoard = await ensureBoardSettings(await getBoard(data.createBoard.id), mode, model, state);
   const row = [...createdBoard.rows].sort((left, right) => left.orderIndex - right.orderIndex)[0];
 
   if (!row) {
@@ -612,12 +649,90 @@ function filenameFromAsset(asset, blobType = "") {
   return `${baseName.slice(0, 54)}.${extension}`;
 }
 
-async function uploadAsset(asset, state) {
-  if (!/^https?:|^data:/i.test(asset.url)) {
+function blobSignature(sample) {
+  const text = new TextDecoder("latin1").decode(sample);
+  const header = text.slice(0, 96);
+  const hasFtyp = sample.length > 12 && header.includes("ftyp");
+  const hasFragmentBox = header.includes("moof") || header.includes("styp");
+  const isWebm = sample[0] === 0x1a && sample[1] === 0x45 && sample[2] === 0xdf && sample[3] === 0xa3;
+  const isOgg = text.startsWith("OggS");
+  const isMpegTsSegment = sample[0] === 0x47 && sample[188] === 0x47;
+
+  return {
+    hasFtyp,
+    hasFragmentBox,
+    isWebm,
+    isOgg,
+    isMpegTsSegment,
+    textPrefix: text.slice(0, 24).trim(),
+  };
+}
+
+function parseContentRange(value) {
+  const match = String(value || "").match(/bytes\s+(\d+)-(\d+)\/(\d+|\*)/i);
+  if (!match) {
+    return null;
+  }
+
+  const start = Number(match[1]);
+  const end = Number(match[2]);
+  const total = match[3] === "*" ? null : Number(match[3]);
+  return { start, end, total };
+}
+
+function isPartialContentRange(range) {
+  if (!range || range.total == null || !Number.isFinite(range.total)) {
+    return false;
+  }
+
+  return range.start > 0 || range.end + 1 < range.total;
+}
+
+function isPlayableStandaloneAsset(asset, blob, sample, metadata = {}) {
+  if (asset.kind !== "video") {
+    return true;
+  }
+
+  const mime = `${metadata.contentType || ""} ${blob.type || ""}`.toLowerCase();
+  const signature = blobSignature(sample);
+  const range = parseContentRange(metadata.contentRange || "");
+  const hasContainerSignature = signature.hasFtyp || signature.isWebm || signature.isOgg;
+
+  if (
+    mime.includes("mpegurl") ||
+    mime.includes("application/json") ||
+    mime.includes("text/html") ||
+    mime.includes("javascript") ||
+    mime.includes("text/css") ||
+    (mime.includes("text/plain") && !hasContainerSignature) ||
+    signature.textPrefix.startsWith("#EXTM3U") ||
+    signature.textPrefix.startsWith("<") ||
+    signature.textPrefix.startsWith("{") ||
+    signature.textPrefix.startsWith("(") ||
+    signature.textPrefix.startsWith("self.") ||
+    (signature.hasFragmentBox && !signature.hasFtyp) ||
+    signature.isMpegTsSegment
+  ) {
+    return false;
+  }
+
+  if (isPartialContentRange(range)) {
+    return false;
+  }
+
+  if (asset.duration && asset.duration > 2 && blob.size < 64000) {
+    return false;
+  }
+
+  return hasContainerSignature;
+}
+
+async function downloadAssetBlob(asset, url) {
+  if (!/^https?:|^data:/i.test(url)) {
     throw new Error("This site did not expose a downloadable media URL for the selected asset");
   }
 
-  const response = await fetch(asset.url, {
+  const response = await fetch(url, {
     credentials: "include",
     cache: "force-cache",
   });
@@ -629,6 +744,42 @@ async function uploadAsset(asset, state) {
   const blob = await response.blob();
   if (!blob.size) {
     throw new Error("The selected asset download was empty");
+  }
+
+  const sample = new Uint8Array(await blob.slice(0, 512).arrayBuffer());
+  const metadata = {
+    contentRange: response.headers.get("content-range") || "",
+    contentType: response.headers.get("content-type") || "",
+  };
+  if (!isPlayableStandaloneAsset(asset, blob, sample, metadata)) {
+    throw new Error("Downloaded video was a stream playlist or segment, not a standalone playable video file");
+  }
+
+  return blob;
+}
+
+async function uploadAsset(asset, state) {
+  const candidateUrls = Array.from(new Set([asset.url, ...(Array.isArray(asset.candidateUrls) ? asset.candidateUrls : [])].filter(Boolean)));
+  let blob = null;
+  let lastError = null;
+
+  for (const url of candidateUrls) {
+    try {
+      blob = await downloadAssetBlob(asset, url);
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!blob) {
+    if (asset.kind === "video") {
+      throw new Error(
+        "AutoScale could not find a standalone playable video file for this page. TikTok may be exposing only stream segments; play the video for a few seconds, then try again.",
+      );
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("Unable to download selected asset");
   }
 
   const formData = new FormData();
@@ -673,6 +824,32 @@ function buildDefaultPrompt(asset) {
   }
 
   return `Use this image reference from "${pageLabel}" as the source visual reference for the selected influencer workflow.`;
+}
+
+function buildWorkflowOptions(model) {
+  if (!model) {
+    return [];
+  }
+
+  const platformCount = Math.max(1, Math.floor(model.platformWorkflowCount || 1));
+  const customCount = Math.max(0, Math.floor(model.customWorkflowCount || 0));
+  const defaultName = model.defaultPlatformWorkflowName || "Default platform workflow";
+  const options = [{ id: "default-platform", label: defaultName }];
+
+  for (let index = 2; index <= platformCount; index += 1) {
+    options.push({ id: `platform-${index}`, label: `Platform workflow ${index}` });
+  }
+
+  for (let index = 1; index <= customCount; index += 1) {
+    options.push({ id: `custom-${index}`, label: `Custom workflow ${index}` });
+  }
+
+  return options;
+}
+
+function selectedWorkflowLabel(state, model) {
+  const selectedId = state.workflow?.selectedWorkflowId || "default-platform";
+  return buildWorkflowOptions(model).find((option) => option.id === selectedId)?.label || "Selected workflow";
 }
 
 async function captureAsset(rawAsset) {
@@ -757,28 +934,69 @@ async function handleLogout() {
   });
 }
 
-async function runWorkflow() {
+function boardIdsForRunTarget(model, state, runTarget) {
+  const imageMode = `image-${state.safety.image === "nsfw" ? "nsfw" : "sfw"}`;
+  const videoMode = `video-${state.safety.video === "nsfw" ? "nsfw" : "sfw"}`;
+
+  if (runTarget === "image") {
+    return boardsForMode(model, imageMode).map((board) => board.id);
+  }
+
+  if (runTarget === "video") {
+    return boardsForMode(model, videoMode).map((board) => board.id);
+  }
+
+  if (runTarget === "audio") {
+    return boardsForMode(model, "voice-sfw").map((board) => board.id);
+  }
+
+  if (runTarget === "all-configured") {
+    return [
+      ...boardsForMode(model, imageMode),
+      ...boardsForMode(model, videoMode),
+      ...boardsForMode(model, "voice-sfw"),
+    ].map((board) => board.id);
+  }
+
+  return state.touchedBoardIds || [];
+}
+
+async function runWorkflow(payload = {}) {
   const state = await loadState();
-  const boardIds = [...new Set(state.touchedBoardIds || [])];
+  const nextWorkflow = {
+    ...state.workflow,
+    ...(payload.workflow || {}),
+  };
+  const nextState = await saveState({ ...state, workflow: nextWorkflow });
+  let model = nextState.models.find((entry) => entry.id === nextState.selectedModelId);
+
+  if (!model) {
+    const refreshed = await refreshModels(nextState);
+    model = refreshed.models.find((entry) => entry.id === refreshed.selectedModelId);
+  }
+
+  const runTarget = nextWorkflow.runTarget || "captured";
+  const boardIds = [...new Set(model ? boardIdsForRunTarget(model, nextState, runTarget) : nextState.touchedBoardIds || [])];
 
   if (!boardIds.length) {
-    throw new Error("Capture at least one asset before running a workflow");
+    throw new Error(runTarget === "captured" ? "Capture at least one asset before running a workflow" : "No tables found for the selected run target");
   }
 
   for (const boardId of boardIds) {
     await graphqlRequest(RUN_BOARD_MUTATION, { boardId });
   }
 
-  const nextState = await refreshModels({
-    ...state,
+  const workflowLabel = selectedWorkflowLabel(nextState, model);
+  const refreshedState = await refreshModels({
+    ...nextState,
     touchedBoardIds: [],
     sessionCounts: { image: 0, video: 0, audio: 0 },
-    lastMessage: `Started ${boardIds.length} workflow${boardIds.length === 1 ? "" : "s"}.`,
+    lastMessage: `Started ${boardIds.length} table run${boardIds.length === 1 ? "" : "s"} with ${workflowLabel}.`,
   });
 
   return {
-    state: nextState,
-    message: nextState.lastMessage,
+    state: refreshedState,
+    message: refreshedState.lastMessage,
   };
 }
 
@@ -818,6 +1036,14 @@ async function handleMessage(message) {
           ...state.safety,
           ...(payload.safety || {}),
         },
+        config: {
+          ...state.config,
+          ...(payload.config || {}),
+        },
+        workflow: {
+          ...state.workflow,
+          ...(payload.workflow || {}),
+        },
       }),
     };
   }
@@ -827,7 +1053,7 @@ async function handleMessage(message) {
   }
 
   if (type === "AUTOSCALE_RUN_WORKFLOW") {
-    return runWorkflow();
+    return runWorkflow(payload);
   }
 
   throw new Error(`Unknown AutoScale plugin message: ${type}`);

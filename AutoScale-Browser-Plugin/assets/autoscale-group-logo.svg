@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">AutoScale Group</title>
+  <desc id="desc">AutoScale AS monogram with upward arrow.</desc>
+  <defs>
+    <linearGradient id="green" x1="76" x2="444" y1="122" y2="386" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b8ff13" />
+      <stop offset="0.5" stop-color="#99ec0a" />
+      <stop offset="1" stop-color="#79d800" />
+    </linearGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" flood-color="#000000" flood-opacity="0.2" stdDeviation="7" />
+    </filter>
+  </defs>
+
+  <g filter="url(#soft-shadow)">
+    <path d="M72 342 L197 150 C219 116 266 120 284 157 L316 224 L272 266 L246 213 C239 198 222 197 213 211 L116 342 Z" fill="url(#green)" />
+    <path d="M204 342 H319 L359 292 H235 Z" fill="url(#green)" />
+    <path d="M250 342 L391 135 L377 176 L417 154 L286 342 Z" fill="url(#green)" />
+    <path d="M332 198 H454 L421 245 H348 C330 245 320 253 320 267 C320 281 331 289 352 289 H392 C433 289 457 310 457 345 C457 384 425 407 374 407 H285 L320 358 H378 C398 358 408 351 408 338 C408 326 398 320 379 320 H340 C297 320 271 298 271 262 C271 222 294 198 332 198 Z" fill="url(#green)" />
+  </g>
+</svg>

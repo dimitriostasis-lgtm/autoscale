@@ -1,6 +1,6 @@
 (() => {
   const ROBOT_ID = "autoscale-robot-capture-button";
-  const TOAST_ID = "autoscale-robot-capture-toast";
+  const STATUS_ID = "autoscale-robot-capture-status";
   const UI_HINTS =
     /\b(icon|logo|avatar|emoji|sprite|thumb|thumbnail|button|badge|spinner|loader|advert|ad-|tracking|pixel|placeholder)\b/i;
   const MEDIA_EXTENSIONS = /\.(avif|bmp|gif|jpe?g|m4a|m4v|mp3|mp4|ogg|oga|opus|png|wav|webm|webp)(\?|#|$)/i;
@@ -10,57 +10,127 @@
 
   let activeTarget = null;
   let activeAsset = null;
-  let hideTimer = 0;
+  let statusTimer = 0;
 
   const robotButton = document.createElement("button");
   robotButton.id = ROBOT_ID;
   robotButton.type = "button";
-  robotButton.textContent = "Robot";
+  robotButton.setAttribute("aria-label", "Send this asset to AutoScale");
+  robotButton.innerHTML = `
+    <span class="autoscale-robot-ring" aria-hidden="true"></span>
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M9 3.75h6M12 3.75v2.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"/>
+      <rect x="5.25" y="6.1" width="13.5" height="10.9" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M8.75 17v1.35c0 .88.72 1.6 1.6 1.6h3.3c.88 0 1.6-.72 1.6-1.6V17" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M8.95 11.4h.02M15.03 11.4h.02" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4"/>
+      <path d="M9.55 14c1.3.75 3.6.75 4.9 0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7"/>
+      <path d="M5.25 10.35H3.8M20.2 10.35h-1.45" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8"/>
+    </svg>
+  `;
   robotButton.style.cssText = [
     "position:fixed",
     "z-index:2147483647",
     "display:none",
-    "height:34px",
-    "min-width:76px",
-    "border:1px solid rgba(16,16,16,.22)",
-    "border-radius:999px",
-    "background:#bef264",
-    "color:#111",
-    "font:800 12px/1 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
-    "box-shadow:0 12px 34px rgba(0,0,0,.32)",
+    "align-items:center",
+    "justify-content:center",
+    "height:48px",
+    "width:48px",
+    "border:1px solid rgba(190,242,100,.44)",
+    "border-radius:18px",
+    "background:linear-gradient(145deg,rgba(25,26,22,.96),rgba(9,10,8,.92))",
+    "color:#d9ff80",
+    "backdrop-filter:blur(16px)",
+    "-webkit-backdrop-filter:blur(16px)",
+    "box-shadow:0 18px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.12), 0 0 0 6px rgba(190,242,100,.08)",
     "cursor:pointer",
-    "letter-spacing:.02em",
-    "padding:0 14px",
+    "padding:0",
+    "transition:transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease",
   ].join(";");
 
-  const toast = document.createElement("div");
-  toast.id = TOAST_ID;
-  toast.style.cssText = [
+  const statusBubble = document.createElement("div");
+  statusBubble.id = STATUS_ID;
+  statusBubble.style.cssText = [
     "position:fixed",
     "z-index:2147483647",
-    "right:16px",
-    "bottom:16px",
     "display:none",
-    "max-width:320px",
-    "border:1px solid rgba(255,255,255,.12)",
-    "border-radius:12px",
-    "background:rgba(24,24,24,.96)",
+    "max-width:min(320px,calc(100vw - 20px))",
+    "border:1px solid rgba(190,242,100,.22)",
+    "border-radius:14px",
+    "background:rgba(18,19,16,.96)",
     "color:#f4f4f0",
-    "font:700 12px/1.45 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
-    "box-shadow:0 18px 52px rgba(0,0,0,.35)",
-    "padding:11px 12px",
+    "backdrop-filter:blur(14px)",
+    "-webkit-backdrop-filter:blur(14px)",
+    "font:800 12px/1.35 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    "box-shadow:0 18px 44px rgba(0,0,0,.36)",
+    "padding:9px 11px",
+    "pointer-events:none",
   ].join(";");
 
-  document.documentElement.append(robotButton, toast);
+  const robotStyle = document.createElement("style");
+  robotStyle.textContent = `
+    #${ROBOT_ID} svg {
+      height: 25px;
+      position: relative;
+      width: 25px;
+      z-index: 1;
+    }
 
-  function showToast(message, tone = "neutral") {
-    window.clearTimeout(hideTimer);
-    toast.textContent = message;
-    toast.style.display = "block";
-    toast.style.borderColor = tone === "error" ? "rgba(252,165,165,.35)" : "rgba(190,242,100,.26)";
-    toast.style.color = tone === "error" ? "#fecaca" : "#f4f4f0";
-    hideTimer = window.setTimeout(() => {
-      toast.style.display = "none";
+    #${ROBOT_ID}:hover {
+      border-color: rgba(217, 255, 128, .78) !important;
+      box-shadow: 0 22px 54px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.16), 0 0 0 8px rgba(190,242,100,.12) !important;
+      transform: translateY(-2px) scale(1.03);
+    }
+
+    #${ROBOT_ID}[data-capture-state="sending"] {
+      color: #111 !important;
+      background: linear-gradient(180deg,#dfff8e,#aee93b) !important;
+      cursor: progress !important;
+    }
+
+    #${ROBOT_ID}[data-capture-state="sent"] {
+      color: #111 !important;
+      background: linear-gradient(180deg,#dcfce7,#86efac) !important;
+      border-color: rgba(134,239,172,.86) !important;
+    }
+
+    #${ROBOT_ID}[data-kind="video"] {
+      color: #bae6fd;
+      border-color: rgba(125,211,252,.42);
+      box-shadow: 0 18px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.12), 0 0 0 6px rgba(125,211,252,.08);
+    }
+
+    #${ROBOT_ID}[data-kind="audio"] {
+      color: #f0abfc;
+      border-color: rgba(240,171,252,.42);
+      box-shadow: 0 18px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.12), 0 0 0 6px rgba(240,171,252,.08);
+    }
+
+    #${ROBOT_ID} .autoscale-robot-ring {
+      animation: autoscaleRobotPulse 1.8s ease-in-out infinite;
+      border: 1px solid currentColor;
+      border-radius: 22px;
+      inset: 5px;
+      opacity: .18;
+      position: absolute;
+    }
+
+    @keyframes autoscaleRobotPulse {
+      0%, 100% { transform: scale(.94); opacity: .14; }
+      50% { transform: scale(1.08); opacity: .28; }
+    }
+  `;
+
+  document.documentElement.append(robotStyle, robotButton, statusBubble);
+
+  function showInlineStatus(message, tone = "neutral") {
+    window.clearTimeout(statusTimer);
+    statusBubble.textContent = message;
+    statusBubble.style.display = "block";
+    statusBubble.style.borderColor = tone === "error" ? "rgba(252,165,165,.42)" : "rgba(190,242,100,.34)";
+    statusBubble.style.color = tone === "error" ? "#fecaca" : "#f4f4f0";
+    positionRobot();
+    statusTimer = window.setTimeout(() => {
+      statusBubble.style.display = "none";
     }, 3600);
   }
 
@@ -99,7 +169,36 @@
     return fallback;
   }
 
-  function findLikelyResourceUrl(kind) {
+  function uniqueUrls(urls) {
+    return Array.from(new Set(urls.filter(Boolean)));
+  }
+
+  function decodeEscapedText(value) {
+    return String(value || "")
+      .replace(/&amp;/g, "&")
+      .replace(/\\u([0-9a-fA-F]{4})/g, (_match, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/\\x([0-9a-fA-F]{2})/g, (_match, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/\\\//g, "/");
+  }
+
+  function looksLikeStreamFragmentUrl(url) {
+    const lower = url.toLowerCase();
+    return /(\.m3u8|\.m4s|\.ts)(\?|#|$)|mpegurl|\/hls\/|\/dash\/|segment|fragment|init\.mp4|range=|bytestart=|byteend=/.test(lower);
+  }
+
+  function looksLikeVideoUrl(url) {
+    const lower = url.toLowerCase();
+    if (/\.(js|css|json|html?|svg|png|jpe?g|webp|avif|gif)(\?|#|$)/.test(lower) || looksLikeStreamFragmentUrl(url)) {
+      return false;
+    }
+
+    return (
+      VIDEO_EXTENSIONS.test(url) ||
+      /\/video\/|\/video\/tos\/|video_|video_mp4|mime_type=video|playaddr|downloadaddr|bytevid|videoplayback|cdninstagram/.test(lower)
+    );
+  }
+
+  function findLikelyResourceUrls(kind, limit = 10) {
     const entries = performance
       .getEntriesByType("resource")
       .filter((entry) => /^https?:/i.test(entry.name))
@@ -113,7 +212,9 @@
         if (kind === "video") {
           matches =
             VIDEO_EXTENSIONS.test(name) ||
-            /\/video\/|video_|mime_type=video|mp4|bytevid|videoplayback|tiktokcdn|cdninstagram/i.test(lower);
+            (/\/video\/|video_|mime_type=video|video_mp4|\.mp4|bytevid|videoplayback|cdninstagram/i.test(lower) &&
+              !looksLikeStreamFragmentUrl(name) &&
+              !/\.(js|css|json|html?|svg|png|jpe?g|webp|avif|gif)(\?|#|$)/i.test(lower));
         } else if (kind === "audio") {
           matches =
             AUDIO_EXTENSIONS.test(name) ||
@@ -127,7 +228,127 @@
       .filter((entry) => entry.matches)
       .sort((left, right) => right.score - left.score);
 
-    return entries[0]?.name || null;
+    return entries.slice(0, limit).map((entry) => entry.name);
+  }
+
+  function findLikelyResourceUrl(kind) {
+    return findLikelyResourceUrls(kind, 1)[0] || null;
+  }
+
+  function getMetaVideoUrls() {
+    const selectors = [
+      "meta[property='og:video']",
+      "meta[property='og:video:url']",
+      "meta[property='og:video:secure_url']",
+      "meta[name='twitter:player:stream']",
+    ];
+
+    return selectors
+      .map((selector) => normalizeUrl(document.querySelector(selector)?.getAttribute("content")))
+      .filter((url) => url && looksLikeVideoUrl(url));
+  }
+
+  function extractScriptMediaUrls(kind) {
+    const matches = [];
+    const scripts = Array.from(document.scripts).slice(-36);
+    const matcher = /https?:\/\/[^"'<>\s\\]+/g;
+
+    const addUrl = (value) => {
+      const decoded = decodeEscapedText(value);
+      const url = normalizeUrl(decoded);
+      if (!url) {
+        return;
+      }
+
+      if (kind === "video" && looksLikeVideoUrl(url)) {
+        matches.push(url);
+      }
+    };
+
+    const walk = (value, depth = 0, keyHint = "") => {
+      if (depth > 10 || value == null) {
+        return;
+      }
+
+      if (typeof value === "string") {
+        const decoded = decodeEscapedText(value);
+        if (/https?:\/\//.test(decoded) && (keyHint || /video|play|download|url/i.test(decoded))) {
+          for (const match of decoded.matchAll(matcher)) {
+            addUrl(match[0]);
+          }
+        }
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((entry) => walk(entry, depth + 1, keyHint));
+        return;
+      }
+
+      if (typeof value === "object") {
+        for (const [key, entry] of Object.entries(value)) {
+          const mediaKey = /playAddr|downloadAddr|playApi|urlList|bitrateInfo|video|download|play|mainUrl|backupUrl|url/i.test(key);
+          walk(entry, depth + 1, mediaKey ? key : keyHint);
+        }
+      }
+    };
+
+    for (const script of scripts) {
+      const text = script.textContent;
+      if (!text || (!/video|playAddr|downloadAddr|bitrateInfo|audio|stream/i.test(text))) {
+        continue;
+      }
+
+      const normalizedText = decodeEscapedText(text);
+
+      for (const match of normalizedText.matchAll(matcher)) {
+        addUrl(match[0]);
+      }
+
+      const trimmed = text.trim();
+      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        try {
+          walk(JSON.parse(trimmed));
+        } catch {
+          // Some platforms inline relaxed JS instead of strict JSON. The URL regex above still catches exposed media URLs.
+        }
+      }
+    }
+
+    return uniqueUrls(matches).slice(0, 12);
+  }
+
+  function buildVideoCandidateUrls(video) {
+    const directCandidates = [
+      normalizeUrl(video.currentSrc),
+      normalizeUrl(video.src),
+      normalizeUrl(video.querySelector("source[src]")?.getAttribute("src")),
+    ];
+
+    const candidates = uniqueUrls([
+      ...directCandidates,
+      ...getMetaVideoUrls(),
+      ...findLikelyResourceUrls("video", 10),
+      ...extractScriptMediaUrls("video"),
+    ]);
+
+    return candidates.sort((left, right) => {
+      const score = (url) => {
+        const lower = url.toLowerCase();
+        return (
+          (lower.includes(".mp4") ? 70 : 0) +
+          (lower.includes("mime_type=video_mp4") ? 70 : 0) +
+          (lower.includes("/video/tos/") ? 55 : 0) +
+          (lower.includes("playaddr") || lower.includes("downloadaddr") ? 35 : 0) +
+          (lower.includes("bytevid") || lower.includes("videoplayback") ? 20 : 0) +
+          (lower.includes("cdninstagram") ? 12 : 0) +
+          (looksLikeStreamFragmentUrl(url) ? -120 : 0) +
+          (/\.(js|css|json|html?|svg|png|jpe?g|webp|avif|gif)(\?|#|$)/.test(lower) ? -120 : 0)
+        );
+      };
+
+      return score(right) - score(left);
+    });
   }
 
   function getElementText(element) {
@@ -237,11 +458,8 @@
 
   function buildVideoAsset(video) {
     const rect = rectFor(video);
-    const sourceUrl =
-      normalizeUrl(video.currentSrc) ||
-      normalizeUrl(video.src) ||
-      normalizeUrl(video.querySelector("source[src]")?.getAttribute("src")) ||
-      findLikelyResourceUrl("video");
+    const candidateUrls = buildVideoCandidateUrls(video);
+    const sourceUrl = candidateUrls[0] || null;
 
     if (!sourceUrl || !isVisible(video, rect) || hasUiHints(video, sourceUrl)) {
       return null;
@@ -263,6 +481,7 @@
       height: video.videoHeight || Math.round(rect.height),
       duration: Number.isFinite(video.duration) ? video.duration : null,
       mimeHint: guessMime(sourceUrl, video.querySelector("source[type]")?.getAttribute("type") || "video/mp4"),
+      candidateUrls,
     };
   }
 
@@ -409,7 +628,7 @@
   }
 
   function findAssetFromTarget(target) {
-    if (!(target instanceof Element) || robotButton.contains(target) || toast.contains(target)) {
+    if (!(target instanceof Element) || robotButton.contains(target) || statusBubble.contains(target)) {
       return null;
     }
 
@@ -464,6 +683,9 @@
     activeTarget = null;
     activeAsset = null;
     robotButton.style.display = "none";
+    if (!statusBubble.textContent) {
+      statusBubble.style.display = "none";
+    }
   }
 
   function positionRobot() {
@@ -478,13 +700,19 @@
       return;
     }
 
-    const buttonWidth = robotButton.offsetWidth || 76;
-    const top = Math.max(8, Math.min(window.innerHeight - 42, rect.top + 10));
+    const buttonWidth = robotButton.offsetWidth || 48;
+    const top = Math.max(8, Math.min(window.innerHeight - 58, rect.top + 12));
     const left = Math.max(8, Math.min(window.innerWidth - buttonWidth - 8, rect.left + rect.width / 2 - buttonWidth / 2));
 
     robotButton.style.left = `${left}px`;
     robotButton.style.top = `${top}px`;
-    robotButton.style.display = "block";
+    robotButton.style.display = "flex";
+
+    if (statusBubble.style.display !== "none") {
+      const statusWidth = statusBubble.offsetWidth || 220;
+      statusBubble.style.left = `${Math.max(8, Math.min(window.innerWidth - statusWidth - 8, left + buttonWidth / 2 - statusWidth / 2))}px`;
+      statusBubble.style.top = `${Math.min(window.innerHeight - 48, top + 56)}px`;
+    }
   }
 
   function activateAsset(target, asset) {
@@ -492,6 +720,7 @@
     activeAsset = asset;
     robotButton.dataset.kind = asset.kind;
     robotButton.title = `Send ${asset.kind} to AutoScale`;
+    robotButton.dataset.captureState = "ready";
     positionRobot();
   }
 
@@ -537,25 +766,31 @@
       return;
     }
 
+    const assetToSend = activeAsset;
     robotButton.disabled = true;
-    robotButton.textContent = "Sending";
+    robotButton.dataset.captureState = "sending";
+    showInlineStatus(`Sending ${assetToSend.kind}...`);
 
     try {
       const response = await chrome.runtime.sendMessage({
         type: "AUTOSCALE_CAPTURE_ASSET",
-        payload: { asset: activeAsset },
+        payload: { asset: assetToSend },
       });
 
       if (!response?.ok) {
         throw new Error(response?.error || "Unable to send asset to AutoScale");
       }
 
-      showToast(response.message || "Asset sent to AutoScale.", "ok");
+      robotButton.dataset.captureState = "sent";
+      showInlineStatus(response.message || `${assetToSend.kind} sent to AutoScale.`, "ok");
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Unable to send asset to AutoScale", "error");
+      robotButton.dataset.captureState = "error";
+      showInlineStatus(error instanceof Error ? error.message : "Unable to send asset to AutoScale", "error");
     } finally {
-      robotButton.disabled = false;
-      robotButton.textContent = "Robot";
+      window.setTimeout(() => {
+        robotButton.disabled = false;
+        robotButton.dataset.captureState = "ready";
+      }, 450);
     }
   });
 })();
