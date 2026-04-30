@@ -371,6 +371,53 @@
     return findTikTokDetailsForElement(element)?.id || null;
   }
 
+  function isLikelyMediaPageUrl(value) {
+    try {
+      const url = new URL(value, window.location.href);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        return false;
+      }
+
+      const pathname = url.pathname.toLowerCase();
+      if (MEDIA_EXTENSIONS.test(url.href)) {
+        return false;
+      }
+
+      return /\/(video|reel|reels|p|pin|watch|tracks|track|post|status|shorts)\b/.test(pathname);
+    } catch {
+      return false;
+    }
+  }
+
+  function findSourcePageUrlForElement(element) {
+    const sources = [];
+    let current = element;
+
+    for (let depth = 0; current && depth < 12; depth += 1, current = current.parentElement) {
+      if (current instanceof HTMLAnchorElement) {
+        sources.push(current.href);
+      }
+
+      current.querySelectorAll?.("a[href]").forEach((anchor) => {
+        if (anchor instanceof HTMLAnchorElement) {
+          sources.push(anchor.href);
+        }
+      });
+    }
+
+    const exactLink = sources.map(normalizeUrl).find((url) => url && isLikelyMediaPageUrl(url));
+    if (exactLink) {
+      return exactLink;
+    }
+
+    const visibleVideos = Array.from(document.querySelectorAll("video")).filter((video) => {
+      const rect = rectFor(video);
+      return rect && rect.width >= 220 && rect.height >= 180 && visibleArea(rect) >= 70000;
+    });
+
+    return visibleVideos.length <= 1 && isLikelyMediaPageUrl(window.location.href) ? window.location.href : null;
+  }
+
   function mediaScriptTexts() {
     const mediaTerms = /playAddr|downloadAddr|bitrateInfo|PlayAddrStruct|UrlList|mime_type=video|video_mp4/i;
     return Array.from(document.scripts)
@@ -965,7 +1012,8 @@
     const candidateUrls = buildVideoCandidateUrls(video, tiktokInfo);
     const currentTikTokPage = isTikTokPage() ? parseTikTokDetailsFromSource(window.location.href) : null;
     const tiktokSourcePageUrl = tiktokInfo?.permalink || (currentTikTokPage?.id === tiktokInfo?.id ? window.location.href : null);
-    const sourceUrl = candidateUrls[0] || tiktokSourcePageUrl || null;
+    const sourcePageUrl = tiktokSourcePageUrl || findSourcePageUrlForElement(video);
+    const sourceUrl = candidateUrls[0] || sourcePageUrl || null;
 
     if (!sourceUrl || !isVisible(video, rect) || hasUiHints(video, sourceUrl)) {
       return null;
@@ -985,8 +1033,8 @@
       pageTitle: document.title,
       platform: tiktokInfo?.id ? "tiktok" : null,
       platformAssetId: tiktokInfo?.id || null,
-      sourcePageUrl: tiktokSourcePageUrl,
-      needsResolver: !candidateUrls.length && Boolean(tiktokInfo?.id),
+      sourcePageUrl,
+      needsResolver: !candidateUrls.length && Boolean(sourcePageUrl),
       width: video.videoWidth || Math.round(rect.width),
       height: video.videoHeight || Math.round(rect.height),
       duration: Number.isFinite(video.duration) ? video.duration : null,
@@ -1520,7 +1568,7 @@
     const assetToSend = activeAsset;
     robotButton.disabled = true;
     robotButton.dataset.captureState = "sending";
-    showInlineStatus(`Sending ${assetToSend.kind}...`);
+    showInlineStatus(`Sending ${assetToSend.kind} to AutoScale server...`);
 
     try {
       const response = await chrome.runtime.sendMessage({

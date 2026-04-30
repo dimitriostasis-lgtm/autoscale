@@ -17,6 +17,7 @@ import { csrfCookieMiddleware } from "./middleware/csrf.middleware.js";
 import { loadResolvers } from "./resolvers/index.js";
 import { loadTypeDefs } from "./schemas/index.js";
 import { resetStoreWithSeed } from "./lib/store.js";
+import { remoteAssetStatus, saveRemoteAsset } from "./services/remote-asset.service.js";
 import type { GraphQLContext } from "./types/context.js";
 
 async function bootstrap(): Promise<void> {
@@ -65,6 +66,23 @@ async function bootstrap(): Promise<void> {
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true, workerUrl: env.workerUrl, nodeEnv: env.nodeEnv });
+  });
+
+  app.post("/api/remote-assets", async (req, res) => {
+    const currentUser = await getCurrentUserFromRequest(req);
+    if (!currentUser) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    try {
+      const saved = await saveRemoteAsset(req.body?.asset ?? req.body);
+      res.json(saved);
+    } catch (error) {
+      res.status(remoteAssetStatus(error)).json({
+        error: error instanceof Error ? error.message : "Unable to download remote asset",
+      });
+    }
   });
 
   app.post("/api/uploads", upload.single("file"), async (req, res) => {

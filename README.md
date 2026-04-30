@@ -62,6 +62,9 @@ Key values:
 - `JWT_SECRET`
 - `STORAGE_ROOT`
 - `DATA_STORE_PATH`
+- `REMOTE_ASSET_RESOLVER_BIN` / `YTDLP_BIN` for server-side platform media resolving
+- `REMOTE_ASSET_MAX_BYTES`
+- `REMOTE_ASSET_TIMEOUT_MS`
 
 ### Client
 

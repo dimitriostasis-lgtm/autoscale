@@ -1011,46 +1011,18 @@ async function resolveTikTokVideoCandidates(asset) {
 }
 
 async function uploadAsset(asset, state) {
-  const rawCandidates = Array.from(new Set([asset.url, ...(Array.isArray(asset.candidateUrls) ? asset.candidateUrls : [])].filter(Boolean)));
-  const resolvedTikTokCandidates = await resolveTikTokVideoCandidates(asset);
-  const targetId = parseLongId(asset.platformAssetId);
-  const candidateUrls = Array.from(
-    new Set([...rawCandidates.filter((url) => !isTikTokWatchPageUrl(url, targetId)), ...resolvedTikTokCandidates]),
-  );
-  let blob = null;
-  let lastError = null;
-
-  for (const url of candidateUrls) {
-    try {
-      blob = await downloadAssetBlob(asset, url);
-      break;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  if (!blob) {
-    if (asset.kind === "video") {
-      throw new Error(
-        "AutoScale could not find a downloadable standalone MP4/WebM for this video. Refresh the page, let the video start, then try again.",
-      );
-    }
-
-    throw lastError instanceof Error ? lastError : new Error("Unable to download selected asset");
-  }
-
-  const formData = new FormData();
-  formData.append("file", blob, filenameFromAsset(asset, blob.type));
-
-  const uploadResponse = await fetch(`${normalizeServerUrl(state.serverUrl)}/api/uploads`, {
+  const uploadResponse = await fetch(`${normalizeServerUrl(state.serverUrl)}/api/remote-assets`, {
     method: "POST",
     credentials: "include",
-    body: formData,
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ asset }),
   });
 
   if (!uploadResponse.ok) {
-    const message = await uploadResponse.text();
-    throw new Error(message || `AutoScale upload failed with ${uploadResponse.status}`);
+    const payload = await uploadResponse.json().catch(async () => ({ error: await uploadResponse.text() }));
+    throw new Error(payload.error || `AutoScale remote capture failed with ${uploadResponse.status}`);
   }
 
   return uploadResponse.json();

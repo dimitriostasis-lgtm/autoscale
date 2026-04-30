@@ -6,7 +6,7 @@ Chrome Manifest V3 extension for capturing primary media from webpages into Auto
 
 - Detects high-quality page images, videos, and audio while ignoring small UI media such as icons, logos, avatars, buttons, and thumbnails.
 - Shows a `Robot` button over a valid asset while the pointer is over that asset.
-- Uploads the selected asset into AutoScale and places it in the next available row for the selected influencer profile.
+- Sends the selected visible asset/page reference to the AutoScale server, which downloads and stores the asset before placing it in the next available row for the selected influencer profile.
 - Routes assets by type:
   - Images -> Image table, using the popup SFW/NSFW toggle.
   - Videos -> Video table, using the popup SFW/NSFW toggle.
@@ -32,6 +32,6 @@ http://localhost:4000
 
 ## Notes
 
-- Some platforms expose media as short-lived or page-local `blob:` URLs. Those cannot be uploaded after leaving the page context, so the extension only captures assets with downloadable `http`, `https`, or `data` URLs.
-- TikTok and similar platforms can expose JavaScript bundles, playlists, byte ranges, or stream fragments in the same network list as the visible video. The extension inspects page hydration data for `playAddr` / `downloadAddr` candidates, validates downloaded videos before upload, and only marks capture as successful when the file is a standalone MP4/WebM/Ogg-style browser-playable container.
-- Captured files are uploaded to AutoScale via `/api/uploads`, so workflow runs use stable AutoScale file paths rather than hotlinked third-party URLs.
+- The extension sends visible media URLs and page permalinks to `/api/remote-assets`; the AutoScale server performs the download and saves a stable local upload path for workflow runs.
+- For AWS or production-like deployments, install `yt-dlp` on the server, or set `REMOTE_ASSET_RESOLVER_BIN` / `YTDLP_BIN` to its path. The server uses it as a fallback for platform page links when direct media URLs are not exposed.
+- TikTok and similar platforms can expose JavaScript bundles, playlists, byte ranges, or stream fragments in the same network list as the visible video. The extension now prioritizes the visible/centered post link and lets the server resolve/download the final playable asset.
