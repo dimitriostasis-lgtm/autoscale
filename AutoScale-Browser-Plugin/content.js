@@ -307,16 +307,34 @@
       return {
         id,
         permalink: videoMatch ? `https://www.tiktok.com/${videoMatch[1]}/video/${id}` : null,
+        authorHandle: videoMatch?.[1]?.replace(/^@/, "") || null,
       };
     } catch {
       const videoMatch = raw.match(/\/(@[^/]+)\/video\/(\d{16,22})/);
       const id = videoMatch?.[2] || raw.match(/\/video\/(\d{16,22})/)?.[1] || parseLongId(raw);
-      return id ? { id, permalink: videoMatch ? `https://www.tiktok.com/${videoMatch[1]}/video/${id}` : null } : null;
+      return id
+        ? {
+            id,
+            permalink: videoMatch ? `https://www.tiktok.com/${videoMatch[1]}/video/${id}` : null,
+            authorHandle: videoMatch?.[1]?.replace(/^@/, "") || null,
+          }
+        : null;
+    }
+  }
+
+  function parseTikTokHandleFromSource(value) {
+    const raw = String(value || "");
+    try {
+      const url = new URL(raw, window.location.href);
+      return url.pathname.match(/^\/@([^/?#]+)/)?.[1] || null;
+    } catch {
+      return raw.match(/\/@([^/?#]+)/)?.[1] || null;
     }
   }
 
   function findTikTokDetailsForElement(element) {
     const sources = [];
+    const handles = [];
     let current = element;
 
     for (let depth = 0; current && depth < 12; depth += 1, current = current.parentElement) {
@@ -328,6 +346,10 @@
 
       if (current instanceof HTMLAnchorElement) {
         sources.push(current.href);
+        const handle = parseTikTokHandleFromSource(current.href);
+        if (handle) {
+          handles.push(handle);
+        }
       }
 
       const link = current.querySelector?.("a[href*='/video/']");
@@ -338,6 +360,19 @@
       current.querySelectorAll?.("a[href*='/video/']").forEach((anchor) => {
         if (anchor instanceof HTMLAnchorElement) {
           sources.push(anchor.href);
+          const handle = parseTikTokHandleFromSource(anchor.href);
+          if (handle) {
+            handles.push(handle);
+          }
+        }
+      });
+
+      current.querySelectorAll?.("a[href^='/@'], a[href*='tiktok.com/@']").forEach((anchor) => {
+        if (anchor instanceof HTMLAnchorElement) {
+          const handle = parseTikTokHandleFromSource(anchor.href);
+          if (handle) {
+            handles.push(handle);
+          }
         }
       });
     }
@@ -355,6 +390,14 @@
     }
 
     if (fallback) {
+      const handle = fallback.authorHandle || handles.find(Boolean);
+      if (handle && !fallback.permalink) {
+        return {
+          ...fallback,
+          authorHandle: handle,
+          permalink: `https://www.tiktok.com/@${handle}/video/${fallback.id}`,
+        };
+      }
       return fallback;
     }
 
@@ -483,6 +526,7 @@
       existing.label = existing.label || entry.label;
       existing.cover = existing.cover || entry.cover;
       existing.permalink = existing.permalink || entry.permalink;
+      existing.authorHandle = existing.authorHandle || entry.authorHandle;
       byId.set(entry.id, existing);
     }
 
@@ -509,6 +553,7 @@
         label: typeof item?.desc === "string" ? item.desc : "",
         cover: normalizeUrl(videoData.cover) || normalizeUrl(videoData.originCover) || null,
         permalink: item?.author?.uniqueId ? `https://www.tiktok.com/@${item.author.uniqueId}/video/${id}` : null,
+        authorHandle: item?.author?.uniqueId || item?.authorInfo?.uniqueId || item?.author?.unique_id || "",
       });
     };
 
@@ -579,6 +624,7 @@
       label: entry?.label || "",
       cover: entry?.cover || null,
       permalink: details.permalink || entry?.permalink || null,
+      authorHandle: details.authorHandle || entry?.authorHandle || null,
     };
   }
 
@@ -590,6 +636,7 @@
         label: typeof entry?.label === "string" ? entry.label : "",
         cover: normalizeUrl(entry?.cover),
         permalink: normalizeUrl(entry?.permalink),
+        authorHandle: typeof entry?.authorHandle === "string" ? entry.authorHandle.replace(/^@/, "") : "",
       }))
       .filter((entry) => entry.id && entry.urls.length);
 
@@ -695,6 +742,7 @@
             label: typeof item?.desc === "string" ? item.desc : "",
             cover: normalizeUrl(videoData.cover) || normalizeUrl(videoData.originCover),
             permalink: item?.author?.uniqueId ? "https://www.tiktok.com/@" + item.author.uniqueId + "/video/" + id : null,
+            authorHandle: item?.author?.uniqueId || item?.authorInfo?.uniqueId || item?.author?.unique_id || "",
           });
         };
         const walk = (value, depth = 0) => {
@@ -1033,6 +1081,7 @@
       pageTitle: document.title,
       platform: tiktokInfo?.id ? "tiktok" : null,
       platformAssetId: tiktokInfo?.id || null,
+      platformAuthorHandle: tiktokInfo?.authorHandle || null,
       sourcePageUrl,
       needsResolver: !candidateUrls.length && Boolean(sourcePageUrl),
       width: video.videoWidth || Math.round(rect.width),

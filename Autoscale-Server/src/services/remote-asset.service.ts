@@ -25,6 +25,7 @@ export interface RemoteAssetInput {
   mimeHint?: string | null;
   platform?: string | null;
   platformAssetId?: string | null;
+  platformAuthorHandle?: string | null;
   needsResolver?: boolean | null;
 }
 
@@ -71,6 +72,26 @@ function decodeEscapedText(value: string): string {
 
 function parseLongId(value: unknown): string {
   return String(value || "").match(/\b(\d{16,22})\b/)?.[1] || "";
+}
+
+function normalizeTikTokHandle(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .replace(/^@/, "")
+    .match(/^[A-Za-z0-9._-]{2,32}$/)?.[0] || "";
+}
+
+function parseTikTokHandleFromUrl(value: unknown): string {
+  try {
+    const url = new URL(String(value || ""));
+    return normalizeTikTokHandle(url.pathname.match(/^\/@([^/?#]+)/)?.[1]);
+  } catch {
+    return normalizeTikTokHandle(String(value || "").match(/\/@([^/?#]+)/)?.[1]);
+  }
+}
+
+function buildTikTokWatchUrl(id: string, handle: string): string {
+  return `https://www.tiktok.com/@${handle}/video/${id}`;
 }
 
 function isPrivateIpAddress(ip: string): boolean {
@@ -162,6 +183,14 @@ function isTikTokWatchPageUrl(value: string, targetId = ""): boolean {
   }
 }
 
+function isTikTokUrl(value: string): boolean {
+  try {
+    return /(^|\.)tiktok\.com$/i.test(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+}
+
 function collectTikTokVideoUrls(value: unknown, urls: string[] = [], depth = 0, keyHint = ""): string[] {
   if (depth > 10 || value == null) {
     return urls;
@@ -202,6 +231,7 @@ function collectTikTokVideoUrls(value: unknown, urls: string[] = [], depth = 0, 
 interface TikTokEntry {
   id: string;
   urls: string[];
+  authorHandle?: string;
 }
 
 function mergeTikTokEntries(entries: TikTokEntry[]): TikTokEntry[] {
@@ -213,6 +243,7 @@ function mergeTikTokEntries(entries: TikTokEntry[]): TikTokEntry[] {
 
     const existing = byId.get(entry.id) || { id: entry.id, urls: [] };
     existing.urls = Array.from(new Set([...existing.urls, ...entry.urls]));
+    existing.authorHandle = existing.authorHandle || entry.authorHandle;
     byId.set(entry.id, existing);
   }
 
@@ -226,7 +257,13 @@ function extractTikTokEntriesFromJson(data: unknown): TikTokEntry[] {
     const id = parseLongId(item.id) || parseLongId(item.itemId) || parseLongId(item.awemeId) || parseLongId(videoData.id);
     const urls = Array.from(new Set(collectTikTokVideoUrls(videoData)));
     if (id && urls.length) {
-      entries.push({ id, urls });
+      const author = item.author && typeof item.author === "object" ? item.author as Record<string, unknown> : {};
+      const authorInfo = item.authorInfo && typeof item.authorInfo === "object" ? item.authorInfo as Record<string, unknown> : {};
+      entries.push({
+        id,
+        urls,
+        authorHandle: normalizeTikTokHandle(author.uniqueId) || normalizeTikTokHandle(authorInfo.uniqueId) || normalizeTikTokHandle(author.unique_id),
+      });
     }
   };
 
@@ -541,7 +578,12 @@ async function downloadWithExternalResolver(asset: RemoteAssetInput, pageUrl: st
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new RemoteAssetError(`Server resolver "${resolverBinary}" is not installed`, 501);
     }
-    throw error;
+    const resolverMessage = [String((error as { stderr?: unknown }).stderr || ""), error instanceof Error ? error.message : ""]
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 260);
+    throw new RemoteAssetError(resolverMessage ? `Server resolver could not download this asset: ${resolverMessage}` : "Server resolver could not download this asset", 422);
   }
 }
 
@@ -561,6 +603,7 @@ function normalizeAssetInput(input: RemoteAssetInput | null | undefined): Remote
     mimeHint: asString(input.mimeHint),
     platform: asString(input.platform),
     platformAssetId: asString(input.platformAssetId),
+    platformAuthorHandle: normalizeTikTokHandle(input.platformAuthorHandle),
     candidateUrls: Array.isArray(input.candidateUrls) ? uniqueStrings(input.candidateUrls) : [],
     needsResolver: Boolean(input.needsResolver),
   };
@@ -572,7 +615,13 @@ export async function saveRemoteAsset(input: RemoteAssetInput | null | undefined
   const targetId = parseLongId(asset.platformAssetId) || parseLongId(asset.sourcePageUrl) || parseLongId(asset.pageUrl) || parseLongId(asset.url);
   const rawCandidates = uniqueStrings([asset.url, ...(asset.candidateUrls || [])]);
   const directCandidates = rawCandidates.filter((url) => !isTikTokWatchPageUrl(url, targetId));
-  const pageCandidates = uniqueStrings([asset.sourcePageUrl, asset.pageUrl, asset.url]).filter((url) => {
+  const authorHandle =
+    normalizeTikTokHandle(asset.platformAuthorHandle) ||
+    parseTikTokHandleFromUrl(asset.sourcePageUrl) ||
+    parseTikTokHandleFromUrl(asset.url) ||
+    parseTikTokHandleFromUrl(asset.pageUrl);
+  const synthesizedTikTokPageUrl = kind === "video" && targetId && authorHandle ? buildTikTokWatchUrl(targetId, authorHandle) : "";
+  const pageCandidates = uniqueStrings([synthesizedTikTokPageUrl, asset.sourcePageUrl, asset.pageUrl, asset.url]).filter((url) => {
     try {
       const parsed = new URL(url);
       return parsed.protocol === "http:" || parsed.protocol === "https:";
@@ -596,7 +645,14 @@ export async function saveRemoteAsset(input: RemoteAssetInput | null | undefined
   }
 
   if (kind === "video" || kind === "audio" || asset.needsResolver) {
-    for (const pageUrl of pageCandidates) {
+    const resolverCandidates = pageCandidates.filter((url) => {
+      if (targetId && isTikTokUrl(url)) {
+        return isTikTokWatchPageUrl(url, targetId);
+      }
+      return true;
+    });
+
+    for (const pageUrl of resolverCandidates) {
       try {
         return await downloadWithExternalResolver(asset, pageUrl);
       } catch (error) {
@@ -607,6 +663,10 @@ export async function saveRemoteAsset(input: RemoteAssetInput | null | undefined
 
   if (lastError instanceof RemoteAssetError) {
     throw lastError;
+  }
+
+  if (kind === "video" && targetId && !authorHandle) {
+    throw new RemoteAssetError("Server found the TikTok video id but not the author handle needed to resolve it. Scroll back slightly, let the creator link render, then try again.");
   }
 
   throw new RemoteAssetError("Server could not resolve a downloadable asset from the selected page");
