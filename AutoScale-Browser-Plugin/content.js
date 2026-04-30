@@ -18,6 +18,10 @@
     return host.includes("autoscale") || ((loopbackHost || privateLanHost) && AUTOSCALE_LOCAL_CLIENT_PORTS.has(port));
   }
 
+  function isTikTokPage() {
+    return /(^|\.)tiktok\.com$/i.test(window.location.hostname);
+  }
+
   if (isAutoScalePage()) {
     return;
   }
@@ -28,7 +32,9 @@
   let lastPointer = null;
   let retargetFrame = 0;
   let retargetTimer = 0;
-  let tiktokVideoCache = { signature: "", entries: [] };
+  let mutationRetargetTimer = 0;
+  let tiktokVideoCache = { signature: "", scriptEntries: [] };
+  let tiktokRuntimeVideoEntries = [];
 
   const robotButton = document.createElement("button");
   robotButton.id = ROBOT_ID;
@@ -194,6 +200,10 @@
   function decodeEscapedText(value) {
     return String(value || "")
       .replace(/&amp;/g, "&")
+      .replace(/&quot;|&#34;/g, '"')
+      .replace(/&apos;|&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
       .replace(/\\u([0-9a-fA-F]{4})/g, (_match, hex) => String.fromCharCode(parseInt(hex, 16)))
       .replace(/\\x([0-9a-fA-F]{2})/g, (_match, hex) => String.fromCharCode(parseInt(hex, 16)))
       .replace(/\\\//g, "/");
@@ -280,7 +290,32 @@
     }
   }
 
-  function findTikTokItemIdForElement(element) {
+  function parseTikTokDetailsFromSource(value) {
+    const raw = String(value || "");
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const url = new URL(raw, window.location.href);
+      const videoMatch = url.pathname.match(/\/(@[^/]+)\/video\/(\d{16,22})/);
+      const id = videoMatch?.[2] || url.pathname.match(/\/video\/(\d{16,22})/)?.[1] || url.searchParams.get("item_id") || parseLongId(raw);
+      if (!id) {
+        return null;
+      }
+
+      return {
+        id,
+        permalink: videoMatch ? `https://www.tiktok.com/${videoMatch[1]}/video/${id}` : null,
+      };
+    } catch {
+      const videoMatch = raw.match(/\/(@[^/]+)\/video\/(\d{16,22})/);
+      const id = videoMatch?.[2] || raw.match(/\/video\/(\d{16,22})/)?.[1] || parseLongId(raw);
+      return id ? { id, permalink: videoMatch ? `https://www.tiktok.com/${videoMatch[1]}/video/${id}` : null } : null;
+    }
+  }
+
+  function findTikTokDetailsForElement(element) {
     const sources = [];
     let current = element;
 
@@ -299,13 +334,28 @@
       if (link instanceof HTMLAnchorElement) {
         sources.push(link.href);
       }
+
+      current.querySelectorAll?.("a[href*='/video/']").forEach((anchor) => {
+        if (anchor instanceof HTMLAnchorElement) {
+          sources.push(anchor.href);
+        }
+      });
     }
 
+    let fallback = null;
     for (const source of sources) {
-      const id = parseTikTokItemIdFromUrl(source);
-      if (id) {
-        return id;
+      const details = parseTikTokDetailsFromSource(source);
+      if (details?.id && details.permalink) {
+        return details;
       }
+
+      if (details?.id && !fallback) {
+        fallback = details;
+      }
+    }
+
+    if (fallback) {
+      return fallback;
     }
 
     const visibleVideos = Array.from(document.querySelectorAll("video")).filter((video) => {
@@ -313,7 +363,12 @@
       return rect && rect.width >= 220 && rect.height >= 180 && visibleArea(rect) >= 70000;
     });
 
-    return visibleVideos.length <= 1 ? parseTikTokItemIdFromUrl(window.location.href) : null;
+    const pageDetails = parseTikTokDetailsFromSource(window.location.href);
+    return visibleVideos.length <= 1 ? pageDetails : null;
+  }
+
+  function findTikTokItemIdForElement(element) {
+    return findTikTokDetailsForElement(element)?.id || null;
   }
 
   function mediaScriptTexts() {
@@ -380,6 +435,7 @@
       existing.urls = uniqueUrls([...existing.urls, ...entry.urls]);
       existing.label = existing.label || entry.label;
       existing.cover = existing.cover || entry.cover;
+      existing.permalink = existing.permalink || entry.permalink;
       byId.set(entry.id, existing);
     }
 
@@ -405,6 +461,7 @@
         urls,
         label: typeof item?.desc === "string" ? item.desc : "",
         cover: normalizeUrl(videoData.cover) || normalizeUrl(videoData.originCover) || null,
+        permalink: item?.author?.uniqueId ? `https://www.tiktok.com/@${item.author.uniqueId}/video/${id}` : null,
       });
     };
 
@@ -441,7 +498,7 @@
     const texts = mediaScriptTexts();
     const signature = texts.map((text) => text.length).join(":");
     if (signature && tiktokVideoCache.signature === signature) {
-      return tiktokVideoCache.entries;
+      return mergeTikTokVideoEntries([...tiktokVideoCache.scriptEntries, ...tiktokRuntimeVideoEntries]);
     }
 
     const entries = [];
@@ -458,17 +515,198 @@
       }
     }
 
-    tiktokVideoCache = { signature, entries: mergeTikTokVideoEntries(entries) };
-    return tiktokVideoCache.entries;
+    tiktokVideoCache = { signature, scriptEntries: mergeTikTokVideoEntries(entries) };
+    return mergeTikTokVideoEntries([...tiktokVideoCache.scriptEntries, ...tiktokRuntimeVideoEntries]);
   }
 
   function getTikTokVideoInfoForElement(video) {
-    const itemId = findTikTokItemIdForElement(video);
-    if (!itemId) {
+    const details = findTikTokDetailsForElement(video);
+    if (!details?.id) {
       return null;
     }
 
-    return getTikTokVideoEntries().find((entry) => entry.id === itemId) || { id: itemId, urls: [], label: "", cover: null };
+    const entry = getTikTokVideoEntries().find((candidate) => candidate.id === details.id);
+    return {
+      id: details.id,
+      urls: entry?.urls || [],
+      label: entry?.label || "",
+      cover: entry?.cover || null,
+      permalink: details.permalink || entry?.permalink || null,
+    };
+  }
+
+  function storeTikTokRuntimeEntries(entries) {
+    const normalizedEntries = (Array.isArray(entries) ? entries : [])
+      .map((entry) => ({
+        id: parseLongId(entry?.id),
+        urls: uniqueUrls((Array.isArray(entry?.urls) ? entry.urls : []).map(normalizeUrl)).filter((url) => looksLikeVideoUrl(url)),
+        label: typeof entry?.label === "string" ? entry.label : "",
+        cover: normalizeUrl(entry?.cover),
+        permalink: normalizeUrl(entry?.permalink),
+      }))
+      .filter((entry) => entry.id && entry.urls.length);
+
+    if (!normalizedEntries.length) {
+      return;
+    }
+
+    tiktokRuntimeVideoEntries = mergeTikTokVideoEntries([...tiktokRuntimeVideoEntries, ...normalizedEntries]);
+    scheduleRetargetBurst();
+  }
+
+  function installTikTokNetworkObserver() {
+    if (!isTikTokPage()) {
+      return;
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.source !== window || event.data?.source !== "autoscale-robot" || event.data?.type !== "TIKTOK_VIDEO_ENTRIES") {
+        return;
+      }
+
+      storeTikTokRuntimeEntries(event.data.entries);
+    });
+
+    if (document.documentElement.dataset.autoscaleTikTokObserver === "true") {
+      return;
+    }
+    document.documentElement.dataset.autoscaleTikTokObserver = "true";
+
+    const script = document.createElement("script");
+    script.textContent = `(() => {
+      if (window.__autoscaleTikTokObserverInstalled) return;
+      window.__autoscaleTikTokObserverInstalled = true;
+
+      const SOURCE = "autoscale-robot";
+      const MEDIA_RE = /playAddr|downloadAddr|bitrateInfo|PlayAddrStruct|UrlList|mime_type=video|video_mp4|itemList|aweme/i;
+
+      function normalizeUrl(value) {
+        if (!value || typeof value !== "string") return null;
+        try {
+          const url = new URL(value.replace(/&amp;/g, "&").replace(/\\\\\\//g, "/"), location.href);
+          return /^https?:$/.test(url.protocol) ? url.href : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function parseLongId(value) {
+        return String(value || "").match(/\\b(\\d{16,22})\\b/)?.[1] || null;
+      }
+
+      function looksLikeStreamFragmentUrl(url) {
+        return /(\\.m3u8|\\.m4s|\\.ts)(\\?|#|$)|mpegurl|\\/hls\\/|\\/dash\\/|segment|fragment|init\\.mp4|range=|bytestart=|byteend=/i.test(url);
+      }
+
+      function looksLikeVideoUrl(url) {
+        const lower = String(url || "").toLowerCase();
+        if (!/^https?:/.test(lower) || looksLikeStreamFragmentUrl(lower) || /\\.(js|css|json|html?|svg|png|jpe?g|webp|avif|gif)(\\?|#|$)/.test(lower)) {
+          return false;
+        }
+        return /\\.(m4v|mov|mp4|webm)(\\?|#|$)|\\/video\\/|\\/video\\/tos\\/|video_|video_mp4|mime_type=video|playaddr|downloadaddr|bytevid|videoplayback/.test(lower);
+      }
+
+      function unique(values) {
+        return Array.from(new Set(values.filter(Boolean)));
+      }
+
+      function collectUrls(value, urls = [], depth = 0, keyHint = "") {
+        if (depth > 10 || value == null) return urls;
+        if (typeof value === "string") {
+          const decoded = value.replace(/&amp;/g, "&").replace(/\\\\u([0-9a-fA-F]{4})/g, (_match, hex) => String.fromCharCode(parseInt(hex, 16))).replace(/\\\\\\//g, "/");
+          if ((keyHint || /video|play|download|url/i.test(decoded)) && /https?:\\/\\//.test(decoded)) {
+            for (const match of decoded.matchAll(/https?:\\/\\/[^"'<>{}\\s\\\\]+/g)) {
+              const url = normalizeUrl(match[0]);
+              if (url && looksLikeVideoUrl(url)) urls.push(url);
+            }
+          }
+          return urls;
+        }
+        if (Array.isArray(value)) {
+          value.forEach((entry) => collectUrls(entry, urls, depth + 1, keyHint));
+          return urls;
+        }
+        if (typeof value === "object") {
+          for (const [key, entry] of Object.entries(value)) {
+            const mediaKey = /playAddr|downloadAddr|playApi|urlList|UrlList|bitrateInfo|PlayAddr|download|mainUrl|backupUrl|url/i.test(key);
+            collectUrls(entry, urls, depth + 1, mediaKey ? key : keyHint);
+          }
+        }
+        return urls;
+      }
+
+      function extractEntries(data) {
+        const entries = [];
+        const addEntry = (item, videoData) => {
+          if (!videoData || typeof videoData !== "object") return;
+          const id = parseLongId(item?.id) || parseLongId(item?.itemId) || parseLongId(item?.awemeId) || parseLongId(videoData.id);
+          const urls = unique(collectUrls(videoData));
+          if (!id || !urls.length) return;
+          entries.push({
+            id,
+            urls,
+            label: typeof item?.desc === "string" ? item.desc : "",
+            cover: normalizeUrl(videoData.cover) || normalizeUrl(videoData.originCover),
+            permalink: item?.author?.uniqueId ? "https://www.tiktok.com/@" + item.author.uniqueId + "/video/" + id : null,
+          });
+        };
+        const walk = (value, depth = 0) => {
+          if (!value || depth > 12) return;
+          if (Array.isArray(value)) {
+            value.forEach((entry) => walk(entry, depth + 1));
+            return;
+          }
+          if (typeof value === "object") {
+            if (value.video && typeof value.video === "object") addEntry(value, value.video);
+            if (value.itemStruct?.video && typeof value.itemStruct.video === "object") addEntry(value.itemStruct, value.itemStruct.video);
+            for (const entry of Object.values(value)) walk(entry, depth + 1);
+          }
+        };
+        walk(data);
+        return entries;
+      }
+
+      function emitFromText(text) {
+        if (!text || text.length < 100 || !MEDIA_RE.test(text)) return;
+        try {
+          const entries = extractEntries(JSON.parse(text));
+          if (entries.length) window.postMessage({ source: SOURCE, type: "TIKTOK_VIDEO_ENTRIES", entries }, "*");
+        } catch {}
+      }
+
+      const originalFetch = window.fetch;
+      window.fetch = async function patchedAutoscaleFetch(...args) {
+        const response = await originalFetch.apply(this, args);
+        try {
+          const requestUrl = typeof args[0] === "string" ? args[0] : args[0]?.url || "";
+          if (/tiktok|aweme|item_list|recommend|feed/i.test(requestUrl)) {
+            response.clone().text().then(emitFromText).catch(() => {});
+          }
+        } catch {}
+        return response;
+      };
+
+      const originalOpen = XMLHttpRequest.prototype.open;
+      const originalSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function patchedAutoscaleOpen(method, url, ...rest) {
+        this.__autoscaleRobotUrl = String(url || "");
+        return originalOpen.call(this, method, url, ...rest);
+      };
+      XMLHttpRequest.prototype.send = function patchedAutoscaleSend(...args) {
+        try {
+          this.addEventListener("loadend", () => {
+            try {
+              if (/tiktok|aweme|item_list|recommend|feed/i.test(this.__autoscaleRobotUrl || "") && (!this.responseType || this.responseType === "text")) {
+                emitFromText(this.responseText || "");
+              }
+            } catch {}
+          }, { once: true });
+        } catch {}
+        return originalSend.apply(this, args);
+      };
+    })();`;
+    document.documentElement.append(script);
+    script.remove();
   }
 
   function extractScriptMediaUrls(kind) {
@@ -603,6 +841,35 @@
     return visibleWidth * visibleHeight;
   }
 
+  function viewportCenterDistanceScore(rect) {
+    if (!rect) {
+      return 0;
+    }
+
+    const viewportCenterX = window.innerWidth / 2;
+    const viewportCenterY = window.innerHeight / 2;
+    const elementCenterX = Math.max(rect.left, Math.min(viewportCenterX, rect.right));
+    const elementCenterY = Math.max(rect.top, Math.min(viewportCenterY, rect.bottom));
+    const distance = Math.hypot(elementCenterX - viewportCenterX, elementCenterY - viewportCenterY);
+    return Math.max(0, 300000 - distance * 900);
+  }
+
+  function centerCoverageScore(rect) {
+    if (!rect) {
+      return 0;
+    }
+
+    const samplePoints = [
+      { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      { x: window.innerWidth / 2, y: window.innerHeight * 0.38 },
+      { x: window.innerWidth / 2, y: window.innerHeight * 0.62 },
+      { x: window.innerWidth * 0.42, y: window.innerHeight / 2 },
+      { x: window.innerWidth * 0.58, y: window.innerHeight / 2 },
+    ];
+
+    return samplePoints.filter((point) => rectContainsPoint(rect, point)).length * 160000;
+  }
+
   function isVisible(element, rect = rectFor(element)) {
     if (!rect) {
       return false;
@@ -696,7 +963,9 @@
     const rect = rectFor(video);
     const tiktokInfo = getTikTokVideoInfoForElement(video);
     const candidateUrls = buildVideoCandidateUrls(video, tiktokInfo);
-    const sourceUrl = candidateUrls[0] || null;
+    const currentTikTokPage = isTikTokPage() ? parseTikTokDetailsFromSource(window.location.href) : null;
+    const tiktokSourcePageUrl = tiktokInfo?.permalink || (currentTikTokPage?.id === tiktokInfo?.id ? window.location.href : null);
+    const sourceUrl = candidateUrls[0] || tiktokSourcePageUrl || null;
 
     if (!sourceUrl || !isVisible(video, rect) || hasUiHints(video, sourceUrl)) {
       return null;
@@ -714,7 +983,10 @@
       label: tiktokInfo?.label || getElementText(video),
       pageUrl: window.location.href,
       pageTitle: document.title,
+      platform: tiktokInfo?.id ? "tiktok" : null,
       platformAssetId: tiktokInfo?.id || null,
+      sourcePageUrl: tiktokSourcePageUrl,
+      needsResolver: !candidateUrls.length && Boolean(tiktokInfo?.id),
       width: video.videoWidth || Math.round(rect.width),
       height: video.videoHeight || Math.round(rect.height),
       duration: Number.isFinite(video.duration) ? video.duration : null,
@@ -898,6 +1170,23 @@
       .sort((left, right) => right.score - left.score)[0]?.video || null;
   }
 
+  function findCurrentlyViewedVideoElement() {
+    return Array.from(document.querySelectorAll("video"))
+      .map((video) => {
+        const rect = rectFor(video);
+        if (!rect || !isVisible(video, rect) || rect.width < 220 || rect.height < 180 || visibleArea(rect) < 70000) {
+          return null;
+        }
+
+        return {
+          video,
+          score: visibleArea(rect) + viewportCenterDistanceScore(rect) + centerCoverageScore(rect),
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => right.score - left.score)[0]?.video || null;
+  }
+
   function findAssetFromTarget(target, point = null) {
     if (!(target instanceof Element) || robotButton.contains(target) || statusBubble.contains(target)) {
       return null;
@@ -961,7 +1250,11 @@
       const asset = buildVideoAsset(video);
       const rect = asset ? rectFor(video) : null;
       if (asset && rect) {
-        candidates.push({ target: video, asset, score: visibleArea(rect) + 200000 });
+        candidates.push({
+          target: video,
+          asset,
+          score: visibleArea(rect) + viewportCenterDistanceScore(rect) + centerCoverageScore(rect) + 300000,
+        });
       }
     }
 
@@ -969,11 +1262,41 @@
       const asset = buildImageAsset(img);
       const rect = asset ? rectFor(img) : null;
       if (asset && rect) {
-        candidates.push({ target: img, asset, score: visibleArea(rect) });
+        candidates.push({ target: img, asset, score: visibleArea(rect) + viewportCenterDistanceScore(rect) + centerCoverageScore(rect) });
       }
     }
 
     return candidates.sort((left, right) => right.score - left.score)[0] || null;
+  }
+
+  function findViewportSampleAsset() {
+    const samplePoints = [
+      { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      { x: window.innerWidth / 2, y: window.innerHeight * 0.42 },
+      { x: window.innerWidth / 2, y: window.innerHeight * 0.58 },
+      { x: window.innerWidth * 0.45, y: window.innerHeight / 2 },
+      { x: window.innerWidth * 0.55, y: window.innerHeight / 2 },
+    ];
+
+    for (const point of samplePoints) {
+      const found = findAssetFromPoint(point.x, point.y);
+      if (found?.asset.kind === "video") {
+        return found;
+      }
+    }
+
+    for (const point of samplePoints) {
+      const found = findAssetFromPoint(point.x, point.y);
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
+  function findCurrentlyViewedAsset() {
+    return findViewportSampleAsset() || findBestVisibleAsset();
   }
 
   function findAssetFromPoint(x, y) {
@@ -997,7 +1320,9 @@
 
   function retargetActiveAsset() {
     retargetFrame = 0;
-    const found = (lastPointer && findAssetFromPoint(lastPointer.x, lastPointer.y)) || findBestVisibleAsset();
+    const found = isTikTokPage()
+      ? findCurrentlyViewedAsset()
+      : (lastPointer && findAssetFromPoint(lastPointer.x, lastPointer.y)) || findCurrentlyViewedAsset();
 
     if (!found) {
       hideRobot();
@@ -1025,6 +1350,14 @@
     retargetFrame = window.requestAnimationFrame(retargetActiveAsset);
     window.clearTimeout(retargetTimer);
     retargetTimer = window.setTimeout(retargetActiveAsset, 260);
+  }
+
+  function scheduleRetargetBurst() {
+    scheduleRetarget();
+    window.clearTimeout(mutationRetargetTimer);
+    mutationRetargetTimer = window.setTimeout(scheduleRetarget, 120);
+    window.setTimeout(scheduleRetarget, 420);
+    window.setTimeout(scheduleRetarget, 900);
   }
 
   function hideRobot() {
@@ -1113,12 +1446,75 @@
   document.addEventListener("touchmove", scheduleRetarget, { passive: true });
   window.addEventListener("resize", scheduleRetarget, { passive: true });
 
+  const mediaMutationObserver = new MutationObserver((mutations) => {
+    const mediaChanged = mutations.some((mutation) => {
+      if (mutation.type === "attributes") {
+        return mutation.target instanceof HTMLVideoElement || mutation.target instanceof HTMLImageElement || mutation.target instanceof HTMLSourceElement;
+      }
+
+      return Array.from(mutation.addedNodes).some((node) => {
+        if (!(node instanceof Element)) {
+          return false;
+        }
+
+        return (
+          node instanceof HTMLVideoElement ||
+          node instanceof HTMLImageElement ||
+          Boolean(node.querySelector?.("video, img, source"))
+        );
+      });
+    });
+
+    if (mediaChanged) {
+      scheduleRetargetBurst();
+    }
+  });
+
+  mediaMutationObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["src", "poster", "style", "class"],
+    childList: true,
+    subtree: true,
+  });
+
+  installTikTokNetworkObserver();
+  scheduleRetargetBurst();
+
   robotButton.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
 
     if (!activeAsset) {
       return;
+    }
+
+    const confirmedVideo = isTikTokPage() && activeAsset.kind === "video" ? findCurrentlyViewedVideoElement() : null;
+    if (confirmedVideo) {
+      const confirmedVideoAsset = buildVideoAsset(confirmedVideo);
+      const confirmedVideoId = findTikTokItemIdForElement(confirmedVideo);
+      if (!confirmedVideoAsset) {
+        showInlineStatus("Still resolving the visible TikTok video. Let it play for a second, then press again.", "error");
+        return;
+      }
+
+      if (
+        confirmedVideo !== activeTarget ||
+        (confirmedVideoId && confirmedVideoId !== activeAsset.platformAssetId) ||
+        confirmedVideoAsset.url !== activeAsset.url
+      ) {
+        activateAsset(confirmedVideo, confirmedVideoAsset);
+      }
+    }
+
+    const confirmed = findCurrentlyViewedAsset();
+    if (confirmed?.asset.kind === "video" && activeAsset.kind === "video") {
+      if (
+        confirmed.target !== activeTarget ||
+        confirmed.asset.url !== activeAsset.url ||
+        confirmed.asset.platformAssetId !== activeAsset.platformAssetId
+      ) {
+        activateAsset(confirmed.target, confirmed.asset);
+      }
     }
 
     const assetToSend = activeAsset;
