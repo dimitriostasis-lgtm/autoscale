@@ -11,6 +11,10 @@
   let activeTarget = null;
   let activeAsset = null;
   let statusTimer = 0;
+  let lastPointer = null;
+  let retargetFrame = 0;
+  let retargetTimer = 0;
+  let tiktokVideoCache = { signature: "", entries: [] };
 
   const robotButton = document.createElement("button");
   robotButton.id = ROBOT_ID;
@@ -248,6 +252,56 @@
       .filter((url) => url && looksLikeVideoUrl(url));
   }
 
+  function parseLongId(value) {
+    return String(value || "").match(/\b(\d{16,22})\b/)?.[1] || null;
+  }
+
+  function parseTikTokItemIdFromUrl(value) {
+    const raw = String(value || "");
+    try {
+      const url = new URL(raw, window.location.href);
+      return url.pathname.match(/\/video\/(\d{16,22})/)?.[1] || url.searchParams.get("item_id") || parseLongId(raw);
+    } catch {
+      return raw.match(/\/video\/(\d{16,22})/)?.[1] || parseLongId(raw);
+    }
+  }
+
+  function findTikTokItemIdForElement(element) {
+    const sources = [];
+    let current = element;
+
+    for (let depth = 0; current && depth < 12; depth += 1, current = current.parentElement) {
+      sources.push(current.id, current.className && typeof current.className === "string" ? current.className : "");
+
+      for (const attribute of Array.from(current.attributes || [])) {
+        sources.push(attribute.value);
+      }
+
+      if (current instanceof HTMLAnchorElement) {
+        sources.push(current.href);
+      }
+
+      const link = current.querySelector?.("a[href*='/video/']");
+      if (link instanceof HTMLAnchorElement) {
+        sources.push(link.href);
+      }
+    }
+
+    for (const source of sources) {
+      const id = parseTikTokItemIdFromUrl(source);
+      if (id) {
+        return id;
+      }
+    }
+
+    const visibleVideos = Array.from(document.querySelectorAll("video")).filter((video) => {
+      const rect = rectFor(video);
+      return rect && rect.width >= 220 && rect.height >= 180 && visibleArea(rect) >= 70000;
+    });
+
+    return visibleVideos.length <= 1 ? parseTikTokItemIdFromUrl(window.location.href) : null;
+  }
+
   function mediaScriptTexts() {
     const mediaTerms = /playAddr|downloadAddr|bitrateInfo|PlayAddrStruct|UrlList|mime_type=video|video_mp4/i;
     return Array.from(document.scripts)
@@ -266,6 +320,141 @@
       })
       .map((script) => script.textContent || "")
       .filter(Boolean);
+  }
+
+  function collectVideoUrlsFromValue(value, urls = [], depth = 0, keyHint = "") {
+    if (depth > 10 || value == null) {
+      return urls;
+    }
+
+    if (typeof value === "string") {
+      const decoded = decodeEscapedText(value);
+      if ((keyHint || /video|play|download|url/i.test(decoded)) && /https?:\/\//.test(decoded)) {
+        for (const match of decoded.matchAll(/https?:\/\/[^"'<>\s\\]+/g)) {
+          const url = normalizeUrl(match[0]);
+          if (url && looksLikeVideoUrl(url)) {
+            urls.push(url);
+          }
+        }
+      }
+      return urls;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => collectVideoUrlsFromValue(entry, urls, depth + 1, keyHint));
+      return urls;
+    }
+
+    if (typeof value === "object") {
+      for (const [key, entry] of Object.entries(value)) {
+        const mediaKey = /playAddr|downloadAddr|playApi|urlList|UrlList|bitrateInfo|PlayAddr|download|mainUrl|backupUrl|url/i.test(key);
+        collectVideoUrlsFromValue(entry, urls, depth + 1, mediaKey ? key : keyHint);
+      }
+    }
+
+    return urls;
+  }
+
+  function mergeTikTokVideoEntries(entries) {
+    const byId = new Map();
+    for (const entry of entries) {
+      if (!entry.id || !entry.urls.length) {
+        continue;
+      }
+
+      const existing = byId.get(entry.id) || { ...entry, urls: [] };
+      existing.urls = uniqueUrls([...existing.urls, ...entry.urls]);
+      existing.label = existing.label || entry.label;
+      existing.cover = existing.cover || entry.cover;
+      byId.set(entry.id, existing);
+    }
+
+    return Array.from(byId.values());
+  }
+
+  function extractTikTokVideoEntriesFromJson(data) {
+    const entries = [];
+
+    const addEntry = (item, videoData) => {
+      if (!videoData || typeof videoData !== "object") {
+        return;
+      }
+
+      const id = parseLongId(item?.id) || parseLongId(item?.itemId) || parseLongId(item?.awemeId) || parseLongId(videoData.id);
+      const urls = uniqueUrls(collectVideoUrlsFromValue(videoData));
+      if (!id || !urls.length) {
+        return;
+      }
+
+      entries.push({
+        id,
+        urls,
+        label: typeof item?.desc === "string" ? item.desc : "",
+        cover: normalizeUrl(videoData.cover) || normalizeUrl(videoData.originCover) || null,
+      });
+    };
+
+    const walk = (value, depth = 0) => {
+      if (!value || depth > 12) {
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((entry) => walk(entry, depth + 1));
+        return;
+      }
+
+      if (typeof value === "object") {
+        if (value.video && typeof value.video === "object") {
+          addEntry(value, value.video);
+        }
+
+        if (value.itemStruct?.video && typeof value.itemStruct.video === "object") {
+          addEntry(value.itemStruct, value.itemStruct.video);
+        }
+
+        for (const entry of Object.values(value)) {
+          walk(entry, depth + 1);
+        }
+      }
+    };
+
+    walk(data);
+    return mergeTikTokVideoEntries(entries);
+  }
+
+  function getTikTokVideoEntries() {
+    const texts = mediaScriptTexts();
+    const signature = texts.map((text) => text.length).join(":");
+    if (signature && tiktokVideoCache.signature === signature) {
+      return tiktokVideoCache.entries;
+    }
+
+    const entries = [];
+    for (const text of texts) {
+      const trimmed = text.trim();
+      if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+        continue;
+      }
+
+      try {
+        entries.push(...extractTikTokVideoEntriesFromJson(JSON.parse(trimmed)));
+      } catch {
+        // Non-JSON script text is still handled by the generic URL extractor.
+      }
+    }
+
+    tiktokVideoCache = { signature, entries: mergeTikTokVideoEntries(entries) };
+    return tiktokVideoCache.entries;
+  }
+
+  function getTikTokVideoInfoForElement(video) {
+    const itemId = findTikTokItemIdForElement(video);
+    if (!itemId) {
+      return null;
+    }
+
+    return getTikTokVideoEntries().find((entry) => entry.id === itemId) || { id: itemId, urls: [], label: "", cover: null };
   }
 
   function extractScriptMediaUrls(kind) {
@@ -336,21 +525,8 @@
     return uniqueUrls(matches).slice(0, 12);
   }
 
-  function buildVideoCandidateUrls(video) {
-    const directCandidates = [
-      normalizeUrl(video.currentSrc),
-      normalizeUrl(video.src),
-      normalizeUrl(video.querySelector("source[src]")?.getAttribute("src")),
-    ];
-
-    const candidates = uniqueUrls([
-      ...directCandidates,
-      ...getMetaVideoUrls(),
-      ...findLikelyResourceUrls("video", 10),
-      ...extractScriptMediaUrls("video"),
-    ]);
-
-    return candidates.sort((left, right) => {
+  function sortVideoUrls(urls) {
+    return uniqueUrls(urls).sort((left, right) => {
       const score = (url) => {
         const lower = url.toLowerCase();
         return (
@@ -369,6 +545,24 @@
     });
   }
 
+  function buildVideoCandidateUrls(video, tiktokInfo = getTikTokVideoInfoForElement(video)) {
+    const directCandidates = [
+      normalizeUrl(video.currentSrc),
+      normalizeUrl(video.src),
+      normalizeUrl(video.querySelector("source[src]")?.getAttribute("src")),
+    ];
+    const scopedTikTokCandidates = tiktokInfo?.urls || [];
+
+    const fallbackCandidates = [
+      ...directCandidates,
+      ...getMetaVideoUrls(),
+      ...(scopedTikTokCandidates.length ? [] : extractScriptMediaUrls("video")),
+      ...findLikelyResourceUrls("video", 10),
+    ];
+
+    return uniqueUrls([...sortVideoUrls(scopedTikTokCandidates), ...sortVideoUrls(fallbackCandidates)]);
+  }
+
   function getElementText(element) {
     const aria = element.getAttribute("aria-label");
     const title = element.getAttribute("title");
@@ -383,6 +577,16 @@
       return null;
     }
     return rect;
+  }
+
+  function visibleArea(rect) {
+    if (!rect) {
+      return 0;
+    }
+
+    const visibleWidth = Math.max(0, Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0));
+    const visibleHeight = Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0));
+    return visibleWidth * visibleHeight;
   }
 
   function isVisible(element, rect = rectFor(element)) {
@@ -476,7 +680,8 @@
 
   function buildVideoAsset(video) {
     const rect = rectFor(video);
-    const candidateUrls = buildVideoCandidateUrls(video);
+    const tiktokInfo = getTikTokVideoInfoForElement(video);
+    const candidateUrls = buildVideoCandidateUrls(video, tiktokInfo);
     const sourceUrl = candidateUrls[0] || null;
 
     if (!sourceUrl || !isVisible(video, rect) || hasUiHints(video, sourceUrl)) {
@@ -491,10 +696,11 @@
     return {
       kind: "video",
       url: sourceUrl,
-      posterUrl: normalizeUrl(video.poster),
-      label: getElementText(video),
+      posterUrl: normalizeUrl(video.poster) || tiktokInfo?.cover || null,
+      label: tiktokInfo?.label || getElementText(video),
       pageUrl: window.location.href,
       pageTitle: document.title,
+      platformAssetId: tiktokInfo?.id || null,
       width: video.videoWidth || Math.round(rect.width),
       height: video.videoHeight || Math.round(rect.height),
       duration: Number.isFinite(video.duration) ? video.duration : null,
@@ -645,13 +851,50 @@
     return null;
   }
 
-  function findAssetFromTarget(target) {
+  function rectContainsPoint(rect, point) {
+    return (
+      rect &&
+      point &&
+      point.x >= rect.left &&
+      point.x <= rect.right &&
+      point.y >= rect.top &&
+      point.y <= rect.bottom
+    );
+  }
+
+  function pickNestedVideo(container, point = null) {
+    const videos = Array.from(container.querySelectorAll?.("video") || []);
+    if (!videos.length) {
+      return null;
+    }
+
+    return videos
+      .map((video) => {
+        const rect = rectFor(video);
+        if (!rect || !isVisible(video, rect)) {
+          return null;
+        }
+
+        return {
+          video,
+          score: visibleArea(rect) + (rectContainsPoint(rect, point) ? 500000 : 0),
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => right.score - left.score)[0]?.video || null;
+  }
+
+  function findAssetFromTarget(target, point = null) {
     if (!(target instanceof Element) || robotButton.contains(target) || statusBubble.contains(target)) {
       return null;
     }
 
     let element = target;
     for (let depth = 0; element && depth < 8; depth += 1, element = element.parentElement) {
+      if (element === document.body || element === document.documentElement) {
+        break;
+      }
+
       if (element instanceof HTMLImageElement) {
         const asset = buildImageAsset(element);
         if (asset) return { target: element, asset };
@@ -667,7 +910,7 @@
         if (asset) return { target: element, asset };
       }
 
-      const nestedVideo = element.querySelector?.("video");
+      const nestedVideo = pickNestedVideo(element, point);
       if (nestedVideo instanceof HTMLVideoElement) {
         const asset = buildVideoAsset(nestedVideo);
         if (asset) return { target: nestedVideo, asset };
@@ -695,6 +938,79 @@
     }
 
     return null;
+  }
+
+  function findBestVisibleAsset() {
+    const candidates = [];
+
+    for (const video of Array.from(document.querySelectorAll("video"))) {
+      const asset = buildVideoAsset(video);
+      const rect = asset ? rectFor(video) : null;
+      if (asset && rect) {
+        candidates.push({ target: video, asset, score: visibleArea(rect) + 200000 });
+      }
+    }
+
+    for (const img of Array.from(document.images)) {
+      const asset = buildImageAsset(img);
+      const rect = asset ? rectFor(img) : null;
+      if (asset && rect) {
+        candidates.push({ target: img, asset, score: visibleArea(rect) });
+      }
+    }
+
+    return candidates.sort((left, right) => right.score - left.score)[0] || null;
+  }
+
+  function findAssetFromPoint(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      return null;
+    }
+
+    for (const element of document.elementsFromPoint(x, y)) {
+      if (robotButton.contains(element) || statusBubble.contains(element)) {
+        continue;
+      }
+
+      const found = findAssetFromTarget(element, { x, y });
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
+  function retargetActiveAsset() {
+    retargetFrame = 0;
+    const found = (lastPointer && findAssetFromPoint(lastPointer.x, lastPointer.y)) || findBestVisibleAsset();
+
+    if (!found) {
+      hideRobot();
+      return;
+    }
+
+    if (
+      found.target !== activeTarget ||
+      found.asset.url !== activeAsset?.url ||
+      found.asset.platformAssetId !== activeAsset?.platformAssetId
+    ) {
+      activateAsset(found.target, found.asset);
+    } else {
+      positionRobot();
+    }
+  }
+
+  function scheduleRetarget() {
+    if (retargetFrame) {
+      window.clearTimeout(retargetTimer);
+      retargetTimer = window.setTimeout(retargetActiveAsset, 260);
+      return;
+    }
+
+    retargetFrame = window.requestAnimationFrame(retargetActiveAsset);
+    window.clearTimeout(retargetTimer);
+    retargetTimer = window.setTimeout(retargetActiveAsset, 260);
   }
 
   function hideRobot() {
@@ -745,11 +1061,12 @@
   document.addEventListener(
     "pointermove",
     (event) => {
+      lastPointer = { x: event.clientX, y: event.clientY };
       if (robotButton.contains(event.target)) {
         return;
       }
 
-      const found = findAssetFromTarget(event.target);
+      const found = findAssetFromPoint(event.clientX, event.clientY);
       if (!found) {
         const activeRect = activeTarget?.getBoundingClientRect();
         if (
@@ -764,7 +1081,11 @@
         return;
       }
 
-      if (found.target !== activeTarget || found.asset.url !== activeAsset?.url) {
+      if (
+        found.target !== activeTarget ||
+        found.asset.url !== activeAsset?.url ||
+        found.asset.platformAssetId !== activeAsset?.platformAssetId
+      ) {
         activateAsset(found.target, found.asset);
       } else {
         positionRobot();
@@ -773,8 +1094,10 @@
     { passive: true },
   );
 
-  window.addEventListener("scroll", positionRobot, { passive: true });
-  window.addEventListener("resize", positionRobot, { passive: true });
+  document.addEventListener("scroll", scheduleRetarget, { passive: true, capture: true });
+  document.addEventListener("wheel", scheduleRetarget, { passive: true });
+  document.addEventListener("touchmove", scheduleRetarget, { passive: true });
+  window.addEventListener("resize", scheduleRetarget, { passive: true });
 
   robotButton.addEventListener("click", async (event) => {
     event.preventDefault();

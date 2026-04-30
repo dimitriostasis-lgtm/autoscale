@@ -433,7 +433,54 @@ function getMaxQuantity(generationModel) {
 function selectGenerationModel(mode, allowedGenerationModels = [], currentGenerationModel = "") {
   const options = MODE_MODEL_OPTIONS[mode] || IMAGE_MODELS;
   const allowed = allowedGenerationModels.length ? allowedGenerationModels : options;
+  if (currentGenerationModel && options.includes(currentGenerationModel) && allowed.includes(currentGenerationModel)) {
+    return currentGenerationModel;
+  }
+
   return options.find((option) => allowed.includes(option)) || (allowed.includes(currentGenerationModel) ? currentGenerationModel : options[0]);
+}
+
+function preferredGenerationModelForMode(mode, config = DEFAULT_STATE.config) {
+  if (mode.startsWith("image-")) {
+    return config.imageModel;
+  }
+
+  if (mode.startsWith("video-")) {
+    return config.videoModel;
+  }
+
+  if (mode.startsWith("voice-")) {
+    return config.audioModel;
+  }
+
+  return "";
+}
+
+function targetSettingsKeyForMode(mode, model, state) {
+  const generationModel = selectGenerationModel(
+    mode,
+    model.allowedGenerationModels || [],
+    preferredGenerationModelForMode(mode, state.config),
+  );
+  const requestedImageLayout = ["DEFAULT", "POSE_MULTIPLIER", "FACE_SWAP"].includes(state.config?.imageLayout)
+    ? state.config.imageLayout
+    : "DEFAULT";
+  const sdxlWorkspaceMode = mode.startsWith("image-") && isImageModel(generationModel) ? requestedImageLayout : "DEFAULT";
+
+  return { generationModel, sdxlWorkspaceMode };
+}
+
+function boardMatchesTargetSettings(board, mode, model, state) {
+  const target = targetSettingsKeyForMode(mode, model, state);
+  if (board.settings?.generationModel !== target.generationModel) {
+    return false;
+  }
+
+  if (mode.startsWith("image-") && (board.settings?.sdxlWorkspaceMode || "DEFAULT") !== target.sdxlWorkspaceMode) {
+    return false;
+  }
+
+  return true;
 }
 
 function referenceInput(reference) {
@@ -477,13 +524,7 @@ function settingsInput(settings) {
 }
 
 function normalizeSettingsForMode(settings, mode, allowedGenerationModels, config = DEFAULT_STATE.config) {
-  const preferredGenerationModel = mode.startsWith("image-")
-    ? config.imageModel
-    : mode.startsWith("video-")
-      ? config.videoModel
-      : mode.startsWith("voice-")
-        ? config.audioModel
-        : settings.generationModel;
+  const preferredGenerationModel = preferredGenerationModelForMode(mode, config) || settings.generationModel;
   const generationModel = selectGenerationModel(mode, allowedGenerationModels, preferredGenerationModel || settings.generationModel);
   const requestedImageLayout = ["DEFAULT", "POSE_MULTIPLIER", "FACE_SWAP"].includes(config.imageLayout)
     ? config.imageLayout
@@ -492,6 +533,7 @@ function normalizeSettingsForMode(settings, mode, allowedGenerationModels, confi
   const isPoseLayout = isPoseWorkspace(generationModel, sdxlWorkspaceMode);
   const isFaceSwapLayout = sdxlWorkspaceMode === "FACE_SWAP";
   const isSdxlDefault = generationModel === "sdxl" && !isPoseLayout && !isFaceSwapLayout;
+  const promptUnsupported = generationModel === "kling_motion_control";
   const poseMultiplierGenerationModel = POSE_MODELS.includes(settings.poseMultiplierGenerationModel)
     ? settings.poseMultiplierGenerationModel
     : POSE_MODELS.includes(generationModel)
@@ -524,8 +566,8 @@ function normalizeSettingsForMode(settings, mode, allowedGenerationModels, confi
     upscaleDenoise: Math.max(0, Math.min(0.4, settings.upscaleDenoise || 0)),
     faceSwap: isFaceSwapLayout ? true : Boolean(settings.faceSwap),
     faceSwapModelStrength: Math.max(0.3, Math.min(0.6, settings.faceSwapModelStrength || 0.5)),
-    autoPromptGen: isFaceSwapLayout ? false : mode.startsWith("voice-") ? false : Boolean(settings.autoPromptGen),
-    autoPromptImage: isPoseLayout || isFaceSwapLayout || mode.startsWith("voice-") ? false : Boolean(settings.autoPromptImage),
+    autoPromptGen: promptUnsupported || isFaceSwapLayout ? false : mode.startsWith("voice-") ? false : Boolean(settings.autoPromptGen),
+    autoPromptImage: promptUnsupported || isPoseLayout || isFaceSwapLayout || mode.startsWith("voice-") ? false : Boolean(settings.autoPromptImage),
     posePromptMode: settings.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
     posePromptTemplate: settings.posePromptTemplate || "Keep the same framing and styling while varying the body pose for each multiplied shot.",
     posePromptTemplates: settings.posePromptTemplates?.length
@@ -580,8 +622,9 @@ async function prepareTargetBoard(kind, mode, state) {
   }
 
   const modeBoards = boardsForMode(model, mode);
+  const targetBoards = modeBoards.filter((board) => boardMatchesTargetSettings(board, mode, model, state));
 
-  for (const boardSummary of modeBoards) {
+  for (const boardSummary of targetBoards) {
     let board = await ensureBoardSettings(await getBoard(boardSummary.id), mode, model, state);
     const rows = [...board.rows].sort((left, right) => left.orderIndex - right.orderIndex);
     const emptyRow = rows.find((row) => !rowHasReference(row, kind));
@@ -600,7 +643,7 @@ async function prepareTargetBoard(kind, mode, state) {
     }
   }
 
-  const sourceBoardId = modeBoards[modeBoards.length - 1]?.id;
+  const sourceBoardId = targetBoards[targetBoards.length - 1]?.id || modeBoards[modeBoards.length - 1]?.id;
   const data = await graphqlRequest(CREATE_BOARD_MUTATION, {
     influencerModelId: model.id,
     name: buildBoardNameForMode(mode, modeBoards.length + 1),
