@@ -3193,11 +3193,20 @@ export function AccessControlPanel({
               <button
                 aria-expanded={managerPermissionsExpanded}
                 aria-label={managerPermissionsExpanded ? "Collapse manager permissions" : "Expand manager permissions"}
-                className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105 sm:right-5 sm:top-5"
+                className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105 sm:right-5 sm:top-5"
                 onClick={() => setManagerPermissionsExpanded((current) => !current)}
                 type="button"
               >
-                {managerPermissionsExpanded ? "-" : "+"}
+                <svg aria-hidden="true" className={cx("size-4 transition-transform", managerPermissionsExpanded ? "rotate-180" : "")} viewBox="0 0 20 20">
+                  <path
+                    d="M5.25 7.75 10 12.5l4.75-4.75"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                  />
+                </svg>
               </button>
 
               <div className="flex w-full flex-wrap items-start justify-between gap-4">
@@ -3262,11 +3271,20 @@ export function AccessControlPanel({
             <button
               aria-expanded={influencerAccessExpanded}
               aria-label={influencerAccessExpanded ? "Collapse influencer access" : "Expand influencer access"}
-              className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-lg font-bold leading-none text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105 sm:right-5 sm:top-5"
+              className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-xl border border-[color:var(--accent-main)] bg-[color:var(--accent-soft)] text-[color:var(--accent-text)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent-main)_18%,transparent)] transition hover:brightness-105 sm:right-5 sm:top-5"
               onClick={() => setInfluencerAccessExpanded((current) => !current)}
               type="button"
             >
-              {influencerAccessExpanded ? "-" : "+"}
+              <svg aria-hidden="true" className={cx("size-4 transition-transform", influencerAccessExpanded ? "rotate-180" : "")} viewBox="0 0 20 20">
+                <path
+                  d="M5.25 7.75 10 12.5l4.75-4.75"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
             </button>
 
             <div className="flex w-full flex-wrap items-start justify-between gap-4">
