@@ -325,6 +325,12 @@ export async function requestInfluencerDraft(
       throw new Error("Agency not found");
     }
 
+    const billingSettings = normalizeAgencyBillingSettings(agency.billingSettings);
+    const assignedInfluencerCount = current.influencerModels.filter((model) => model.isActive && model.agencyIds.includes(agency.id)).length;
+    if (assignedInfluencerCount >= billingSettings.aiInfluencerAllowance) {
+      throw new Error("Starter Plan AI Influencer allowance is fully used.");
+    }
+
     current.platformNotifications.unshift({
       id: randomUUID(),
       type: "INFLUENCER_DRAFT_REQUEST",

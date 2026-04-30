@@ -42,6 +42,7 @@ function accessTabLabel(role: UserRecord["role"]): string | null {
 type AccessJumpOption = {
   id: string;
   label: string;
+  route?: Route;
 };
 
 function accessJumpOptions(currentUser: UserRecord): AccessJumpOption[] {
@@ -62,6 +63,7 @@ function accessJumpOptions(currentUser: UserRecord): AccessJumpOption[] {
       { id: "access-agency-credit-control", label: "Agency Credit Control" },
       ...options,
       { id: "access-create-accounts", label: "Create agency accounts" },
+      { id: "access-draft-influencer", label: "Draft AI Influencer" },
     ];
   }
 
@@ -112,7 +114,14 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
     }, 180);
   }
 
-  function handleAccessJumpChange(sectionValue: string): void {
+  function handleAccessJumpChange(optionOrSectionValue: AccessJumpOption | string): void {
+    if (typeof optionOrSectionValue !== "string" && optionOrSectionValue.route) {
+      setIsAccessMenuOpen(false);
+      onNavigate(optionOrSectionValue.route);
+      return;
+    }
+
+    const sectionValue = typeof optionOrSectionValue === "string" ? optionOrSectionValue : optionOrSectionValue.id;
     const sectionId = sectionValue === "__top" ? null : sectionValue;
     setIsAccessMenuOpen(false);
     onNavigate({ name: "admin", sectionId });
@@ -276,7 +285,7 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
                                 ? "bg-[color:var(--accent-main)] text-[color:var(--accent-foreground)]"
                                 : "text-[color:var(--text-main)] hover:bg-[color:var(--surface-soft-hover)]",
                             )}
-                            onClick={() => handleAccessJumpChange(option.id)}
+                            onClick={() => handleAccessJumpChange(option)}
                             type="button"
                           >
                             {option.label}

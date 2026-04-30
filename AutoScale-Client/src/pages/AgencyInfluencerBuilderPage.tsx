@@ -9,11 +9,9 @@ import { uploadReferenceFile } from "../lib/uploads";
 import { INFLUENCER_MODELS_QUERY } from "../queries/model";
 import { AGENCIES_QUERY, REQUEST_INFLUENCER_DRAFT_MUTATION } from "../queries/user";
 import {
-  getAspectRatioOptionsForGenerationModel,
   getMaxQuantityForGenerationModel,
   getResolutionOptionsForGenerationModel,
   imageGenerationModelOptions,
-  normalizeAspectRatioForGenerationModel,
   normalizePoseMultiplierResolution,
   normalizeQualityForGenerationModel,
   normalizePoseMultiplierGenerationModel,
@@ -51,7 +49,7 @@ function buildInitialSettings(): BoardSettings {
     poseMultiplierResolution: normalizePoseMultiplierResolution("2k", poseMultiplierGenerationModel),
     videoDurationSeconds: null,
     quality: normalizeQualityForGenerationModel(generationModel, "medium"),
-    aspectRatio: "auto",
+    aspectRatio: "1:1",
     quantity: Math.min(4, getMaxQuantityForGenerationModel(generationModel)),
     sdxlWorkspaceMode: "DEFAULT",
     poseMultiplierEnabled: false,
@@ -208,9 +206,9 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
     () => (data?.influencerModels || []).filter((model) => model.assignedAgencyIds.includes(currentUser.agencyId || "")),
     [currentUser.agencyId, data?.influencerModels],
   );
-  const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(settings.generationModel);
+  const openInfluencerSlots = Math.max(0, influencerCapacity - ownedInfluencers.length);
+  const hasInfluencerCapacity = openInfluencerSlots > 0;
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(settings.generationModel);
-  const displayedAspectRatioOptions = allowedAspectRatioOptions;
   const maxQuantity = getMaxQuantityForGenerationModel(settings.generationModel);
   const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
   const activeGlobalReferences = useMemo(() => filledDraftReferences(settings), [settings]);
@@ -243,7 +241,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
     [draftPortraitSlots],
   );
   const hasRequiredPortraits = draftPortraitUrls.length >= draftPortraitCount;
-  const canSubmitDraft = Boolean(name.trim() && handle.trim() && hasRequiredPortraits && !submittingDraft);
+  const canSubmitDraft = Boolean(hasInfluencerCapacity && name.trim() && handle.trim() && hasRequiredPortraits && !submittingDraft);
   const generateDisabled = improvingPrompt || generatingDrafts;
   const controlClass =
     "h-10 rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-strong)] outline-none transition hover:bg-[color:var(--surface-soft-hover)] focus:border-[color:var(--focus-ring)]";
@@ -274,7 +272,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
       resolution: normalizeResolutionForGenerationModel(nextGenerationModel, current.resolution),
       videoDurationSeconds: null,
       quality: normalizeQualityForGenerationModel(nextGenerationModel, current.quality),
-      aspectRatio: normalizeAspectRatioForGenerationModel(nextGenerationModel, current.aspectRatio),
+      aspectRatio: "1:1",
       quantity: nextQuantity,
       sdxlWorkspaceMode: imageGenerationModelOptions.includes(nextGenerationModel as (typeof imageGenerationModelOptions)[number]) ? current.sdxlWorkspaceMode : "DEFAULT",
       poseMultiplierEnabled: nextQuantity === 1 ? current.poseMultiplierEnabled : false,
@@ -496,7 +494,9 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
 
   async function handleSubmitDraft(): Promise<void> {
     if (!canSubmitDraft) {
-      if (!name.trim() || !handle.trim()) {
+      if (!hasInfluencerCapacity) {
+        setNotice({ tone: "error", text: "Your Starter Plan AI Influencer allowance is fully used." });
+      } else if (!name.trim() || !handle.trim()) {
         setNotice({ tone: "error", text: "Add the draft influencer name and handle before sending it." });
       } else if (!hasRequiredPortraits) {
         setNotice({ tone: "error", text: "Add 5 portrait examples before sending the draft." });
@@ -567,7 +567,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
               <button className={theme.buttonSecondary + " rounded-xl px-3 py-2 text-xs"} onClick={onCancel} type="button">
                 Cancel
               </button>
-              <button className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"} disabled={submittingDraft || closingAfterSubmit} onClick={() => void handleSubmitDraft()} type="button">
+              <button className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"} disabled={!hasInfluencerCapacity || submittingDraft || closingAfterSubmit} onClick={() => void handleSubmitDraft()} type="button">
                 {closingAfterSubmit ? "Draft Sent" : submittingDraft ? "Sending..." : "Send Draft"}
               </button>
             </div>
@@ -899,18 +899,15 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
                     ))}
                   </select>
 
-                  <select
-                    aria-label="Aspect ratio"
-                    className={controlClass + " w-24"}
-                    onChange={(event) => setSettings((current) => ({ ...current, aspectRatio: event.target.value }))}
-                    value={normalizeAspectRatioForGenerationModel(settings.generationModel, settings.aspectRatio)}
-                  >
-                    {displayedAspectRatioOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex h-10 items-center gap-2 rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 text-xs font-semibold text-[color:var(--text-strong)] opacity-75">
+                    <span className="uppercase">1:1</span>
+                    <svg aria-hidden="true" className="size-3.5 text-[color:var(--text-muted)]" viewBox="0 0 20 20">
+                      <path
+                        d="M5.75 8.5V6.75a4.25 4.25 0 0 1 8.5 0V8.5h.25A1.5 1.5 0 0 1 16 10v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 15.5V10a1.5 1.5 0 0 1 1.5-1.5h.25Zm1.5 0h5.5V6.75a2.75 2.75 0 0 0-5.5 0V8.5Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </div>
 
                   <div className="flex h-10 items-center gap-1 rounded-xl border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-2">
                     <button

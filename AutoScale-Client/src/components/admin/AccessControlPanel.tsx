@@ -2924,31 +2924,6 @@ export function AccessControlPanel({
             </div>
           </div>
 
-          {isAgencyAdmin ? (
-            <div className="border-t border-white/8 bg-[color:var(--surface-card)] px-6 py-5 sm:px-7">
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 sm:p-5">
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencer allowance</p>
-                  <p className="mt-2 text-xl font-semibold text-white">
-                    {agencyAvailableModels.length} / {agencyInfluencerCapacity} influencers used
-                  </p>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-white/56">
-                    {agencyOpenInfluencerSlots > 0
-                      ? `${agencyOpenInfluencerSlots} influencer slot${agencyOpenInfluencerSlots === 1 ? "" : "s"} still available on ${agencyBillingPlan.currentPlan}.`
-                      : `${agencyBillingPlan.currentPlan} allowance is fully used. Upgrade the plan to add another influencer.`}
-                  </p>
-                </div>
-                <button
-                  className={theme.buttonPrimary}
-                  disabled={agencyOpenInfluencerSlots <= 0}
-                  onClick={onOpenAgencyInfluencerBuilder}
-                  type="button"
-                >
-                  Draft AI Infuencer
-                </button>
-              </div>
-            </div>
-          ) : null}
         </section>
       ) : null}
 
@@ -4380,6 +4355,34 @@ export function AccessControlPanel({
               </p>
             </aside>
           </form>
+        </section>
+      ) : null}
+
+      {isAgencyAdmin ? (
+        <section id="access-draft-influencer" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
+          <div className="bg-[color:var(--surface-card)] px-6 py-5 sm:px-7">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-[28px] border border-white/8 bg-white/[0.03] p-4 sm:p-5">
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.22em] text-white/42">Influencer allowance</p>
+                <p className="mt-2 text-xl font-semibold text-white">
+                  {agencyAvailableModels.length} / {agencyInfluencerCapacity} influencers used
+                </p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/56">
+                  {agencyOpenInfluencerSlots > 0
+                    ? `${agencyOpenInfluencerSlots} AI Influencer slot${agencyOpenInfluencerSlots === 1 ? "" : "s"} still available on ${agencyBillingPlan.currentPlan} Plan.`
+                    : `${agencyBillingPlan.currentPlan} allowance is fully used. Upgrade the plan to add another influencer.`}
+                </p>
+              </div>
+              <button
+                className={theme.buttonPrimary}
+                disabled={agencyOpenInfluencerSlots <= 0}
+                onClick={onOpenAgencyInfluencerBuilder}
+                type="button"
+              >
+                Draft AI Influencer
+              </button>
+            </div>
+          </div>
         </section>
       ) : null}
 
