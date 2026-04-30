@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AutoScale Robot</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">AutoScale</p>
+          <h1>Robot Capture</h1>
+        </div>
+        <span class="status-pill" id="authStatus">Offline</span>
+      </header>
+
+      <section class="panel" id="loginPanel">
+        <form id="loginForm">
+          <label>
+            API URL
+            <input id="serverUrl" name="serverUrl" autocomplete="url" placeholder="http://localhost:4000" />
+          </label>
+          <label>
+            Email
+            <input id="email" name="email" autocomplete="email" type="email" />
+          </label>
+          <label>
+            Password
+            <input id="password" name="password" autocomplete="current-password" type="password" />
+          </label>
+          <button class="primary" id="loginButton" type="submit">Log in</button>
+        </form>
+      </section>
+
+      <section class="panel hidden" id="workspacePanel">
+        <div class="account-row">
+          <div class="min">
+            <p class="label">Signed in</p>
+            <p class="strong" id="userLabel">-</p>
+          </div>
+          <button class="ghost" id="logoutButton" type="button">Log out</button>
+        </div>
+
+        <label>
+          Influencer profile
+          <select id="modelSelect"></select>
+        </label>
+
+        <div class="config-grid">
+          <fieldset>
+            <legend>Images</legend>
+            <div class="segmented" data-kind="image">
+              <button data-value="sfw" type="button">SFW</button>
+              <button data-value="nsfw" type="button">NSFW</button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Videos</legend>
+            <div class="segmented" data-kind="video">
+              <button data-value="sfw" type="button">SFW</button>
+              <button data-value="nsfw" type="button">NSFW</button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Audio</legend>
+            <div class="audio-note">Voice table</div>
+          </fieldset>
+        </div>
+
+        <div class="counts" aria-label="Session asset counts">
+          <div>
+            <span id="imageCount">0</span>
+            <small>Images</small>
+          </div>
+          <div>
+            <span id="videoCount">0</span>
+            <small>Videos</small>
+          </div>
+          <div>
+            <span id="audioCount">0</span>
+            <small>Audio</small>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="secondary" id="refreshButton" type="button">Refresh</button>
+          <button class="primary" id="runButton" type="button">Run Workflow</button>
+        </div>
+      </section>
+
+      <p class="message" id="message" role="status"></p>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
