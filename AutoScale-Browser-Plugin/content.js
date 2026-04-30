@@ -248,9 +248,28 @@
       .filter((url) => url && looksLikeVideoUrl(url));
   }
 
+  function mediaScriptTexts() {
+    const mediaTerms = /playAddr|downloadAddr|bitrateInfo|PlayAddrStruct|UrlList|mime_type=video|video_mp4/i;
+    return Array.from(document.scripts)
+      .filter((script) => {
+        const id = script.id || "";
+        const type = script.type || "";
+        const text = script.textContent || "";
+
+        return (
+          id === "__UNIVERSAL_DATA_FOR_REHYDRATION__" ||
+          id === "SIGI_STATE" ||
+          id === "__NEXT_DATA__" ||
+          (type.includes("json") && mediaTerms.test(text)) ||
+          mediaTerms.test(text)
+        );
+      })
+      .map((script) => script.textContent || "")
+      .filter(Boolean);
+  }
+
   function extractScriptMediaUrls(kind) {
     const matches = [];
-    const scripts = Array.from(document.scripts).slice(-36);
     const matcher = /https?:\/\/[^"'<>\s\\]+/g;
 
     const addUrl = (value) => {
@@ -293,8 +312,7 @@
       }
     };
 
-    for (const script of scripts) {
-      const text = script.textContent;
+    for (const text of mediaScriptTexts()) {
       if (!text || (!/video|playAddr|downloadAddr|bitrateInfo|audio|stream/i.test(text))) {
         continue;
       }

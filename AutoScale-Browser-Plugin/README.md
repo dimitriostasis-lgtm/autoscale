@@ -33,5 +33,5 @@ http://localhost:4000
 ## Notes
 
 - Some platforms expose media as short-lived or page-local `blob:` URLs. Those cannot be uploaded after leaving the page context, so the extension only captures assets with downloadable `http`, `https`, or `data` URLs.
-- TikTok and similar platforms can expose JavaScript bundles, playlists, byte ranges, or stream fragments in the same network list as the visible video. The extension now validates downloaded videos before upload and only marks capture as successful when the file is a standalone MP4/WebM/Ogg-style browser-playable container.
+- TikTok and similar platforms can expose JavaScript bundles, playlists, byte ranges, or stream fragments in the same network list as the visible video. The extension inspects page hydration data for `playAddr` / `downloadAddr` candidates, validates downloaded videos before upload, and only marks capture as successful when the file is a standalone MP4/WebM/Ogg-style browser-playable container.
 - Captured files are uploaded to AutoScale via `/api/uploads`, so workflow runs use stable AutoScale file paths rather than hotlinked third-party URLs.

@@ -775,7 +775,7 @@ async function uploadAsset(asset, state) {
   if (!blob) {
     if (asset.kind === "video") {
       throw new Error(
-        "AutoScale could not find a standalone playable video file for this page. TikTok may be exposing only stream segments; play the video for a few seconds, then try again.",
+        "AutoScale could not find a downloadable standalone MP4/WebM for this video. Refresh the page, let the video start, then try again.",
       );
     }
 
