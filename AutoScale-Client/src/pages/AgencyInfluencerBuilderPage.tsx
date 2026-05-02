@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import playgroundReadyImage from "../assets/playground-ready.png";
 import { defaultAgencyBillingSettings } from "../lib/billing";
 import { cx } from "../lib/cx";
+import { IMPROVE_PROMPT_CREDITS, formatCreditCost } from "../lib/generationCosts";
 import { improvePromptDraft } from "../lib/promptImprovement";
 import { uploadReferenceFile } from "../lib/uploads";
 import { INFLUENCER_MODELS_QUERY } from "../queries/model";
@@ -854,7 +855,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
                     className="absolute right-0 top-0 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
                     disabled={!prompt.trim() || improvingPrompt}
                     onClick={handleImprovePrompt}
-                    title="Improve the current prompt without turning on Auto Prompt."
+                    title={`Improve the current prompt without turning on Auto Prompt. Cost: ${formatCreditCost(IMPROVE_PROMPT_CREDITS)} credits.`}
                     type="button"
                   >
                     <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">

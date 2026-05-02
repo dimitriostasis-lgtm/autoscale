@@ -33,6 +33,7 @@
   let retargetFrame = 0;
   let retargetTimer = 0;
   let mutationRetargetTimer = 0;
+  let captureEnabled = true;
   let tiktokVideoCache = { signature: "", scriptEntries: [] };
   let tiktokRuntimeVideoEntries = [];
 
@@ -145,6 +146,28 @@
   `;
 
   document.documentElement.append(robotStyle, robotButton, statusBubble);
+
+  function syncCaptureEnabled(state) {
+    captureEnabled = state?.enabled !== false;
+    if (!captureEnabled) {
+      statusBubble.textContent = "";
+      statusBubble.style.display = "none";
+      hideRobot();
+    }
+  }
+
+  chrome.runtime
+    .sendMessage({ type: "AUTOSCALE_GET_STATE" })
+    .then((response) => syncCaptureEnabled(response?.state))
+    .catch(() => {
+      captureEnabled = true;
+    });
+
+  chrome.storage?.onChanged?.addListener((changes, areaName) => {
+    if (areaName === "local" && changes.autoscaleRobotState) {
+      syncCaptureEnabled(changes.autoscaleRobotState.newValue);
+    }
+  });
 
   function showInlineStatus(message, tone = "neutral") {
     window.clearTimeout(statusTimer);
@@ -1438,6 +1461,11 @@
   }
 
   function scheduleRetarget() {
+    if (!captureEnabled) {
+      hideRobot();
+      return;
+    }
+
     if (retargetFrame) {
       window.clearTimeout(retargetTimer);
       retargetTimer = window.setTimeout(retargetActiveAsset, 260);
@@ -1467,7 +1495,7 @@
   }
 
   function positionRobot() {
-    if (!activeTarget || !activeAsset) {
+    if (!captureEnabled || !activeTarget || !activeAsset) {
       hideRobot();
       return;
     }
@@ -1494,6 +1522,11 @@
   }
 
   function activateAsset(target, asset) {
+    if (!captureEnabled) {
+      hideRobot();
+      return;
+    }
+
     activeTarget = target;
     activeAsset = asset;
     robotButton.dataset.kind = asset.kind;
@@ -1505,6 +1538,11 @@
   document.addEventListener(
     "pointermove",
     (event) => {
+      if (!captureEnabled) {
+        hideRobot();
+        return;
+      }
+
       lastPointer = { x: event.clientX, y: event.clientY };
       if (robotButton.contains(event.target)) {
         return;
@@ -1582,6 +1620,11 @@
     event.stopPropagation();
 
     if (!activeAsset) {
+      return;
+    }
+
+    if (!captureEnabled) {
+      hideRobot();
       return;
     }
 

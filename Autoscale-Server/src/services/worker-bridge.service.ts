@@ -4,7 +4,14 @@ import { randomUUID } from "node:crypto";
 import { env } from "../config/env.js";
 import { readStore, updateStore } from "../lib/store.js";
 import { saveGeneratedFile, toAbsoluteStoragePath } from "../lib/storage.js";
-import { isNsfwPoseMultiplierWorkspace, normalizePoseMultiplierResolution, normalizeResolutionForGenerationModel, normalizeVideoDurationForGenerationModel } from "../types/domain.js";
+import {
+  VIDEO_WORKER_GENERATION_MODELS,
+  VOICE_WORKER_GENERATION_MODELS,
+  isNsfwPoseMultiplierWorkspace,
+  normalizePoseMultiplierResolution,
+  normalizeResolutionForGenerationModel,
+  normalizeVideoDurationForGenerationModel,
+} from "../types/domain.js";
 import type { AuthUser, GeneratedAsset, GenerationStatus, ReferenceSelection, StoreData } from "../types/domain.js";
 
 import { publishAssetCreated, publishBoardUpdate } from "./notifications.service.js";
@@ -52,6 +59,74 @@ interface RowJobLink {
   videoDurationSeconds: number | null;
   aspectRatio: GeneratedAsset["aspectRatio"];
   quantity: number;
+}
+
+function isVideoWorkerModel(generationModel: string): boolean {
+  return VIDEO_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VIDEO_WORKER_GENERATION_MODELS)[number]);
+}
+
+function isVoiceWorkerModel(generationModel: string): boolean {
+  return VOICE_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VOICE_WORKER_GENERATION_MODELS)[number]);
+}
+
+function resolveRowGenerationContext(board: StoreData["boards"][number], row: StoreData["boards"][number]["rows"][number]) {
+  const poseMultiplierActive = board.settings.poseMultiplierEnabled && row.poseMultiplier > 1;
+  const generationModel = poseMultiplierActive ? board.settings.poseMultiplierGenerationModel : board.settings.generationModel;
+  const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(
+    board.settings.generationModel,
+    board.settings.sdxlWorkspaceMode,
+    board.name.startsWith("__autoscale_workspace_nsfw__:"),
+  );
+  const resolution = poseMultiplierActive
+    ? normalizePoseMultiplierResolution(board.settings.poseMultiplierResolution, generationModel, isNsfwPoseMultiplierLayout)
+    : normalizeResolutionForGenerationModel(generationModel, board.settings.resolution);
+  const videoDurationSeconds = normalizeVideoDurationForGenerationModel(generationModel, board.settings.videoDurationSeconds);
+  const quantity = poseMultiplierActive
+    ? Math.max(1, Math.min(4, row.poseMultiplier))
+    : isVideoWorkerModel(generationModel) || isVoiceWorkerModel(generationModel)
+      ? 1
+      : board.settings.quantity;
+
+  return {
+    poseMultiplierActive,
+    generationModel,
+    resolution,
+    videoDurationSeconds,
+    quantity,
+  };
+}
+
+function getRowReadiness(board: StoreData["boards"][number], row: StoreData["boards"][number]["rows"][number]): { ready: boolean; reason: string | null } {
+  const { generationModel } = resolveRowGenerationContext(board, row);
+  const hasPrompt = Boolean(row.prompt.trim());
+  const hasAnyInput = hasPrompt || Boolean(row.reference || row.audioReference);
+
+  if (isVoiceWorkerModel(generationModel)) {
+    return hasPrompt
+      ? { ready: true, reason: null }
+      : { ready: false, reason: hasAnyInput ? "Voice text is required" : null };
+  }
+
+  if (generationModel === "kling_motion_control") {
+    return row.reference
+      ? { ready: true, reason: null }
+      : { ready: false, reason: hasAnyInput ? "Motion reference video is required" : null };
+  }
+
+  if (board.settings.sdxlWorkspaceMode === "FACE_SWAP") {
+    return row.reference
+      ? { ready: true, reason: null }
+      : { ready: false, reason: hasAnyInput ? "Reference image is required" : null };
+  }
+
+  if (hasPrompt && row.reference) {
+    return { ready: true, reason: null };
+  }
+
+  return {
+    ready: false,
+    reason: hasAnyInput ? "Prompt and a reference image are both required" : null,
+  };
 }
 
 function nowIso(): string {
@@ -109,11 +184,13 @@ async function createWorkerJob(options: {
   videoDurationSeconds: number | null;
   aspectRatio: string;
   quantity: number;
+  quality: string;
   upscale: boolean;
   upscaleFactor: number;
   upscaleDenoise: number;
   globalReferences: FilePayload[];
-  rowReference: FilePayload;
+  rowReference: FilePayload | null;
+  audioReference: FilePayload | null;
   isFirst: boolean;
   isLast: boolean;
 }): Promise<string> {
@@ -126,11 +203,12 @@ async function createWorkerJob(options: {
   }
   formData.append("aspect_ratio", options.aspectRatio);
   formData.append("quantity", String(options.quantity));
+  formData.append("quality", options.quality);
   formData.append("upscale", options.upscale ? "true" : "false");
   formData.append("upscale_factor", String(options.upscaleFactor));
   formData.append("upscale_denoise", String(options.upscaleDenoise));
   formData.append("headless", "false");
-  formData.append("reference_mode", options.isFirst ? "replace" : "patch_slot");
+  formData.append("reference_mode", options.rowReference ? (options.isFirst ? "replace" : "patch_slot") : options.isFirst ? "replace" : "keep");
   formData.append("reference_patch_indices", "[]");
   formData.append("reuse_browser", "true");
   formData.append("settings_already_set", options.isFirst ? "false" : "true");
@@ -142,11 +220,21 @@ async function createWorkerJob(options: {
     }
   }
 
-  formData.append(
-    "reference_images",
-    new Blob([bufferToArrayBuffer(options.rowReference.buffer)]),
-    options.rowReference.fileName,
-  );
+  if (options.rowReference) {
+    formData.append(
+      "reference_images",
+      new Blob([bufferToArrayBuffer(options.rowReference.buffer)]),
+      options.rowReference.fileName,
+    );
+  }
+
+  if (options.audioReference) {
+    formData.append(
+      "audio_reference",
+      new Blob([bufferToArrayBuffer(options.audioReference.buffer)]),
+      options.audioReference.fileName,
+    );
+  }
 
   const payload = await fetchWorkerJson<{ job_id: string }>(`${env.workerUrl}/api/v1/jobs`, {
     method: "POST",
@@ -278,23 +366,14 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
       });
       await publishBoardUpdate(boardId, generatingStore);
 
-      if (!row.reference) {
-        throw new Error("Missing row reference image");
+      const { poseMultiplierActive, generationModel, resolution, videoDurationSeconds, quantity } = resolveRowGenerationContext(board, row);
+      const needsRowReference = !isVoiceWorkerModel(generationModel);
+      if (needsRowReference && !row.reference) {
+        throw new Error(isVideoWorkerModel(generationModel) ? "Missing row reference media" : "Missing row reference image");
       }
 
-      const rowReference = await readSelectionFile(row.reference, initialStore);
-      const poseMultiplierActive = board.settings.poseMultiplierEnabled && row.poseMultiplier > 1;
-      const generationModel = poseMultiplierActive ? board.settings.poseMultiplierGenerationModel : board.settings.generationModel;
-      const isNsfwPoseMultiplierLayout = isNsfwPoseMultiplierWorkspace(
-        board.settings.generationModel,
-        board.settings.sdxlWorkspaceMode,
-        board.name.startsWith("__autoscale_workspace_nsfw__:"),
-      );
-      const resolution = poseMultiplierActive
-        ? normalizePoseMultiplierResolution(board.settings.poseMultiplierResolution, generationModel, isNsfwPoseMultiplierLayout)
-        : normalizeResolutionForGenerationModel(generationModel, board.settings.resolution);
-      const videoDurationSeconds = normalizeVideoDurationForGenerationModel(generationModel, board.settings.videoDurationSeconds);
-      const quantity = poseMultiplierActive ? Math.max(1, Math.min(4, row.poseMultiplier)) : board.settings.quantity;
+      const rowReference = row.reference ? await readSelectionFile(row.reference, initialStore) : null;
+      const audioReference = row.audioReference ? await readSelectionFile(row.audioReference, initialStore) : null;
       const jobId = await createWorkerJob({
         prompt: row.prompt,
         generationModel,
@@ -302,11 +381,13 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         videoDurationSeconds,
         aspectRatio: board.settings.aspectRatio,
         quantity,
+        quality: board.settings.quality,
         upscale: generationModel === "sdxl" && !poseMultiplierActive ? row.upscale : false,
         upscaleFactor: generationModel === "sdxl" && !poseMultiplierActive ? board.settings.upscaleFactor : 1,
         upscaleDenoise: generationModel === "sdxl" && !poseMultiplierActive ? board.settings.upscaleDenoise : 0,
         globalReferences,
         rowReference,
+        audioReference,
         isFirst: index === 0,
         isLast: index === activeRows.length - 1,
       });
@@ -420,16 +501,17 @@ export async function queueBoardRun(currentUser: AuthUser | null, boardId: strin
 
   const preparedStore = await updateStore((store) => {
     const board = assertBoardEdit(store, viewer, boardId);
-    const executableRows = board.rows.filter((row) => row.prompt.trim() && row.reference);
+    const executableRows = board.rows.filter((row) => getRowReadiness(board, row).ready);
 
     for (const row of board.rows) {
+      const readiness = getRowReadiness(board, row);
       row.outputAssetIds = [];
       row.errorMessage = null;
-      if (row.prompt.trim() && row.reference) {
+      if (readiness.ready) {
         row.status = "QUEUED";
       } else {
         row.status = "SKIPPED";
-        row.errorMessage = row.prompt.trim() || row.reference ? "Prompt and a reference image are both required" : null;
+        row.errorMessage = readiness.reason;
       }
     }
     board.updatedAt = nowIso();

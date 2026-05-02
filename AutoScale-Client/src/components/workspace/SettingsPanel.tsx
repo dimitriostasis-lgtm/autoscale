@@ -1,5 +1,6 @@
 import type { BoardSettings } from "../../types";
 import { cx } from "../../lib/cx";
+import { AUTO_IMAGE_CREDITS, TEXT_PROMPT_AUTOMATION_CREDITS, formatCreditCost } from "../../lib/generationCosts";
 import {
   generationModelOptions,
   getAspectRatioOptionsForGenerationModel,
@@ -106,6 +107,8 @@ export function SettingsPanel({
         : "Auto Prompt stays on while Auto Image is enabled because the image reference needs a generated text prompt."
       : undefined;
   const referenceAutomationOn = settings.autoPromptImage;
+  const autoReferenceCostTitle = `${videoGenerationModel ? "Auto Video" : "Auto Image"} adds ${formatCreditCost(AUTO_IMAGE_CREDITS)} credits per row.`;
+  const promptAutomationCostTitle = `Text Prompt Automation adds ${formatCreditCost(TEXT_PROMPT_AUTOMATION_CREDITS)} credits per row.`;
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
   const poseWorkerModelControlLocked = poseWorkerModelLocked || isNsfwPoseMultiplierLayout;
@@ -401,6 +404,7 @@ export function SettingsPanel({
                       autoPromptGen: nextAutoPromptImage && !promptAutomationLocked ? true : settings.autoPromptGen,
                     });
                   }}
+                  title={autoReferenceCostTitle}
                   type="button"
                 >
                   <span
@@ -443,7 +447,7 @@ export function SettingsPanel({
             {!isFaceSwapWorkspaceLayout ? (
             <div className="space-y-2">
               <span className="text-sm font-semibold text-white/76">{promptAutomationLabel}</span>
-              <div className="group/prompt-lock relative" title={promptAutomationLockReason}>
+              <div className="group/prompt-lock relative" title={promptAutomationLockReason || promptAutomationCostTitle}>
               <button
                 className={cx(
                   "workspace-auto-prompt-toggle relative grid w-full grid-cols-[1.75rem_1fr_1.75rem] items-center overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
@@ -452,7 +456,7 @@ export function SettingsPanel({
                     : "border-white/8 bg-[#262626] text-white/76 hover:bg-[#313131]",
                 )}
                 disabled={promptAutomationLocked}
-                title={promptAutomationLockReason}
+                title={promptAutomationLockReason || promptAutomationCostTitle}
                 onClick={() => {
                   if (!promptAutomationLocked) {
                     onSettingsChange({ ...settings, autoPromptGen: !settings.autoPromptGen });

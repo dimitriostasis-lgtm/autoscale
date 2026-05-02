@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { cx } from "../../lib/cx";
+import { IMPROVE_PROMPT_CREDITS, formatCreditCost } from "../../lib/generationCosts";
 import { improvePromptDraft } from "../../lib/promptImprovement";
-import type { ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../../types";
+import type { GeneratedAsset, ReferenceSelection, WorkspaceBoard, WorkspaceRow } from "../../types";
 import { isPoseMultiplierWorkspace, theme } from "../../styles/theme";
 
 interface WorkspaceGridProps {
@@ -56,6 +57,13 @@ function statusClass(status: WorkspaceRow["status"]): string {
   }
 }
 
+const videoOutputExtensions = new Set(["mp4", "mov", "m4v", "webm"]);
+const audioOutputExtensions = new Set(["mp3", "wav", "m4a", "aac", "ogg", "oga", "flac", "webm"]);
+
+function assetExtension(fileName: string): string {
+  return fileName.split(".").pop()?.toLowerCase() ?? "";
+}
+
 export function WorkspaceGrid({
   board,
   referenceColumnLabel,
@@ -78,6 +86,7 @@ export function WorkspaceGrid({
   const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({});
   const [improvingPromptRowId, setImprovingPromptRowId] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<{ src: string; label: string; error?: string | null } | null>(null);
+  const [outputPreview, setOutputPreview] = useState<{ rowLabel: string; assets: GeneratedAsset[] } | null>(null);
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode);
   const isFaceSwapWorkspaceLayout = board.settings.sdxlWorkspaceMode === "FACE_SWAP";
   const isVideoReference = referenceMediaKind === "video";
@@ -208,19 +217,20 @@ export function WorkspaceGrid({
   }, [board.rows]);
 
   useEffect(() => {
-    if (!videoPreview) {
+    if (!videoPreview && !outputPreview) {
       return;
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setVideoPreview(null);
+        setOutputPreview(null);
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [videoPreview]);
+  }, [videoPreview, outputPreview]);
 
   function handlePromptDraftChange(rowId: string, prompt: string): void {
     setPromptDrafts((current) => ({ ...current, [rowId]: prompt }));
@@ -248,20 +258,67 @@ export function WorkspaceGrid({
     }, 250);
   }
 
-  const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false) => (
-    <div className={cx("grid grid-cols-2 gap-3 rounded-xl border border-white/8 bg-[#202020] p-3", compact ? "min-h-[116px] flex-1" : "h-full min-h-[188px]")}>
-      {row.outputAssets.map((asset) => (
-        <div key={asset.id} className="max-h-[82px] overflow-hidden rounded-lg border border-white/8 bg-[#181818]">
-          <img alt={asset.fileName} className="h-full w-full object-cover" src={asset.url} />
+  const renderOutputAsset = (asset: GeneratedAsset, index: number, variant: "inline" | "modal" = "inline") => {
+    const extension = assetExtension(asset.fileName);
+    const isModal = variant === "modal";
+
+    if (videoOutputExtensions.has(extension)) {
+      return (
+        <div key={asset.id} className={cx("overflow-hidden rounded-lg border border-white/8 bg-[#181818]", isModal ? "aspect-video min-h-[180px]" : "aspect-video min-h-[82px]")}>
+          <video className="h-full w-full object-cover" controls muted playsInline preload="metadata" src={asset.url} />
         </div>
-      ))}
-      {awaitingOutput ? (
-        <div className={cx("col-span-full flex items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#1a1a1a] px-4 text-center text-xs uppercase tracking-[0.2em] text-white/28", compact ? "min-h-[92px]" : "min-h-[162px]")}>
-          Awaiting output
+      );
+    }
+
+    if (audioOutputExtensions.has(extension)) {
+      return (
+        <div key={asset.id} className="col-span-full flex min-h-[82px] flex-col justify-center gap-2 rounded-lg border border-white/8 bg-[#181818] px-3">
+          <p className="truncate text-xs font-semibold text-white/72">{asset.fileName}</p>
+          <audio className="h-8 w-full" controls preload="metadata" src={asset.url} />
         </div>
-      ) : null}
-    </div>
-  );
+      );
+    }
+
+    return (
+      <div key={asset.id} className={cx("relative overflow-hidden rounded-lg border border-white/8 bg-[#181818]", isModal ? "aspect-[4/5] min-h-[220px]" : "aspect-[4/5] min-h-[82px]")}>
+        <img alt={asset.fileName} className="h-full w-full object-cover" src={asset.url} />
+        <span className="absolute left-1.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-black/30 bg-black/58 px-1 text-[10px] font-bold text-white/86 backdrop-blur-sm">
+          {index + 1}
+        </span>
+      </div>
+    );
+  };
+
+  const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false) => {
+    const outputCount = row.outputAssets.length;
+    const visibleOutputAssets = row.outputAssets.slice(0, 4);
+    const hiddenOutputCount = Math.max(0, outputCount - visibleOutputAssets.length);
+
+    return (
+      <div
+        className={cx(
+          "grid grid-cols-2 gap-2 rounded-xl border border-white/8 bg-[#202020] p-3",
+          compact ? "min-h-[116px] flex-1" : "h-full min-h-[188px]",
+        )}
+      >
+        {visibleOutputAssets.map((asset, index) => renderOutputAsset(asset, index))}
+        {hiddenOutputCount > 0 ? (
+          <button
+            className="col-span-full inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/18 bg-lime-300/10 px-3 text-xs font-bold uppercase tracking-[0.16em] text-lime-100/82 transition hover:border-lime-200/38 hover:bg-lime-300/16 hover:text-lime-50"
+            onClick={() => setOutputPreview({ rowLabel: row.label || `Row ${row.orderIndex + 1}`, assets: row.outputAssets })}
+            type="button"
+          >
+            View all {outputCount}
+          </button>
+        ) : null}
+        {awaitingOutput ? (
+          <div className={cx("col-span-full flex items-center justify-center rounded-lg border border-dashed border-white/10 bg-[#1a1a1a] px-4 text-center text-xs uppercase tracking-[0.2em] text-white/28", compact ? "min-h-[92px]" : "min-h-[162px]")}>
+            Awaiting output
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <section className="h-full overflow-hidden bg-[color:var(--surface-card-strong)]">
@@ -616,7 +673,7 @@ export function WorkspaceGrid({
                             className="absolute right-3 top-3 z-10 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
                             disabled={promptLockedByAudioReference || !(promptDrafts[row.id] ?? row.prompt).trim() || Boolean(improvingPromptRowId)}
                             onClick={() => handleImproveRowPrompt(row)}
-                            title="Improve this prompt without turning on Auto Prompt."
+                            title={`Improve this prompt without turning on Auto Prompt. Cost: ${formatCreditCost(IMPROVE_PROMPT_CREDITS)} credits.`}
                             type="button"
                           >
                             <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
@@ -812,6 +869,46 @@ export function WorkspaceGrid({
           })}
         </div>
       </div>
+
+      {outputPreview ? (
+        <div
+          aria-label="Output batch preview"
+          aria-modal="true"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/74 p-4 backdrop-blur-md"
+          onClick={() => setOutputPreview(null)}
+          role="dialog"
+        >
+          <div
+            className="flex max-h-[88vh] w-[min(94vw,980px)] flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#151515] shadow-[0_28px_90px_rgba(0,0,0,0.52)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">Outputs</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white">
+                  {outputPreview.rowLabel} · {outputPreview.assets.length} files
+                </p>
+              </div>
+              <button
+                aria-label="Close output preview"
+                className="inline-grid size-9 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/68 transition hover:bg-white/[0.1] hover:text-white"
+                onClick={() => setOutputPreview(null)}
+                type="button"
+              >
+                <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20">
+                  <path
+                    d="M5.22 5.22a.75.75 0 0 1 1.06 0L10 8.94l3.72-3.72a.75.75 0 1 1 1.06 1.06L11.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06L10 11.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06L8.94 10 5.22 6.28a.75.75 0 0 1 0-1.06Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4">
+              {outputPreview.assets.map((asset, index) => renderOutputAsset(asset, index, "modal"))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {videoPreview ? (
         <div

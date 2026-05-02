@@ -1,5 +1,9 @@
 const els = {
   authStatus: document.querySelector("#authStatus"),
+  pluginToggle: document.querySelector("#pluginToggle"),
+  pluginToggleLabel: document.querySelector("#pluginToggleLabel"),
+  pluginPowerTitle: document.querySelector("#pluginPowerTitle"),
+  pluginPowerCopy: document.querySelector("#pluginPowerCopy"),
   loginPanel: document.querySelector("#loginPanel"),
   workspacePanel: document.querySelector("#workspacePanel"),
   loginForm: document.querySelector("#loginForm"),
@@ -15,6 +19,7 @@ const els = {
   runTargetSelect: document.querySelector("#runTargetSelect"),
   imageLayoutSelect: document.querySelector("#imageLayoutSelect"),
   imageModelSelect: document.querySelector("#imageModelSelect"),
+  imageQualitySelect: document.querySelector("#imageQualitySelect"),
   imageResolutionSelect: document.querySelector("#imageResolutionSelect"),
   imageAspectRatioSelect: document.querySelector("#imageAspectRatioSelect"),
   imageQuantitySelect: document.querySelector("#imageQuantitySelect"),
@@ -38,7 +43,16 @@ const IMAGE_NSFW_MODELS = ["sd_4_5", "sdxl"];
 const VIDEO_MODELS = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"];
 const VIDEO_NSFW_MODELS = ["sd_2_0", "sd_2_0_fast", "grok_imagine"];
 const VOICE_MODELS = ["eleven_v3"];
-const ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"];
+const ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"];
+const COMMON_IMAGE_ASPECT_RATIOS = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const NANO_BANANA_2_ASPECT_RATIOS = [...COMMON_IMAGE_ASPECT_RATIOS, "1:4", "4:1", "1:8", "8:1"];
+const KLING_O1_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"];
+const SEEDANCE_ASPECT_RATIOS = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"];
+const QUALITY_LABELS = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+};
 
 const MODEL_LABELS = {
   nb_pro: "NB Pro",
@@ -96,11 +110,13 @@ function allowedModelOptions(model, options) {
 
 function getAllowedResolutions(generationModel) {
   if (generationModel === "sdxl") return ["1k", "2k"];
-  if (generationModel === "sd_4_5") return ["2k", "4k"];
+  if (generationModel === "nb2") return ["1k", "2k", "4k"];
+  if (generationModel === "gpt_2") return ["1k", "2k", "4k"];
+  if (generationModel === "sd_4_5") return ["1k", "2k", "4k"];
   if (generationModel === "kling_o1") return ["1k", "2k"];
   if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") return ["480p", "720p", "1080p"];
-  if (generationModel === "kling_3_0") return ["720p", "1080p", "4k"];
-  if (generationModel === "kling_motion_control") return ["720p", "1080p"];
+  if (generationModel === "kling_3_0") return ["1080p", "4k"];
+  if (generationModel === "kling_motion_control") return ["1080p"];
   if (generationModel === "grok_imagine") return ["480p", "720p"];
   return ["1k", "2k", "4k"];
 }
@@ -110,11 +126,19 @@ function getVideoDurations(generationModel) {
     return Array.from({ length: 12 }, (_, index) => index + 4);
   }
 
-  if (generationModel === "kling_3_0" || generationModel === "grok_imagine") {
+  if (generationModel === "kling_3_0") {
     return Array.from({ length: 13 }, (_, index) => index + 3);
   }
 
+  if (generationModel === "grok_imagine") {
+    return [6, 10];
+  }
+
   return [];
+}
+
+function getQualityOptions(generationModel) {
+  return generationModel === "gpt_2" ? ["low", "medium", "high"] : ["medium"];
 }
 
 function getAspectOptions(generationModel, imageLayout) {
@@ -122,7 +146,23 @@ function getAspectOptions(generationModel, imageLayout) {
     return ["auto"];
   }
 
-  return generationModel === "sdxl" ? ASPECT_RATIOS.filter((option) => option !== "auto") : ASPECT_RATIOS;
+  if (generationModel === "sdxl") {
+    return COMMON_IMAGE_ASPECT_RATIOS.filter((option) => option !== "auto");
+  }
+
+  if (generationModel === "nb2") {
+    return NANO_BANANA_2_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "kling_o1") {
+    return KLING_O1_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return SEEDANCE_ASPECT_RATIOS;
+  }
+
+  return COMMON_IMAGE_ASPECT_RATIOS;
 }
 
 function selectValue(value, options, fallback = "") {
@@ -197,6 +237,28 @@ function renderSafety(state) {
   });
 }
 
+function renderPluginPower(state) {
+  const enabled = state.enabled !== false;
+  els.pluginToggle.classList.toggle("is-on", enabled);
+  els.pluginToggle.setAttribute("aria-pressed", String(enabled));
+  els.pluginToggleLabel.textContent = enabled ? "On" : "Off";
+  els.pluginPowerTitle.textContent = enabled ? "Always On" : "Paused";
+  els.pluginPowerCopy.textContent = enabled
+    ? "The capture button appears on supported media pages."
+    : "The capture button is hidden on every page until you turn it back on.";
+}
+
+function renderCollapsedSections(state) {
+  const collapsedSections = state.ui?.collapsedSections || {};
+
+  document.querySelectorAll(".collapsible").forEach((card) => {
+    const sectionId = card.dataset.section;
+    const collapsed = Boolean(sectionId && collapsedSections[sectionId]);
+    card.classList.toggle("collapsed", collapsed);
+    card.querySelector(".section-toggle")?.setAttribute("aria-expanded", String(!collapsed));
+  });
+}
+
 function renderWorkflowControls(state, model) {
   const workflowOptions = buildWorkflowOptions(model);
   const selectedWorkflowId = selectValue(state.workflow?.selectedWorkflowId, workflowOptions.map((option) => option.id), "default-platform");
@@ -216,6 +278,7 @@ function renderGenerationControls(state, model) {
   const imageResolutionOptions = getAllowedResolutions(imageModel);
   const videoResolutionOptions = getAllowedResolutions(videoModel);
   const imageAspectOptions = getAspectOptions(imageModel, imageLayout);
+  const imageQualityOptions = getQualityOptions(imageModel);
   const quantityOptions = imageLayout === "DEFAULT"
     ? Array.from({ length: imageModel === "sdxl" ? 20 : 4 }, (_, index) => index + 1)
     : [1];
@@ -223,6 +286,12 @@ function renderGenerationControls(state, model) {
 
   els.imageLayoutSelect.value = imageLayout;
   renderSelectOptions(els.imageModelSelect, imageModelOptions, imageModel);
+  renderSelectOptions(
+    els.imageQualitySelect,
+    imageQualityOptions,
+    selectValue(config.imageQuality, imageQualityOptions, "medium"),
+    (value) => QUALITY_LABELS[value] || value,
+  );
   renderSelectOptions(els.imageResolutionSelect, imageResolutionOptions, selectValue(config.imageResolution, imageResolutionOptions));
   renderSelectOptions(els.imageAspectRatioSelect, imageAspectOptions, selectValue(config.imageAspectRatio, imageAspectOptions));
   renderSelectOptions(els.imageQuantitySelect, quantityOptions, selectValue(Number(config.imageQuantity), quantityOptions, 1), (value) => String(value));
@@ -242,9 +311,11 @@ function renderGenerationControls(state, model) {
 function renderAvailability(state) {
   const imageLayout = state.config?.imageLayout || "DEFAULT";
   const videoDurations = getVideoDurations(state.config?.videoModel || "sd_2_0");
+  const qualityOptions = getQualityOptions(state.config?.imageModel || "nb_pro");
 
   els.imageAspectRatioSelect.disabled = imageLayout === "POSE_MULTIPLIER";
   els.imageQuantitySelect.disabled = imageLayout !== "DEFAULT";
+  els.imageQualitySelect.disabled = qualityOptions.length <= 1;
   els.videoDurationSelect.disabled = videoDurations.length === 0;
 }
 
@@ -253,10 +324,13 @@ function renderState(state) {
   const signedIn = Boolean(state.user);
   const model = selectedModel(state);
 
+  renderPluginPower(state);
+  renderCollapsedSections(state);
   els.loginPanel.classList.toggle("hidden", signedIn);
   els.workspacePanel.classList.toggle("hidden", !signedIn);
-  els.authStatus.textContent = signedIn ? "Online" : "Offline";
+  els.authStatus.textContent = state.enabled === false ? "Paused" : signedIn ? "Online" : "Offline";
   els.authStatus.classList.toggle("online", signedIn);
+  els.authStatus.classList.toggle("paused", state.enabled === false);
   els.serverUrl.value = state.serverUrl || "http://localhost:4000";
 
   if (!signedIn) {
@@ -315,7 +389,9 @@ async function updateConfig(payload, message) {
   const response = await sendMessage("AUTOSCALE_SET_CONFIG", payload);
   if (response?.ok) {
     renderState(response.state);
-    showMessage(message, "ok");
+    if (message) {
+      showMessage(message, "ok");
+    }
     return;
   }
 
@@ -325,6 +401,34 @@ async function updateConfig(payload, message) {
 els.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   await loginWithCurrentFields();
+});
+
+els.pluginToggle.addEventListener("click", async () => {
+  const enabled = currentState?.enabled !== false;
+  await updateConfig(
+    { enabled: !enabled },
+    !enabled ? "AutoScale capture robot is always on." : "AutoScale capture robot is paused.",
+  );
+});
+
+document.querySelectorAll(".section-toggle").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const card = button.closest(".collapsible");
+    const sectionId = card?.dataset.section;
+    if (!sectionId) {
+      return;
+    }
+
+    const collapsedSections = currentState?.ui?.collapsedSections || {};
+    await updateConfig({
+      ui: {
+        collapsedSections: {
+          ...collapsedSections,
+          [sectionId]: !collapsedSections[sectionId],
+        },
+      },
+    });
+  });
 });
 
 els.defaultAdminButton.addEventListener("click", async () => {
@@ -389,6 +493,10 @@ els.imageLayoutSelect.addEventListener("change", () =>
 
 els.imageModelSelect.addEventListener("change", () =>
   updateConfig({ config: { imageModel: els.imageModelSelect.value } }, "Image model updated."),
+);
+
+els.imageQualitySelect.addEventListener("change", () =>
+  updateConfig({ config: { imageQuality: els.imageQualitySelect.value } }, "Image quality updated."),
 );
 
 els.imageResolutionSelect.addEventListener("change", () =>

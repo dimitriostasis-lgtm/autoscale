@@ -8,6 +8,7 @@ import { ImagePickerModal } from "../components/workspace/ImagePickerModal";
 import { SettingsPanel } from "../components/workspace/SettingsPanel";
 import { WorkspaceGrid } from "../components/workspace/WorkspaceGrid";
 import { cx } from "../lib/cx";
+import { IMPROVE_PROMPT_CREDITS, estimateBoardRunCost, estimatePlaygroundCost, formatCreditCost } from "../lib/generationCosts";
 import { improvePromptDraft } from "../lib/promptImprovement";
 import type { WorkspaceMode } from "../lib/router";
 import { uploadReferenceFile } from "../lib/uploads";
@@ -27,6 +28,7 @@ import {
 import {
   getAspectRatioOptionsForGenerationModel,
   getMaxQuantityForGenerationModel,
+  getQualityOptionsForGenerationModel,
   getResolutionOptionsForGenerationModel,
   getVideoDurationOptionsForGenerationModel,
   imageGenerationModelOptions,
@@ -39,6 +41,7 @@ import {
   normalizePoseMultiplierGenerationModel,
   normalizeResolutionForGenerationModel,
   normalizeVideoDurationForGenerationModel,
+  qualityLabels,
   resolutionLabels,
   theme,
   voiceGenerationModelOptions,
@@ -603,6 +606,8 @@ function PlaygroundSurface({
   const aspectRatioLocked = klingMotionControlModel || isPoseMultiplierWorkspace(generationModel, settings.sdxlWorkspaceMode);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(generationModel);
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(generationModel);
+  const allowedQualityOptions = getQualityOptionsForGenerationModel(generationModel);
+  const showQualityControl = allowedQualityOptions.length > 1;
   const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
   const allowedVideoDurationOptions = getVideoDurationOptionsForGenerationModel(generationModel);
   const maxQuantity = getMaxQuantityForGenerationModel(generationModel);
@@ -637,6 +642,7 @@ function PlaygroundSurface({
   const nextReferenceSlot = activeGlobalReferences.length;
   const canAddReference = nextReferenceSlot < maxPlaygroundReferenceCount;
   const generateDisabled = voiceGenerationModel && voicePlaygroundMode === "CHANGE_VOICE" ? !voiceVideoReference : klingMotionControlModel ? !klingVideoReference : !prompt.trim();
+  const playgroundCost = estimatePlaygroundCost(settings, prompt);
 
   function updateGenerationModel(nextGenerationModel: string) {
     const nextVideoGenerationModel = isVideoGenerationModel(nextGenerationModel);
@@ -869,7 +875,7 @@ function PlaygroundSurface({
                         className="absolute right-3 top-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
                         disabled={!prompt.trim() || improvingPrompt}
                         onClick={() => handleImprovePlaygroundPrompt("voiceover")}
-                        title="Improve the current voiceover prompt without turning on Auto Prompt."
+                        title={`Improve the current voiceover prompt without turning on Auto Prompt. Cost: ${formatCreditCost(IMPROVE_PROMPT_CREDITS)} credits.`}
                         type="button"
                       >
                         <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
@@ -1108,7 +1114,7 @@ function PlaygroundSurface({
                 className="absolute right-0 top-0 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
                 disabled={!prompt.trim() || improvingPrompt}
                 onClick={() => handleImprovePlaygroundPrompt("general")}
-                title="Improve the current prompt without turning on Auto Prompt."
+                title={`Improve the current prompt without turning on Auto Prompt. Cost: ${formatCreditCost(IMPROVE_PROMPT_CREDITS)} credits.`}
                 type="button"
               >
                 <svg aria-hidden="true" className="size-3.5" viewBox="0 0 20 20">
@@ -1179,6 +1185,22 @@ function PlaygroundSurface({
                       </option>
                     ))}
                   </select>
+
+                  {showQualityControl ? (
+                    <select
+                      aria-label="Quality"
+                      className={controlClass + " w-28"}
+                      disabled={!board}
+                      onChange={(event) => onSettingsChange({ ...settings, quality: normalizeQualityForGenerationModel(generationModel, event.target.value) })}
+                      value={normalizeQualityForGenerationModel(generationModel, settings.quality)}
+                    >
+                      {allowedQualityOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {qualityLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
 
                   {!klingMotionControlModel ? (
                     <select
@@ -1252,8 +1274,11 @@ function PlaygroundSurface({
             </div>
           </div>
 
-          <button className={theme.buttonPrimary + " h-20 w-full rounded-2xl px-6 text-sm lg:w-36"} disabled={generateDisabled} type="submit">
-            Generate
+          <button className={theme.buttonPrimary + " h-20 w-full flex-col gap-1 rounded-2xl px-5 text-sm leading-tight lg:w-40"} disabled={generateDisabled} type="submit">
+            <span>Generate</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-78">
+              {formatCreditCost(playgroundCost.credits)} credits
+            </span>
           </button>
         </fieldset>
       </form>
@@ -1795,6 +1820,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   }
 
   const running = Boolean(board?.rows.some((row) => row.status === "QUEUED" || row.status === "GENERATING"));
+  const runCostEstimate = estimateBoardRunCost(board);
 
   if (modelLoading && !model) {
     return <div className="h-[60vh] animate-pulse rounded-[32px] border border-white/8 bg-white/[0.03]" />;
@@ -1810,6 +1836,16 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const showBoardLayoutControl = Boolean(board && activeModeMeta?.kind === "image");
   const activeLayoutMode = board?.settings.sdxlWorkspaceMode ?? "DEFAULT";
   const isActiveFaceSwapLayout = board?.settings.sdxlWorkspaceMode === "FACE_SWAP";
+  const activeGenerationKind = activeModeMeta?.kind ?? "image";
+  const rowReferenceMediaKind = activeGenerationKind === "video" && board?.settings.generationModel === "kling_motion_control" ? "video" : "image";
+  const rowReferenceColumnLabel =
+    activeGenerationKind === "voice"
+      ? "voice reference"
+      : activeGenerationKind === "video"
+        ? rowReferenceMediaKind === "video"
+          ? "video reference"
+          : "image reference"
+        : "image reference";
   const boardLayoutControl = showBoardLayoutControl ? (
     <label className="flex min-w-0 items-center gap-2">
       <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Layout</span>
@@ -1858,11 +1894,29 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
               )}
               {mode === "playground" ? null : (
                 <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    className="inline-flex min-h-10 flex-col justify-center rounded-xl border border-lime-300/28 bg-lime-300/10 px-3 py-1.5 text-left text-lime-100 shadow-[0_0_24px_rgba(190,242,100,0.12)]"
+                    title={`Estimated configured workflow cost: ${formatCreditCost(runCostEstimate.credits)} credits across ${runCostEstimate.rowCount ?? 0} rows and ${runCostEstimate.outputCount ?? 0} output(s). ${runCostEstimate.readyRowCount ?? 0} row(s) are currently run-ready.`}
+                  >
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-lime-100/62">Estimated cost</span>
+                    <span className="whitespace-nowrap text-xs font-bold text-lime-50">
+                      {formatCreditCost(runCostEstimate.credits)} credits · {runCostEstimate.outputCount ?? 0} outputs
+                    </span>
+                  </div>
+                  <button
+                    className={theme.buttonPrimary + " min-h-12 flex-col gap-0.5 rounded-xl px-3 py-2 text-xs leading-tight"}
+                    disabled={!board || running}
+                    onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())}
+                    title={`Estimated configured workflow cost: ${formatCreditCost(runCostEstimate.credits)} credits across ${runCostEstimate.rowCount ?? 0} rows and ${runCostEstimate.outputCount ?? 0} output(s). ${runCostEstimate.readyRowCount ?? 0} row(s) are currently run-ready.`}
+                    type="button"
+                  >
+                    <span>{running ? "Running..." : "Run workflow"}</span>
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] opacity-75">
+                      {formatCreditCost(runCostEstimate.credits)} credits
+                    </span>
+                  </button>
                   <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
                     Clear table
-                  </button>
-                  <button className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"} disabled={!board || running} onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())} type="button">
-                    {running ? "Running..." : "Run workflow"}
                   </button>
                 </div>
               )}
@@ -1968,14 +2022,14 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
 
                 <WorkspaceGrid
                   board={board}
-                  referenceColumnLabel={`${activeModeMeta?.kind ?? "image"} reference`}
-                  referenceColumnLocked={(activeModeMeta?.kind ?? "image") === "voice"}
-                  referenceMediaKind={(activeModeMeta?.kind ?? "image") === "video" ? "video" : "image"}
-                  audioReferenceLocked={(activeModeMeta?.kind ?? "image") === "voice" && board.settings.autoPromptGen}
-                  showAudioReferenceColumn={(activeModeMeta?.kind ?? "image") === "voice"}
-                  showFaceSwapColumn={(activeModeMeta?.kind ?? "image") === "image"}
-                  showPoseColumn={(activeModeMeta?.kind ?? "image") === "image" && !isActiveFaceSwapLayout && !(board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode))}
-                  showUpscaleColumn={(activeModeMeta?.kind ?? "image") === "image" && !isActiveFaceSwapLayout && board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode)}
+                  referenceColumnLabel={rowReferenceColumnLabel}
+                  referenceColumnLocked={activeGenerationKind === "voice"}
+                  referenceMediaKind={rowReferenceMediaKind}
+                  audioReferenceLocked={activeGenerationKind === "voice" && board.settings.autoPromptGen}
+                  showAudioReferenceColumn={activeGenerationKind === "voice"}
+                  showFaceSwapColumn={activeGenerationKind === "image"}
+                  showPoseColumn={activeGenerationKind === "image" && !isActiveFaceSwapLayout && !(board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode))}
+                  showUpscaleColumn={activeGenerationKind === "image" && !isActiveFaceSwapLayout && board.settings.generationModel === "sdxl" && !isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode)}
                   onAddRow={async () => {
                     await addRowMutation({ variables: { boardId: board.id } });
                     await refetchBoard();
@@ -1986,9 +2040,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                     await deleteRowMutation({ variables: { boardId: board.id, rowId } });
                     await refetchBoard();
                   }}
-                  onPickReference={(row) =>
-                    setPickerState((activeModeMeta?.kind ?? "image") === "video" ? { kind: "row-video", row } : { kind: "row", row })
-                  }
+                  onPickReference={(row) => setPickerState(rowReferenceMediaKind === "video" ? { kind: "row-video", row } : { kind: "row", row })}
                   onPickAudioReference={(row) => setPickerState({ kind: "row-audio", row })}
                   onUploadAudioReference={(row, file) => handleUploadRowAudioReference(row, file)}
                   onUploadReference={(row, file) => handleUploadRowReference(row, file)}

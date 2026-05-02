@@ -103,7 +103,10 @@ export function normalizePoseMultiplierGenerationModel(value: unknown, fallbackV
 }
 
 export function getMaxBoardQuantityForGenerationModel(generationModel: WorkerGenerationModel | string): number {
-  if (VIDEO_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VIDEO_WORKER_GENERATION_MODELS)[number])) {
+  if (
+    VIDEO_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VIDEO_WORKER_GENERATION_MODELS)[number]) ||
+    VOICE_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VOICE_WORKER_GENERATION_MODELS)[number])
+  ) {
     return 1;
   }
 
@@ -121,8 +124,16 @@ export function getAllowedResolutionsForGenerationModel(generationModel: WorkerG
     return ["1k", "2k"];
   }
 
+  if (generationModel === "nb2") {
+    return ["1k", "2k", "4k"];
+  }
+
+  if (generationModel === "gpt_2") {
+    return ["1k", "2k", "4k"];
+  }
+
   if (generationModel === "sd_4_5") {
-    return ["2k", "4k"];
+    return ["1k", "2k", "4k"];
   }
 
   if (generationModel === "kling_o1") {
@@ -134,11 +145,11 @@ export function getAllowedResolutionsForGenerationModel(generationModel: WorkerG
   }
 
   if (generationModel === "kling_3_0") {
-    return ["720p", "1080p", "4k"];
+    return ["1080p", "4k"];
   }
 
   if (generationModel === "kling_motion_control") {
-    return ["720p", "1080p"];
+    return ["1080p"];
   }
 
   if (generationModel === "grok_imagine") {
@@ -223,8 +234,12 @@ export function getAllowedVideoDurationsForGenerationModel(generationModel: Work
     return Array.from({ length: 12 }, (_, index) => index + 4);
   }
 
-  if (generationModel === "kling_3_0" || generationModel === "grok_imagine") {
+  if (generationModel === "kling_3_0") {
     return Array.from({ length: 13 }, (_, index) => index + 3);
+  }
+
+  if (generationModel === "grok_imagine") {
+    return [6, 10];
   }
 
   return [];
@@ -273,12 +288,33 @@ export function normalizeOptionalPosePromptTemplates(templates: unknown, fallbac
   return normalizePosePromptTemplates(templates, fallbackTemplate);
 }
 
-export const SUPPORTED_WORKER_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
+export const SUPPORTED_WORKER_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"] as const;
 
 export type WorkerAspectRatio = (typeof SUPPORTED_WORKER_ASPECT_RATIOS)[number];
 
+const COMMON_WORKER_ASPECT_RATIOS: WorkerAspectRatio[] = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const NANO_BANANA_2_ASPECT_RATIOS: WorkerAspectRatio[] = [...COMMON_WORKER_ASPECT_RATIOS, "1:4", "4:1", "1:8", "8:1"];
+const KLING_O1_ASPECT_RATIOS: WorkerAspectRatio[] = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"];
+const SEEDANCE_ASPECT_RATIOS: WorkerAspectRatio[] = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"];
+
 export function getAllowedAspectRatiosForGenerationModel(generationModel: WorkerGenerationModel | string): WorkerAspectRatio[] {
-  return generationModel === "sdxl" ? SUPPORTED_WORKER_ASPECT_RATIOS.filter((option) => option !== "auto") : [...SUPPORTED_WORKER_ASPECT_RATIOS];
+  if (generationModel === "sdxl") {
+    return COMMON_WORKER_ASPECT_RATIOS.filter((option) => option !== "auto");
+  }
+
+  if (generationModel === "nb2") {
+    return [...NANO_BANANA_2_ASPECT_RATIOS];
+  }
+
+  if (generationModel === "kling_o1") {
+    return [...KLING_O1_ASPECT_RATIOS];
+  }
+
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return [...SEEDANCE_ASPECT_RATIOS];
+  }
+
+  return [...COMMON_WORKER_ASPECT_RATIOS];
 }
 
 export function normalizeAspectRatioForGenerationModel(

@@ -56,15 +56,36 @@ export const poseMultiplierResolutionOptions = ["2k", "4k"] as const;
 export const videoResolutionOptions = ["480p", "720p", "1080p"] as const;
 export const workerResolutionOptions = [...videoResolutionOptions, ...resolutionOptions] as const;
 export const qualityOptions = ["low", "medium", "high"] as const;
-export const aspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
+export const aspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"] as const;
 export const videoDurationOptions = Array.from({ length: 13 }, (_, index) => index + 3);
+
+const commonImageAspectRatioOptions = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] as const;
+const nanoBanana2AspectRatioOptions = [...commonImageAspectRatioOptions, "1:4", "4:1", "1:8", "8:1"] as const;
+const klingO1AspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"] as const;
+const seedanceAspectRatioOptions = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"] as const;
 
 export function isVideoGenerationModel(generationModel: string): boolean {
   return (videoGenerationModelOptions as readonly string[]).includes(generationModel);
 }
 
 export function getAspectRatioOptionsForGenerationModel(generationModel: string): readonly (typeof aspectRatioOptions)[number][] {
-  return generationModel === "sdxl" ? aspectRatioOptions.filter((option) => option !== "auto") : aspectRatioOptions;
+  if (generationModel === "sdxl") {
+    return commonImageAspectRatioOptions.filter((option) => option !== "auto");
+  }
+
+  if (generationModel === "nb2") {
+    return nanoBanana2AspectRatioOptions;
+  }
+
+  if (generationModel === "kling_o1") {
+    return klingO1AspectRatioOptions;
+  }
+
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return seedanceAspectRatioOptions;
+  }
+
+  return commonImageAspectRatioOptions;
 }
 
 export function isSdxlPoseMultiplierWorkspace(generationModel: string, sdxlWorkspaceMode?: string | null): boolean {
@@ -102,7 +123,7 @@ export function normalizeBoardAspectRatio(
 }
 
 export function getMaxQuantityForGenerationModel(generationModel: string): number {
-  if (isVideoGenerationModel(generationModel)) {
+  if (isVideoGenerationModel(generationModel) || (voiceGenerationModelOptions as readonly string[]).includes(generationModel)) {
     return 1;
   }
 
@@ -114,8 +135,16 @@ export function getResolutionOptionsForGenerationModel(generationModel: string):
     return ["1k", "2k"];
   }
 
+  if (generationModel === "nb2") {
+    return ["1k", "2k", "4k"];
+  }
+
+  if (generationModel === "gpt_2") {
+    return ["1k", "2k", "4k"];
+  }
+
   if (generationModel === "sd_4_5") {
-    return ["2k", "4k"];
+    return ["1k", "2k", "4k"];
   }
 
   if (generationModel === "kling_o1") {
@@ -127,18 +156,18 @@ export function getResolutionOptionsForGenerationModel(generationModel: string):
   }
 
   if (generationModel === "kling_3_0") {
-    return ["720p", "1080p", "4k"];
+    return ["1080p", "4k"];
   }
 
   if (generationModel === "kling_motion_control") {
-    return ["720p", "1080p"];
+    return ["1080p"];
   }
 
   if (generationModel === "grok_imagine") {
     return ["480p", "720p"];
   }
 
-  return resolutionOptions;
+  return ["1k", "2k", "4k"];
 }
 
 export function getPoseMultiplierResolutionOptionsForGenerationModel(
@@ -201,8 +230,12 @@ export function getVideoDurationOptionsForGenerationModel(generationModel: strin
     return videoDurationOptions.filter((option) => option >= 4);
   }
 
-  if (generationModel === "kling_3_0" || generationModel === "grok_imagine") {
+  if (generationModel === "kling_3_0") {
     return videoDurationOptions;
+  }
+
+  if (generationModel === "grok_imagine") {
+    return [6, 10];
   }
 
   return [];

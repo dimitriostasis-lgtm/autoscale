@@ -19,6 +19,18 @@
         <span class="status-pill" id="authStatus">Offline</span>
       </header>
 
+      <section class="card power-card" id="powerPanel">
+        <div class="power-copy">
+          <p class="eyebrow">Capture robot</p>
+          <h2 id="pluginPowerTitle">Always On</h2>
+          <p id="pluginPowerCopy">The capture button appears on supported media pages.</p>
+        </div>
+        <button class="power-toggle" id="pluginToggle" type="button" aria-pressed="true">
+          <span class="power-track" aria-hidden="true"><span class="power-knob"></span></span>
+          <span id="pluginToggleLabel">On</span>
+        </button>
+      </section>
+
       <section class="card login-card" id="loginPanel">
         <form id="loginForm">
           <label>
@@ -43,7 +55,15 @@
       </section>
 
       <section class="workspace hidden" id="workspacePanel">
-        <section class="card account-card">
+        <section class="card account-card collapsible" data-section="account">
+          <button class="section-toggle" type="button" aria-expanded="true">
+            <span>
+              <span class="eyebrow">Account</span>
+              <span class="section-title">Profile</span>
+            </span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="section-body">
           <div class="account-row">
             <div class="min">
               <p class="label">Signed in</p>
@@ -56,15 +76,18 @@
             Influencer profile
             <select id="modelSelect"></select>
           </label>
+          </div>
         </section>
 
-        <section class="card">
-          <div class="section-head">
+        <section class="card collapsible" data-section="routing">
+          <button class="section-toggle" type="button" aria-expanded="true">
             <div>
               <p class="eyebrow">Routing</p>
-              <h2>Capture Targets</h2>
+              <span class="section-title">Capture Targets</span>
             </div>
-          </div>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="section-body">
           <div class="route-grid">
             <fieldset class="route-card">
               <legend>Images</legend>
@@ -85,15 +108,18 @@
               <div class="audio-note">Voice table</div>
             </fieldset>
           </div>
+          </div>
         </section>
 
-        <section class="card">
-          <div class="section-head">
+        <section class="card collapsible" data-section="workflow">
+          <button class="section-toggle" type="button" aria-expanded="true">
             <div>
               <p class="eyebrow">Workflow</p>
-              <h2>Run Setup</h2>
+              <span class="section-title">Run Setup</span>
             </div>
-          </div>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="section-body">
           <div class="two-col">
             <label>
               Workflow
@@ -110,15 +136,18 @@
               </select>
             </label>
           </div>
+          </div>
         </section>
 
-        <section class="card controls-card">
-          <div class="section-head">
+        <section class="card controls-card collapsible" data-section="image">
+          <button class="section-toggle" type="button" aria-expanded="true">
             <div>
               <p class="eyebrow">Image Gen</p>
-              <h2>Layout & Quality</h2>
+              <span class="section-title">Layout & Quality</span>
             </div>
-          </div>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="section-body">
           <div class="controls-grid">
             <label>
               Layout
@@ -133,6 +162,10 @@
               <select id="imageModelSelect"></select>
             </label>
             <label>
+              Quality
+              <select id="imageQualitySelect"></select>
+            </label>
+            <label>
               Resolution
               <select id="imageResolutionSelect"></select>
             </label>
@@ -145,15 +178,18 @@
               <select id="imageQuantitySelect"></select>
             </label>
           </div>
+          </div>
         </section>
 
-        <section class="card controls-card">
-          <div class="section-head compact">
+        <section class="card controls-card collapsible" data-section="media">
+          <button class="section-toggle" type="button" aria-expanded="true">
             <div>
               <p class="eyebrow">Video & Audio</p>
-              <h2>Media Settings</h2>
+              <span class="section-title">Media Settings</span>
             </div>
-          </div>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          <div class="section-body">
           <div class="controls-grid media-grid">
             <label>
               Video model
@@ -171,6 +207,7 @@
               Audio model
               <select id="audioModelSelect"></select>
             </label>
+          </div>
           </div>
         </section>
 

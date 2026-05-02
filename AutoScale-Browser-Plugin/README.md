@@ -6,12 +6,14 @@ Chrome Manifest V3 extension for capturing primary media from webpages into Auto
 
 - Detects high-quality page images, videos, and audio while ignoring small UI media such as icons, logos, avatars, buttons, and thumbnails.
 - Shows a `Robot` button over a valid asset while the pointer is over that asset.
+- Includes an always-on/off switch in the popup. When paused, the robot button is hidden on all pages and the extension badge shows `OFF`.
 - Sends the selected visible asset/page reference to the AutoScale server, which downloads and stores the asset before placing it in the next available row for the selected influencer profile.
 - Routes assets by type:
   - Images -> Image table, using the popup SFW/NSFW toggle.
   - Videos -> Video table, using the popup SFW/NSFW toggle.
   - Audio -> Voice/audio table.
-- Lets the popup configure the run target, workflow label, image layout, image/video models, resolution, aspect ratio, quantity, duration, and audio model before captured assets create or update tables.
+- Lets the popup configure the run target, workflow label, image layout, image/video models, GPT-2 quality, resolution, aspect ratio, quantity, duration, and audio model before captured assets create or update tables.
+- Keeps the popup organized with collapsible account, routing, workflow, image, and media sections.
 - Adds rows until a table reaches 8 rows, then creates the next table for that asset type.
 - Runs all tables touched in the current plugin session from the popup.
 

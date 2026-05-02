@@ -8,7 +8,11 @@ const VIDEO_NSFW_MODELS = ["sd_2_0", "sd_2_0_fast", "grok_imagine"];
 const VOICE_MODELS = ["eleven_v3"];
 const POSE_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2"];
 const RESOLUTIONS = ["480p", "720p", "1080p", "1k", "2k", "4k"];
-const ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"];
+const ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"];
+const COMMON_IMAGE_ASPECT_RATIOS = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const NANO_BANANA_2_ASPECT_RATIOS = [...COMMON_IMAGE_ASPECT_RATIOS, "1:4", "4:1", "1:8", "8:1"];
+const KLING_O1_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"];
+const SEEDANCE_ASPECT_RATIOS = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"];
 
 const MODE_PREFIXES = {
   "image-nsfw": "__autoscale_workspace_nsfw__:",
@@ -29,6 +33,7 @@ const MODE_MODEL_OPTIONS = {
 };
 
 const DEFAULT_STATE = {
+  enabled: true,
   serverUrl: "http://localhost:4000",
   csrfToken: null,
   user: null,
@@ -45,6 +50,7 @@ const DEFAULT_STATE = {
   config: {
     imageLayout: "DEFAULT",
     imageModel: "nb_pro",
+    imageQuality: "medium",
     imageResolution: "2k",
     imageAspectRatio: "3:4",
     imageQuantity: 4,
@@ -59,6 +65,9 @@ const DEFAULT_STATE = {
     audio: 0,
   },
   touchedBoardIds: [],
+  ui: {
+    collapsedSections: {},
+  },
   lastMessage: "",
 };
 
@@ -241,6 +250,15 @@ function mergeState(value = {}) {
     workflow: { ...DEFAULT_STATE.workflow, ...(value.workflow || {}) },
     config: { ...DEFAULT_STATE.config, ...(value.config || {}) },
     sessionCounts: { ...DEFAULT_STATE.sessionCounts, ...(value.sessionCounts || {}) },
+    ui: {
+      ...DEFAULT_STATE.ui,
+      ...(value.ui || {}),
+      collapsedSections: {
+        ...DEFAULT_STATE.ui.collapsedSections,
+        ...(value.ui?.collapsedSections || {}),
+      },
+    },
+    enabled: value.enabled !== false,
     touchedBoardIds: Array.isArray(value.touchedBoardIds) ? value.touchedBoardIds : [],
     models: Array.isArray(value.models) ? value.models : [],
   };
@@ -260,6 +278,13 @@ async function saveState(nextState) {
 
 function updateBadge(state) {
   const total = (state.sessionCounts.image || 0) + (state.sessionCounts.video || 0) + (state.sessionCounts.audio || 0);
+  if (state.enabled === false) {
+    chrome.action.setBadgeBackgroundColor({ color: "#fbbf24" });
+    chrome.action.setBadgeTextColor?.({ color: "#111111" });
+    chrome.action.setBadgeText({ text: "OFF" });
+    return;
+  }
+
   chrome.action.setBadgeBackgroundColor({ color: "#bef264" });
   chrome.action.setBadgeTextColor?.({ color: "#111111" });
   chrome.action.setBadgeText({ text: total > 0 ? String(Math.min(total, 99)) : "" });
@@ -352,11 +377,13 @@ function modeForAssetKind(kind, safety) {
 
 function getAllowedResolutions(generationModel) {
   if (generationModel === "sdxl") return ["1k", "2k"];
-  if (generationModel === "sd_4_5") return ["2k", "4k"];
+  if (generationModel === "nb2") return ["1k", "2k", "4k"];
+  if (generationModel === "gpt_2") return ["1k", "2k", "4k"];
+  if (generationModel === "sd_4_5") return ["1k", "2k", "4k"];
   if (generationModel === "kling_o1") return ["1k", "2k"];
   if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") return ["480p", "720p", "1080p"];
-  if (generationModel === "kling_3_0") return ["720p", "1080p", "4k"];
-  if (generationModel === "kling_motion_control") return ["720p", "1080p"];
+  if (generationModel === "kling_3_0") return ["1080p", "4k"];
+  if (generationModel === "kling_motion_control") return ["1080p"];
   if (generationModel === "grok_imagine") return ["480p", "720p"];
   return ["1k", "2k", "4k"];
 }
@@ -389,8 +416,11 @@ function getVideoDurations(generationModel) {
   if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
     return Array.from({ length: 12 }, (_, index) => index + 4);
   }
-  if (generationModel === "kling_3_0" || generationModel === "grok_imagine") {
+  if (generationModel === "kling_3_0") {
     return Array.from({ length: 13 }, (_, index) => index + 3);
+  }
+  if (generationModel === "grok_imagine") {
+    return [6, 10];
   }
   return [];
 }
@@ -413,20 +443,38 @@ function isPoseWorkspace(generationModel, sdxlWorkspaceMode) {
   return isImageModel(generationModel) && sdxlWorkspaceMode === "POSE_MULTIPLIER";
 }
 
-function normalizeAspectRatio(generationModel, value, sdxlWorkspaceMode) {
+function getAllowedAspectRatios(generationModel, sdxlWorkspaceMode) {
   if (generationModel === "kling_motion_control" || isPoseWorkspace(generationModel, sdxlWorkspaceMode)) {
-    return "auto";
+    return ["auto"];
   }
 
-  if (generationModel === "sdxl" && value === "auto") {
-    return "1:1";
+  if (generationModel === "sdxl") {
+    return COMMON_IMAGE_ASPECT_RATIOS.filter((option) => option !== "auto");
   }
 
-  return ASPECT_RATIOS.includes(value) ? value : "1:1";
+  if (generationModel === "nb2") {
+    return NANO_BANANA_2_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "kling_o1") {
+    return KLING_O1_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+    return SEEDANCE_ASPECT_RATIOS;
+  }
+
+  return COMMON_IMAGE_ASPECT_RATIOS;
+}
+
+function normalizeAspectRatio(generationModel, value, sdxlWorkspaceMode) {
+  const allowed = getAllowedAspectRatios(generationModel, sdxlWorkspaceMode);
+  if (allowed.includes(value)) return value;
+  return allowed[0] || "1:1";
 }
 
 function getMaxQuantity(generationModel) {
-  if (isVideoModel(generationModel)) return 1;
+  if (isVideoModel(generationModel) || generationModel === "eleven_v3") return 1;
   return generationModel === "sdxl" ? 20 : 4;
 }
 
@@ -554,7 +602,7 @@ function normalizeSettingsForMode(settings, mode, allowedGenerationModels, confi
     resolution: normalizeResolution(generationModel, requestedResolution),
     poseMultiplierResolution: normalizePoseResolution(settings.poseMultiplierResolution || requestedResolution, poseMultiplierGenerationModel),
     videoDurationSeconds: normalizeVideoDuration(generationModel, Number(config.videoDurationSeconds) || settings.videoDurationSeconds),
-    quality: normalizeQuality(generationModel, settings.quality),
+    quality: normalizeQuality(generationModel, mode.startsWith("image-") ? config.imageQuality : settings.quality),
     aspectRatio: normalizeAspectRatio(generationModel, requestedAspectRatio, sdxlWorkspaceMode),
     quantity: generationModel === "eleven_v3" ? 1 : quantity,
     sdxlWorkspaceMode,
@@ -1130,9 +1178,12 @@ async function captureAsset(rawAsset) {
 
 async function handleLogin(payload) {
   const serverUrl = normalizeServerUrl(payload.serverUrl);
+  const currentState = await loadState();
   const state = await saveState({
     ...DEFAULT_STATE,
     serverUrl,
+    enabled: currentState.enabled !== false,
+    ui: currentState.ui,
   });
   const data = await graphqlRequest(
     LOGIN_MUTATION,
@@ -1160,6 +1211,8 @@ async function handleLogout() {
   return saveState({
     ...DEFAULT_STATE,
     serverUrl: state.serverUrl,
+    enabled: state.enabled !== false,
+    ui: state.ui,
   });
 }
 
@@ -1273,6 +1326,15 @@ async function handleMessage(message) {
           ...state.workflow,
           ...(payload.workflow || {}),
         },
+        ui: {
+          ...state.ui,
+          ...(payload.ui || {}),
+          collapsedSections: {
+            ...(state.ui?.collapsedSections || {}),
+            ...(payload.ui?.collapsedSections || {}),
+          },
+        },
+        enabled: typeof payload.enabled === "boolean" ? payload.enabled : state.enabled !== false,
       }),
     };
   }
