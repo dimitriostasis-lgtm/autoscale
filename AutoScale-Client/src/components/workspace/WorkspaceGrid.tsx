@@ -64,6 +64,17 @@ function assetExtension(fileName: string): string {
   return fileName.split(".").pop()?.toLowerCase() ?? "";
 }
 
+function ExpandIcon({ className = "size-3.5" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 20 20">
+      <path
+        d="M11.25 3.5a.75.75 0 0 1 .75-.75h3.25a2 2 0 0 1 2 2V8a.75.75 0 0 1-1.5 0V4.75a.5.5 0 0 0-.5-.5H12a.75.75 0 0 1-.75-.75ZM2.75 12a.75.75 0 0 1 1.5 0v3.25a.5.5 0 0 0 .5.5H8a.75.75 0 0 1 0 1.5H4.75a2 2 0 0 1-2-2V12Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function WorkspaceGrid({
   board,
   referenceColumnLabel,
@@ -86,7 +97,12 @@ export function WorkspaceGrid({
   const [promptDrafts, setPromptDrafts] = useState<Record<string, string>>({});
   const [improvingPromptRowId, setImprovingPromptRowId] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<{ src: string; label: string; error?: string | null } | null>(null);
-  const [outputPreview, setOutputPreview] = useState<{ rowLabel: string; assets: GeneratedAsset[] } | null>(null);
+  const [outputPreview, setOutputPreview] = useState<{
+    rowLabel: string;
+    columnLabel: string;
+    assets: GeneratedAsset[];
+    selectedAssetId?: string;
+  } | null>(null);
   const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode);
   const isFaceSwapWorkspaceLayout = board.settings.sdxlWorkspaceMode === "FACE_SWAP";
   const isVideoReference = referenceMediaKind === "video";
@@ -225,7 +241,28 @@ export function WorkspaceGrid({
       if (event.key === "Escape") {
         setVideoPreview(null);
         setOutputPreview(null);
+        return;
       }
+
+      if (!outputPreview || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) {
+        return;
+      }
+
+      setOutputPreview((current) => {
+        if (!current || current.assets.length < 2) {
+          return current;
+        }
+
+        const currentIndex = current.assets.findIndex((asset) => asset.id === current.selectedAssetId);
+        if (currentIndex < 0) {
+          return current;
+        }
+
+        event.preventDefault();
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const nextIndex = (currentIndex + direction + current.assets.length) % current.assets.length;
+        return { ...current, selectedAssetId: current.assets[nextIndex]?.id ?? current.selectedAssetId };
+      });
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -258,7 +295,107 @@ export function WorkspaceGrid({
     }, 250);
   }
 
-  const renderOutputAsset = (asset: GeneratedAsset, index: number, variant: "inline" | "modal" = "inline") => {
+  function openOutputPreview(row: WorkspaceRow, assets: GeneratedAsset[], columnLabel: string, selectedAssetId?: string): void {
+    if (!assets.length) {
+      return;
+    }
+
+    setOutputPreview({
+      rowLabel: row.label || `Row ${row.orderIndex + 1}`,
+      columnLabel,
+      assets,
+      selectedAssetId: selectedAssetId ?? assets[0]?.id,
+    });
+  }
+
+  function selectOutputPreviewAsset(assetId: string): void {
+    setOutputPreview((current) => (current ? { ...current, selectedAssetId: assetId } : current));
+  }
+
+  function selectAdjacentOutputPreviewAsset(direction: -1 | 1): void {
+    setOutputPreview((current) => {
+      if (!current || current.assets.length < 2) {
+        return current;
+      }
+
+      const currentIndex = current.assets.findIndex((asset) => asset.id === current.selectedAssetId);
+      if (currentIndex < 0) {
+        return current;
+      }
+
+      const nextIndex = (currentIndex + direction + current.assets.length) % current.assets.length;
+      return { ...current, selectedAssetId: current.assets[nextIndex]?.id ?? current.selectedAssetId };
+    });
+  }
+
+  const renderOutputPreviewMain = (asset: GeneratedAsset) => {
+    const extension = assetExtension(asset.fileName);
+
+    if (videoOutputExtensions.has(extension)) {
+      return (
+        <video
+          className="max-h-full max-w-full rounded-2xl border border-white/10 bg-black object-contain shadow-[0_24px_90px_rgba(0,0,0,0.52)]"
+          controls
+          playsInline
+          preload="metadata"
+          src={asset.url}
+        />
+      );
+    }
+
+    if (audioOutputExtensions.has(extension)) {
+      return (
+        <div className="w-[min(92%,640px)] rounded-2xl border border-white/10 bg-white/[0.05] p-5 shadow-[0_24px_90px_rgba(0,0,0,0.52)] backdrop-blur-md">
+          <p className="mb-4 truncate text-sm font-semibold text-white">{asset.fileName}</p>
+          <audio className="w-full" controls preload="metadata" src={asset.url} />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        alt={asset.fileName}
+        className="max-h-full max-w-full rounded-2xl border border-white/10 bg-black/20 object-contain shadow-[0_24px_90px_rgba(0,0,0,0.52)]"
+        src={asset.url}
+      />
+    );
+  };
+
+  const renderOutputPreviewThumb = (asset: GeneratedAsset, index: number, selected: boolean) => {
+    const extension = assetExtension(asset.fileName);
+
+    return (
+      <button
+        key={asset.id}
+        aria-label={`View ${asset.fileName}`}
+        className={cx(
+          "relative h-16 w-16 flex-none overflow-hidden rounded-xl border bg-[#181818] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/70",
+          selected ? "scale-[1.04] border-lime-300/70 opacity-100 shadow-[0_0_0_1px_rgba(199,255,39,0.35),0_12px_28px_rgba(0,0,0,0.36)]" : "border-white/10 opacity-64 hover:border-white/24 hover:opacity-100",
+        )}
+        onClick={() => selectOutputPreviewAsset(asset.id)}
+        type="button"
+      >
+        {videoOutputExtensions.has(extension) ? (
+          <video className="h-full w-full object-cover" muted playsInline preload="metadata" src={asset.url} />
+        ) : audioOutputExtensions.has(extension) ? (
+          <span className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase tracking-[0.14em] text-white/52">Audio</span>
+        ) : (
+          <img alt="" className="h-full w-full object-cover" src={asset.url} />
+        )}
+        <span className="absolute left-1 top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/62 px-1 text-[10px] font-bold text-white/86">
+          {index + 1}
+        </span>
+      </button>
+    );
+  };
+
+  const renderOutputAsset = (
+    asset: GeneratedAsset,
+    index: number,
+    variant: "inline" | "modal" = "inline",
+    onOpen?: (asset: GeneratedAsset) => void,
+    selected = false,
+  ) => {
     const extension = assetExtension(asset.fileName);
     const isModal = variant === "modal";
 
@@ -279,8 +416,36 @@ export function WorkspaceGrid({
       );
     }
 
+    const imageClassName = cx(
+      "relative overflow-hidden rounded-lg border bg-[#181818]",
+      isModal ? "aspect-[4/5] min-h-[220px]" : "aspect-[4/5] min-h-[82px]",
+      selected ? "border-lime-300/60 shadow-[0_0_0_1px_rgba(199,255,39,0.35)]" : "border-white/8",
+    );
+
+    if (!isModal && onOpen) {
+      return (
+        <button
+          key={asset.id}
+          aria-label={`View ${asset.fileName}`}
+          className={cx(imageClassName, "group/output text-left transition hover:border-lime-300/42 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/70")}
+          onClick={() => onOpen(asset)}
+          type="button"
+        >
+          <img alt={asset.fileName} className="h-full w-full object-cover transition duration-200 group-hover/output:scale-[1.025]" src={asset.url} />
+          <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/0 opacity-0 transition duration-200 group-hover/output:bg-black/22 group-hover/output:opacity-100">
+            <span className="inline-flex size-7 items-center justify-center rounded-full border border-white/12 bg-black/34 text-white shadow-[0_8px_22px_rgba(0,0,0,0.32)] backdrop-blur-[3px]">
+              <ExpandIcon />
+            </span>
+          </span>
+          <span className="absolute left-1.5 top-1.5 z-20 inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-black/30 bg-black/58 px-1 text-[10px] font-bold text-white/86 backdrop-blur-sm">
+            {index + 1}
+          </span>
+        </button>
+      );
+    }
+
     return (
-      <div key={asset.id} className={cx("relative overflow-hidden rounded-lg border border-white/8 bg-[#181818]", isModal ? "aspect-[4/5] min-h-[220px]" : "aspect-[4/5] min-h-[82px]")}>
+      <div key={asset.id} className={imageClassName}>
         <img alt={asset.fileName} className="h-full w-full object-cover" src={asset.url} />
         <span className="absolute left-1.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-black/30 bg-black/58 px-1 text-[10px] font-bold text-white/86 backdrop-blur-sm">
           {index + 1}
@@ -289,7 +454,7 @@ export function WorkspaceGrid({
     );
   };
 
-  const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false, assets = row.outputAssets) => {
+  const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false, assets = row.outputAssets, columnLabel = "Outputs") => {
     const outputCount = assets.length;
     const visibleOutputAssets = assets.slice(0, 4);
     const hiddenOutputCount = Math.max(0, outputCount - visibleOutputAssets.length);
@@ -301,11 +466,13 @@ export function WorkspaceGrid({
           compact ? "min-h-[116px] flex-1" : "h-full min-h-[188px]",
         )}
       >
-        {visibleOutputAssets.map((asset, index) => renderOutputAsset(asset, index))}
+        {visibleOutputAssets.map((asset, index) =>
+          renderOutputAsset(asset, index, "inline", (selectedAsset) => openOutputPreview(row, assets, columnLabel, selectedAsset.id)),
+        )}
         {hiddenOutputCount > 0 ? (
           <button
             className="col-span-full inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/18 bg-lime-300/10 px-3 text-xs font-bold uppercase tracking-[0.16em] text-lime-100/82 transition hover:border-lime-200/38 hover:bg-lime-300/16 hover:text-lime-50"
-            onClick={() => setOutputPreview({ rowLabel: row.label || `Row ${row.orderIndex + 1}`, assets })}
+            onClick={() => openOutputPreview(row, assets, columnLabel)}
             type="button"
           >
             View all {outputCount}
@@ -319,6 +486,9 @@ export function WorkspaceGrid({
       </div>
     );
   };
+
+  const selectedOutputPreviewAsset =
+    outputPreview?.assets.find((asset) => asset.id === outputPreview.selectedAssetId) ?? outputPreview?.assets[0] ?? null;
 
   return (
     <section className="h-full overflow-hidden bg-[color:var(--surface-card-strong)]">
@@ -715,7 +885,7 @@ export function WorkspaceGrid({
                   </div>
                 ) : null}
 
-                {showOutputsColumn ? <div className={cellClass}>{renderOutputGrid(row, awaitingOutput)}</div> : null}
+                {showOutputsColumn ? <div className={cellClass}>{renderOutputGrid(row, awaitingOutput, false, row.outputAssets, "Output")}</div> : null}
 
                 {showPoseColumn ? (
                   <div className={cellClass}>
@@ -753,9 +923,9 @@ export function WorkspaceGrid({
                           )}
                         </div>
                         {isPoseMultiplierWorkspaceLayout ? (
-                          renderOutputGrid(row, awaitingPoseOutput, true, row.poseOutputAssets.length ? row.poseOutputAssets : row.outputAssets)
+                          renderOutputGrid(row, awaitingPoseOutput, true, row.poseOutputAssets.length ? row.poseOutputAssets : row.outputAssets, "Pose Multiplier")
                         ) : poseRowActive ? (
-                          renderOutputGrid(row, awaitingPoseOutput, true, row.poseOutputAssets)
+                          renderOutputGrid(row, awaitingPoseOutput, true, row.poseOutputAssets, "Pose Multiplier")
                         ) : awaitingOutput ? (
                           <div className={pendingJobClass}>Pending</div>
                         ) : null}
@@ -840,7 +1010,7 @@ export function WorkspaceGrid({
                           {faceSwapEnabled ? "On" : "Off"}
                         </button>
                         {faceSwapRowActive ? (
-                          renderOutputGrid(row, awaitingFaceSwapOutput, true, row.faceSwapOutputAssets)
+                          renderOutputGrid(row, awaitingFaceSwapOutput, true, row.faceSwapOutputAssets, "Face Swap")
                         ) : !isPoseMultiplierWorkspaceLayout && awaitingOutput ? (
                           <div className={pendingJobClass}>Pending</div>
                         ) : null}
@@ -889,17 +1059,18 @@ export function WorkspaceGrid({
         <div
           aria-label="Output batch preview"
           aria-modal="true"
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/74 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#050505]/92 p-3 backdrop-blur-xl sm:p-4"
           onClick={() => setOutputPreview(null)}
           role="dialog"
         >
           <div
-            className="flex max-h-[88vh] w-[min(94vw,980px)] flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#151515] shadow-[0_28px_90px_rgba(0,0,0,0.52)]"
+            className="relative flex h-[min(96vh,940px)] w-[min(98vw,1240px)] flex-col overflow-hidden rounded-[28px] border border-white/12 bg-[#090909] shadow-[0_34px_120px_rgba(0,0,0,0.72)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(199,255,39,0.08),transparent_34%),radial-gradient(circle_at_18%_88%,rgba(255,255,255,0.05),transparent_32%)]" />
+            <div className="relative z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-black/36 px-4 py-3 backdrop-blur-xl">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">Outputs</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">{outputPreview.columnLabel}</p>
                 <p className="mt-1 truncate text-sm font-semibold text-white">
                   {outputPreview.rowLabel} · {outputPreview.assets.length} files
                 </p>
@@ -918,9 +1089,46 @@ export function WorkspaceGrid({
                 </svg>
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4">
-              {outputPreview.assets.map((asset, index) => renderOutputAsset(asset, index, "modal"))}
-            </div>
+            {selectedOutputPreviewAsset ? (
+              <>
+                <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/18 p-4 sm:p-7">
+                  {outputPreview.assets.length > 1 ? (
+                    <>
+                      <button
+                        aria-label="Previous output"
+                        className="absolute left-3 top-1/2 z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-white/10 bg-black/38 text-white/72 shadow-[0_12px_30px_rgba(0,0,0,0.38)] backdrop-blur-md transition hover:bg-white/10 hover:text-white sm:grid"
+                        onClick={() => selectAdjacentOutputPreviewAsset(-1)}
+                        type="button"
+                      >
+                        <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20">
+                          <path d="M12.7 4.3a.75.75 0 0 1 0 1.06L8.06 10l4.64 4.64a.75.75 0 1 1-1.06 1.06l-5.17-5.17a.75.75 0 0 1 0-1.06l5.17-5.17a.75.75 0 0 1 1.06 0Z" fill="currentColor" />
+                        </svg>
+                      </button>
+                      <button
+                        aria-label="Next output"
+                        className="absolute right-3 top-1/2 z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-white/10 bg-black/38 text-white/72 shadow-[0_12px_30px_rgba(0,0,0,0.38)] backdrop-blur-md transition hover:bg-white/10 hover:text-white sm:grid"
+                        onClick={() => selectAdjacentOutputPreviewAsset(1)}
+                        type="button"
+                      >
+                        <svg aria-hidden="true" className="size-4" viewBox="0 0 20 20">
+                          <path d="M7.3 4.3a.75.75 0 0 1 1.06 0l5.17 5.17a.75.75 0 0 1 0 1.06L8.36 15.7a.75.75 0 1 1-1.06-1.06L11.94 10 7.3 5.36a.75.75 0 0 1 0-1.06Z" fill="currentColor" />
+                        </svg>
+                      </button>
+                    </>
+                  ) : null}
+                  {renderOutputPreviewMain(selectedOutputPreviewAsset)}
+                </div>
+                {outputPreview.assets.length > 1 ? (
+                  <div className="relative z-20 border-t border-white/10 bg-black/42 px-3 py-3 backdrop-blur-xl">
+                    <div className="mx-auto flex max-w-full justify-center">
+                      <div className="flex max-w-full gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.045] p-2 shadow-[0_16px_50px_rgba(0,0,0,0.34)]">
+                        {outputPreview.assets.map((asset, index) => renderOutputPreviewThumb(asset, index, asset.id === selectedOutputPreviewAsset.id))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
