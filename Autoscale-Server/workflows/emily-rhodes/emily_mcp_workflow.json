@@ -985,7 +985,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",
@@ -1030,7 +1030,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",
@@ -1075,7 +1075,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",
@@ -1120,7 +1120,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",
@@ -1165,7 +1165,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",
@@ -1210,7 +1210,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",
@@ -1255,7 +1255,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",
@@ -1300,7 +1300,7 @@
         "Node name for S&R": "GrokVisionLLM"
       },
       "widgets_values": [
-        "Write one concise Higgsfield prompt for multipose variations from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
+        "Write one concise prompt for multipose variation from this generated base image. Preserve the same identity, outfit, style, setting, lighting, and camera feel while changing pose. Return only the final prompt text.",
         "grok-4-1-fast-reasoning",
         1024,
         "You write production-ready image generation prompts. Return only the prompt text, with no labels, quotes, or markdown.",

@@ -219,6 +219,14 @@ async function createWorkerJob(options: {
   workflowPath: string;
   prompt: string;
   generationModel: string;
+  baseGenerationModel: string;
+  baseResolution: string;
+  baseAspectRatio: string;
+  baseQuantity: number;
+  multiposeGenerationModel: string;
+  multiposeResolution: string;
+  multiposeAspectRatio: string;
+  multiposeQuantity: number;
   resolution: string;
   videoDurationSeconds: number | null;
   aspectRatio: string;
@@ -252,6 +260,16 @@ async function createWorkerJob(options: {
   formData.append("workflow_path", options.workflowPath);
   formData.append("prompt", options.prompt);
   formData.append("model", options.generationModel);
+  formData.append("base_model", options.baseGenerationModel);
+  formData.append("base_resolution", options.baseResolution);
+  formData.append("base_aspect_ratio", options.baseAspectRatio);
+  formData.append("base_quantity", String(options.baseQuantity));
+  formData.append("base_quality", options.quality);
+  formData.append("multipose_model", options.multiposeGenerationModel);
+  formData.append("multipose_resolution", options.multiposeResolution);
+  formData.append("multipose_aspect_ratio", options.multiposeAspectRatio);
+  formData.append("multipose_quantity", String(options.multiposeQuantity));
+  formData.append("multipose_quality", options.quality);
   formData.append("resolution", options.resolution);
   if (options.videoDurationSeconds !== null) {
     formData.append("duration", String(options.videoDurationSeconds));
@@ -283,7 +301,7 @@ async function createWorkerJob(options: {
 
   if (options.isFirst) {
     for (const reference of options.globalReferences) {
-      formData.append("reference_images", new Blob([bufferToArrayBuffer(reference.buffer)]), reference.fileName);
+      formData.append("global_reference_images", new Blob([bufferToArrayBuffer(reference.buffer)]), reference.fileName);
     }
   }
 
@@ -450,6 +468,18 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
 
       const rowReference = row.reference ? await readSelectionFile(row.reference, initialStore) : null;
       const audioReference = row.audioReference ? await readSelectionFile(row.audioReference, initialStore) : null;
+      const baseGenerationModel = board.settings.generationModel;
+      const baseResolution = normalizeResolutionForGenerationModel(baseGenerationModel, board.settings.resolution);
+      const baseAspectRatio = normalizeBoardAspectRatio(baseGenerationModel, board.settings.aspectRatio, board.settings.sdxlWorkspaceMode);
+      const baseQuantity = isVideoWorkerModel(baseGenerationModel) || isVoiceWorkerModel(baseGenerationModel) ? 1 : board.settings.quantity;
+      const multiposeGenerationModel = board.settings.poseMultiplierGenerationModel;
+      const multiposeResolution = normalizePoseMultiplierResolution(
+        board.settings.poseMultiplierResolution,
+        multiposeGenerationModel,
+        isNsfwPoseMultiplierWorkspace(board.settings.generationModel, board.settings.sdxlWorkspaceMode, board.name.startsWith("__autoscale_workspace_nsfw__:")),
+      );
+      const multiposeAspectRatio = normalizeBoardAspectRatio(multiposeGenerationModel, board.settings.aspectRatio, board.settings.sdxlWorkspaceMode);
+      const multiposeQuantity = Math.max(1, Math.min(4, row.poseMultiplier));
       const jobId = await createWorkerJob({
         boardRunId,
         boardId,
@@ -464,6 +494,14 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         workflowPath: workflow?.path || "",
         prompt: row.prompt,
         generationModel,
+        baseGenerationModel,
+        baseResolution,
+        baseAspectRatio,
+        baseQuantity,
+        multiposeGenerationModel,
+        multiposeResolution,
+        multiposeAspectRatio,
+        multiposeQuantity,
         resolution,
         videoDurationSeconds,
         aspectRatio,
