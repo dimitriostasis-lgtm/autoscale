@@ -12,6 +12,7 @@ export interface HiggsfieldModelCost {
 const perImage = "Configured website price per generated image. Total run cost is this value multiplied by quantity.";
 const gptPerImage = "Configured GPT Image 2 website price per generated image for this resolution and quality. Total run cost is this value multiplied by quantity.";
 const localAddon = "Configured local website add-on price per image.";
+const automationAddon = "Configured website automation add-on price.";
 
 export const HIGGSFIELD_MODEL_COSTS: HiggsfieldModelCost[] = [
   { generationModel: "nb_pro", higgsfieldModelId: "nano_banana_2", label: "Nano Banana Pro", unit: "image", resolution: "1k", credits: 2, notes: perImage },
@@ -38,6 +39,9 @@ export const HIGGSFIELD_MODEL_COSTS: HiggsfieldModelCost[] = [
   { generationModel: "sdxl", higgsfieldModelId: "sdxl", label: "SDXL Image", unit: "image", credits: 0.01, notes: localAddon },
   { generationModel: "upscale", higgsfieldModelId: "upscale", label: "Upscale", unit: "image", credits: 0.01, notes: localAddon },
   { generationModel: "face_swap", higgsfieldModelId: "face_swap", label: "FaceSwap", unit: "image", credits: 0.1, notes: localAddon },
+  { generationModel: "auto_image", higgsfieldModelId: "auto_image", label: "Auto Image", unit: "row", credits: 0.1, notes: automationAddon },
+  { generationModel: "auto_prompt", higgsfieldModelId: "auto_prompt", label: "Auto Prompt", unit: "row", credits: 0.01, notes: automationAddon },
+  { generationModel: "prompt_improvement", higgsfieldModelId: "prompt_improvement", label: "Prompt Improvement", unit: "click", credits: 0.01, notes: automationAddon },
   { generationModel: "flux_2", higgsfieldModelId: "flux_2", label: "Flux 2 Pro", unit: "image", resolution: "1k", credits: 4, notes: perImage },
   { generationModel: "flux_2", higgsfieldModelId: "flux_2", label: "Flux 2 Pro", unit: "image", resolution: "2k", credits: 6, notes: perImage },
   { generationModel: "sd_2_0", higgsfieldModelId: "seedance_2_0", label: "Seedance 2.0", unit: "5 sec video", resolution: "480p", credits: 45, notes: "Existing video price mapping." },

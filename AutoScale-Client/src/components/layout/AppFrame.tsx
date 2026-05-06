@@ -1,10 +1,12 @@
-import { type PropsWithChildren, useRef, useState } from "react";
+import { type PropsWithChildren, useMemo, useRef, useState } from "react";
+import { useQuery } from "@apollo/client/react";
 
 import autoscaleGroupLogo from "../../assets/autoscale-group-logo.svg";
-import { agencyBillingPlan } from "../../lib/billing";
 import { cx } from "../../lib/cx";
+import { summarizeHiggsfieldConnections } from "../../lib/higgsfieldBalances";
 import type { Route } from "../../lib/router";
-import type { UserRecord } from "../../types";
+import { HIGGSFIELD_ACCOUNT_CONNECTIONS_QUERY } from "../../queries/higgsfield";
+import type { HiggsfieldAccountConnection, UserRecord } from "../../types";
 import { theme } from "../../styles/theme";
 
 function roleLabel(role: UserRecord["role"]): string {
@@ -21,6 +23,10 @@ function roleLabel(role: UserRecord["role"]): string {
   }
 
   return "User";
+}
+
+function formatBalanceCredits(value: number): string {
+  return Math.max(0, Number(value) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function accessTabLabel(role: UserRecord["role"]): string | null {
@@ -94,6 +100,21 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
   const [isAccessMenuOpen, setIsAccessMenuOpen] = useState(false);
   const [mobileHeaderCollapsed, setMobileHeaderCollapsed] = useState(false);
   const accessMenuCloseTimerRef = useRef<number | null>(null);
+  const { data: higgsfieldData, loading: higgsfieldBalanceLoading } = useQuery<{ higgsfieldAccountConnections: HiggsfieldAccountConnection[] }>(
+    HIGGSFIELD_ACCOUNT_CONNECTIONS_QUERY,
+    {
+      fetchPolicy: "cache-and-network",
+      pollInterval: 30000,
+      skip: !isAgencyAdmin,
+    },
+  );
+  const higgsfieldBalanceSummary = useMemo(
+    () => summarizeHiggsfieldConnections(higgsfieldData?.higgsfieldAccountConnections || []),
+    [higgsfieldData?.higgsfieldAccountConnections],
+  );
+  const agencyMcpBalanceLabel = higgsfieldBalanceLoading && !higgsfieldData
+    ? "Checking..."
+    : `${formatBalanceCredits(higgsfieldBalanceSummary.creditBalance)} credits`;
 
   function openAccessMenu(): void {
     if (accessMenuCloseTimerRef.current !== null) {
@@ -344,8 +365,8 @@ export function AppFrame({ currentUser, route, onNavigate, onLogout, themeMode, 
               {isAgencyAdmin ? (
                 <div className="flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-3 py-2 shadow-[var(--shadow-soft)]">
                   <div className="text-center md:text-right">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credits</p>
-                    <p className="text-sm font-bold text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">MCP Balance</p>
+                    <p className="text-sm font-bold text-[color:var(--text-strong)]">{agencyMcpBalanceLabel}</p>
                   </div>
                   <button
                     aria-label="Open billing"

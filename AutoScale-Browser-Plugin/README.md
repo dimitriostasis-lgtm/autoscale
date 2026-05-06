@@ -11,8 +11,10 @@ Chrome Manifest V3 extension for capturing primary media from webpages into Auto
 - Routes assets by type:
   - Images -> Image table, using the popup SFW/NSFW toggle.
   - Videos -> Video table, using the popup SFW/NSFW toggle.
-  - Audio -> Voice/audio table.
-- Lets the popup configure the run target, workflow label, image layout, image/video models, GPT-2 quality, resolution, aspect ratio, quantity, duration, and audio model before captured assets create or update tables.
+  - Audio -> disabled unless a voice worker is added back to the extension model list.
+- Lets the popup configure the run target, workflow label, image layout, curated image/video models, GPT Image 2 quality, model-specific resolution, model-specific aspect ratio, quantity, and duration before captured assets create or update tables.
+- Image workers in the popup are Nano Banana Pro, Nano Banana 2, Seedream 4.5, GPT Image 2, Flux 2 Pro, Kling O1 Image, Flux Kontext Max, Z Image, and SDXL.
+- Video workers in the popup are Seedance 2.0 and Kling 3.0.
 - Keeps the popup organized with collapsible account, routing, workflow, image, and media sections.
 - Adds rows until a table reaches 8 rows, then creates the next table for that asset type.
 - Runs all tables touched in the current plugin session from the popup.

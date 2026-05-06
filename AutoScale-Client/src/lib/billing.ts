@@ -2,18 +2,19 @@ import type { AgencyBillingSettings } from "../types";
 
 export const defaultAgencyBillingSettings: AgencyBillingSettings = {
   monthlySubscriptionPrice: 7500,
-  includedMonthlyCredits: 1000,
+  includedMonthlyCredits: 30000,
   aiInfluencerAllowance: 2,
   workspaceTabAllowance: 9,
   parallelRowGenerations: 8,
   teamSeatAllowance: 4,
 };
 
+export const creditsPerDollar = 30;
+
 export const agencyBillingPlan = {
-  creditBalance: 18400,
   currentPlan: "Starter",
   currentPrice: "$7,500/month",
-  includedCredit: "$1,000/month credits included",
+  includedCredit: "30,000 credits/month included",
   influencerAllowance: defaultAgencyBillingSettings.aiInfluencerAllowance,
   parallelGenerationsPerUser: defaultAgencyBillingSettings.parallelRowGenerations,
   employeeAllowance: defaultAgencyBillingSettings.teamSeatAllowance,
@@ -28,7 +29,7 @@ export const upgradeOptions = [
     badge: "Step up",
     ctaLabel: "Upgrade to 4",
     price: "$12,000/month",
-    includedCredit: "$1,500/month credits included",
+    includedCredit: "45,000 credits/month included",
     parallelGenerationsPerUser: 12,
     note: "Add more creator capacity and request workflow support as your agency production needs grow.",
     supportLabel: "Standard support",
@@ -40,7 +41,7 @@ export const upgradeOptions = [
     badge: "Best value",
     ctaLabel: "Upgrade to 6",
     price: "$12,500/month",
-    includedCredit: "$2,000/month credits included",
+    includedCredit: "60,000 credits/month included",
     parallelGenerationsPerUser: 16,
     featured: true,
     note: "Run more briefs, campaign variants, and creator experiments with room for custom workflow additions.",
@@ -53,7 +54,7 @@ export const upgradeOptions = [
     badge: "Scale tier",
     ctaLabel: "Upgrade to 10",
     price: "$25,000/month",
-    includedCredit: "$5,000/month credits included",
+    includedCredit: "150,000 credits/month included",
     parallelGenerationsPerUser: 24,
     note: "Scale custom workflows, features, models, and LoRAs with infrastructure planned around your agency needs.",
     supportLabel: "Priority launch support",
@@ -72,9 +73,9 @@ export const upgradeOptions = [
 ];
 
 export const creditPurchaseOptions = [
-  { id: "credit-500", label: "$500 credits", amount: 500 },
-  { id: "credit-1000", label: "$1,000 credits", amount: 1000 },
-  { id: "credit-2500", label: "$2,500 credits", amount: 2500 },
+  { id: "credit-500", label: "$500 package", dollarAmount: 500, amount: 500 * creditsPerDollar },
+  { id: "credit-1000", label: "$1,000 package", dollarAmount: 1000, amount: 1000 * creditsPerDollar },
+  { id: "credit-2500", label: "$2,500 package", dollarAmount: 2500, amount: 2500 * creditsPerDollar },
 ];
 
 export const paymentMethodOptions = [

@@ -2,9 +2,10 @@ import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState 
 
 import { AgencyDeleteModal } from "./AgencyDeleteModal";
 import { ProfileImageCropModal } from "./ProfileImageCropModal";
-import { agencyBillingPlan, defaultAgencyBillingSettings } from "../../lib/billing";
+import { defaultAgencyBillingSettings } from "../../lib/billing";
 import { cx } from "../../lib/cx";
 import { estimateGenerationModelCost } from "../../lib/generationCosts";
+import { buildAgencyHiggsfieldBalance, summarizeHiggsfieldConnections } from "../../lib/higgsfieldBalances";
 import { uploadReferenceFile } from "../../lib/uploads";
 import { InfluencerAvatar } from "../model/InfluencerAvatar";
 import {
@@ -128,6 +129,7 @@ type ModelProfileDraft = Pick<ModelFormState, "avatarImageUrl" | "handle" | "nam
 type AvatarCropTarget = "create" | "edit";
 
 type CreditAccessMode = "AGENCY_POOL" | "USER_ALLOCATION";
+type HiggsfieldStatusFilter = "ALL" | "CONNECTED" | "NEEDS_LOGIN" | "ISSUES";
 
 type AgencyBillingSettingsDraft = Record<keyof AgencyBillingSettings, string>;
 
@@ -326,7 +328,7 @@ function estimateAssetCreditCost(asset: Pick<GeneratedAsset, "aspectRatio" | "ge
 
 function formatCreditCount(value: number | null | undefined): string {
   const normalizedValue = Math.max(0, Number(value) || 0);
-  return `${normalizedValue.toLocaleString()} credit${normalizedValue === 1 ? "" : "s"}`;
+  return `${normalizedValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} credit${normalizedValue === 1 ? "" : "s"}`;
 }
 
 function formatHiggsfieldCredits(value: number | null | undefined): string {
@@ -780,6 +782,9 @@ export function AccessControlPanel({
   const [influencerAgencyDraft, setInfluencerAgencyDraft] = useState<string[]>([]);
   const [agencyCreditAccessMode, setAgencyCreditAccessMode] = useState<CreditAccessMode>("AGENCY_POOL");
   const [creditAllocationDrafts, setCreditAllocationDrafts] = useState<Record<string, string>>({});
+  const [higgsfieldSearch, setHiggsfieldSearch] = useState("");
+  const [higgsfieldAgencyFilter, setHiggsfieldAgencyFilter] = useState("ALL");
+  const [higgsfieldStatusFilter, setHiggsfieldStatusFilter] = useState<HiggsfieldStatusFilter>("ALL");
   const [higgsfieldBusyId, setHiggsfieldBusyId] = useState<string | null>(null);
 
   const roleOptions = getRoleOptions(currentUser);
@@ -791,8 +796,91 @@ export function AccessControlPanel({
     [higgsfieldConnections],
   );
   const higgsfieldConnectedCount = higgsfieldConnections.filter((connection) => connection.connected).length;
-  const higgsfieldNeedsLoginCount = Math.max(0, models.length - higgsfieldConnectedCount);
-  const higgsfieldTotalCredits = higgsfieldConnections.reduce((sum, connection) => sum + (connection.credits ?? 0), 0);
+  const higgsfieldIssueCount = higgsfieldConnections.filter((connection) => connection.status === "error" || connection.status === "worker_unavailable").length;
+  const higgsfieldNeedsLoginCount = Math.max(0, models.length - higgsfieldConnectedCount - higgsfieldIssueCount);
+  const higgsfieldBalanceSummary = useMemo(() => summarizeHiggsfieldConnections(higgsfieldConnections), [higgsfieldConnections]);
+  const higgsfieldTotalCredits = higgsfieldBalanceSummary.creditBalance;
+  const higgsfieldAgencyOptions = useMemo(() => {
+    const agencyIdsWithModels = new Set(models.flatMap((model) => model.assignedAgencyIds));
+    return agencies.filter((agency) => agencyIdsWithModels.has(agency.id)).sort((left, right) => left.name.localeCompare(right.name));
+  }, [agencies, models]);
+  const higgsfieldHasUnassignedModels = useMemo(() => models.some((model) => model.assignedAgencyIds.length === 0), [models]);
+  const filteredHiggsfieldModels = useMemo(() => {
+    const normalizedQuery = higgsfieldSearch.trim().toLocaleLowerCase();
+
+    return models
+      .filter((model) => {
+        const connection = higgsfieldConnectionsByModelId.get(model.id);
+        const connected = Boolean(connection?.connected);
+        const hasIssue = connection?.status === "error" || connection?.status === "worker_unavailable";
+
+        if (higgsfieldAgencyFilter === "UNASSIGNED" && model.assignedAgencyIds.length > 0) {
+          return false;
+        }
+
+        if (
+          higgsfieldAgencyFilter !== "ALL" &&
+          higgsfieldAgencyFilter !== "UNASSIGNED" &&
+          !model.assignedAgencyIds.includes(higgsfieldAgencyFilter)
+        ) {
+          return false;
+        }
+
+        if (higgsfieldStatusFilter === "CONNECTED" && !connected) {
+          return false;
+        }
+
+        if (higgsfieldStatusFilter === "NEEDS_LOGIN" && (connected || hasIssue)) {
+          return false;
+        }
+
+        if (higgsfieldStatusFilter === "ISSUES" && !hasIssue) {
+          return false;
+        }
+
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        return [
+          model.name,
+          model.handle,
+          model.assignedAgencyNames.join(" "),
+          connection?.email || "",
+          connection?.subscriptionPlanType || "",
+          connection?.status || "",
+        ]
+          .join(" ")
+          .toLocaleLowerCase()
+          .includes(normalizedQuery);
+      })
+      .sort((left, right) => {
+        const leftAgency = left.assignedAgencyNames[0] || "Unassigned";
+        const rightAgency = right.assignedAgencyNames[0] || "Unassigned";
+        return leftAgency.localeCompare(rightAgency) || left.name.localeCompare(right.name);
+      });
+  }, [higgsfieldAgencyFilter, higgsfieldConnectionsByModelId, higgsfieldSearch, higgsfieldStatusFilter, models]);
+  const higgsfieldAgencyGroups = useMemo(() => {
+    const groups = new Map<string, { id: string; label: string; models: InfluencerModel[] }>();
+
+    for (const model of filteredHiggsfieldModels) {
+      const id = model.assignedAgencyIds[0] || "UNASSIGNED";
+      const label = model.assignedAgencyNames[0] || "Unassigned influencers";
+      const group = groups.get(id) || { id, label, models: [] };
+      group.models.push(model);
+      groups.set(id, group);
+    }
+
+    return [...groups.values()].sort((left, right) => {
+      if (left.id === "UNASSIGNED") {
+        return 1;
+      }
+      if (right.id === "UNASSIGNED") {
+        return -1;
+      }
+      return left.label.localeCompare(right.label);
+    });
+  }, [filteredHiggsfieldModels]);
   const maxSalesPoint = Math.max(...selectedSalesSnapshot.chartPoints.map((point) => point.value), 1);
   const salesChart = buildSalesChartGeometry(selectedSalesSnapshot.chartPoints);
   const salesChartGradientId = `sales-chart-area-${salesRange.toLowerCase()}`;
@@ -1031,6 +1119,7 @@ export function AccessControlPanel({
       const agencyDirectUsers = users.filter((user) => user.agencyId === agency.id && (user.role === "USER" || user.role === "AGENCY_MANAGER"));
       const directAssignmentCount = agencyDirectUsers.reduce((sum, user) => sum + user.assignedModelIds.length, 0);
       const directAssigneeCount = agencyDirectUsers.filter((user) => user.assignedModelIds.length > 0).length;
+      const higgsfieldBalance = buildAgencyHiggsfieldBalance(agency.id, assignedModels, higgsfieldConnectionsByModelId);
 
       return {
         agency,
@@ -1038,15 +1127,18 @@ export function AccessControlPanel({
         billingSettings,
         influencerCapacity,
         activeAccounts: agency.activeCount,
-        creditBalance: agencyBillingPlan.creditBalance,
+        creditBalance: higgsfieldBalance.creditBalance,
         directAssigneeCount,
         directAssignmentCount,
+        mcpAccountCount: higgsfieldBalance.accountCount,
+        mcpAccountEmails: higgsfieldBalance.accountEmails,
+        mcpConnectedInfluencerCount: higgsfieldBalance.connectedInfluencerCount,
         memberCount: agency.memberCount,
         openInfluencerSlots: Math.max(0, influencerCapacity - assignedModels.length),
         overCapacityCount: Math.max(0, assignedModels.length - influencerCapacity),
       };
     });
-  }, [agencies, models, users]);
+  }, [agencies, higgsfieldConnectionsByModelId, models, users]);
   const platformAgencyTotals = useMemo(
     () => ({
       agencies: platformAgencyRows.length,
@@ -1055,6 +1147,7 @@ export function AccessControlPanel({
       influencerCapacity: platformAgencyRows.reduce((sum, row) => sum + row.influencerCapacity, 0),
       overCapacityAgencies: platformAgencyRows.filter((row) => row.overCapacityCount > 0).length,
       activeAccounts: platformAgencyRows.reduce((sum, row) => sum + row.activeAccounts, 0),
+      mcpAccounts: platformAgencyRows.reduce((sum, row) => sum + row.mcpAccountCount, 0),
     }),
     [platformAgencyRows],
   );
@@ -1192,7 +1285,12 @@ export function AccessControlPanel({
       }, 0),
     [agencyCreditAssignableUsers, creditAllocationDrafts],
   );
-  const agencyCreditUnallocatedBalance = Math.max(0, agencyBillingPlan.creditBalance - agencyCreditAllocationTotal);
+  const agencyHiggsfieldBalance = useMemo(
+    () => buildAgencyHiggsfieldBalance(agencySummaryAgencyId, agencyAvailableModels, higgsfieldConnectionsByModelId),
+    [agencyAvailableModels, agencySummaryAgencyId, higgsfieldConnectionsByModelId],
+  );
+  const agencyMcpCreditBalance = agencyHiggsfieldBalance.creditBalance;
+  const agencyCreditUnallocatedBalance = Math.max(0, agencyMcpCreditBalance - agencyCreditAllocationTotal);
   const assignableModels = useMemo(() => models.filter((model) => model.isActive), [models]);
   const createAssignableModels = useMemo(() => {
     if (createForm.role !== "USER" || !createForm.agencyId) {
@@ -1289,11 +1387,11 @@ export function AccessControlPanel({
       const storedPolicy = readStoredAgencyCreditPolicy(agencySummaryAgencyId);
       const assignableIds = new Set(agencyCreditAssignableUsers.map((user) => user.id));
       const next: Record<string, string> = {};
-      let remainingCredits = agencyBillingPlan.creditBalance;
+      let remainingCredits = agencyMcpCreditBalance;
       let changed = false;
 
       for (const user of agencyCreditAssignableUsers) {
-        const cappedAllocation = clampCreditAmount(current[user.id] ?? storedPolicy?.allocations[user.id], remainingCredits);
+        const cappedAllocation = clampCreditAmount(storedPolicy?.allocations[user.id] ?? current[user.id], remainingCredits);
         next[user.id] = String(cappedAllocation);
         remainingCredits -= cappedAllocation;
         changed ||= next[user.id] !== current[user.id];
@@ -1303,7 +1401,7 @@ export function AccessControlPanel({
 
       return changed ? next : current;
     });
-  }, [agencyCreditAssignableUsers, agencySummaryAgencyId]);
+  }, [agencyCreditAssignableUsers, agencyMcpCreditBalance, agencySummaryAgencyId]);
 
   function showNotice(placement: NoticePlacement, tone: Notice["tone"], text: string): void {
     setNotice({ placement, tone, text });
@@ -1875,7 +1973,7 @@ export function AccessControlPanel({
 
         return sum + parseCreditAmount(current[user.id]);
       }, 0);
-      const maxAllocation = Math.max(0, agencyBillingPlan.creditBalance - otherAllocatedCredits);
+      const maxAllocation = Math.max(0, agencyMcpCreditBalance - otherAllocatedCredits);
       const nextDrafts = { ...current, [userId]: String(clampCreditAmount(value, maxAllocation)) };
       writeStoredAgencyCreditPolicy(agencySummaryAgencyId, {
         mode: agencyCreditAccessMode,
@@ -2494,9 +2592,9 @@ export function AccessControlPanel({
           <div className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7" style={sectionHeaderGlowStyle}>
             <p className="text-xs uppercase tracking-[0.22em] text-white/42">Overview</p>
             <h2 className="font-display mt-2 text-2xl text-white sm:text-3xl">Platform summary</h2>
-            <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
-              A compact operations view for agency credits, influencer capacity, account load, and gallery output across the platform.
-            </p>
+              <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
+                A compact operations view for live Higgsfield balances, influencer capacity, account load, and gallery output across the platform.
+              </p>
           </div>
 
           <div className="grid gap-px bg-white/8 md:grid-cols-2 xl:grid-cols-4">
@@ -2531,10 +2629,12 @@ export function AccessControlPanel({
             </div>
 
             <div className="border border-white/10 bg-[color:var(--surface-card-strong)] px-6 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:px-7 sm:py-7">
-              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Agency Credits</p>
-              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{platformAgencyTotals.creditBalance.toLocaleString()}</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-white/42">Higgsfield MCP Credits</p>
+              <p className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                {platformAgencyTotals.creditBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </p>
               <p className="mt-3 text-sm leading-7 text-white/60">
-                Total credit balance currently shown across all agencies.
+                Agency-scoped MCP balances, de-duped by account email inside each agency.
               </p>
             </div>
 
@@ -2561,7 +2661,7 @@ export function AccessControlPanel({
                 <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--text-muted)]">Agency Operations</p>
                 <h3 className="font-display mt-2 text-2xl text-[color:var(--text-strong)]">Capacity and credit control</h3>
                 <p className="mt-3 max-w-4xl text-sm leading-7 text-[color:var(--text-muted)]">
-                  Built for large agency rosters: search agencies, sort by risk or usage, and scan agency-owned influencer capacity, direct user grants, and credit balances without endless card scrolling.
+                  Built for large agency rosters: search agencies, sort by risk or usage, and scan agency-owned influencer capacity, direct user grants, and MCP balances without endless card scrolling.
                 </p>
               </div>
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[520px] sm:flex-row">
@@ -2588,6 +2688,9 @@ export function AccessControlPanel({
               </span>
               <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
                 {platformAgencyTotals.overCapacityAgencies.toLocaleString()} over-capacity agencies
+              </span>
+              <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
+                {platformAgencyTotals.mcpAccounts.toLocaleString()} agency-scoped MCP account{platformAgencyTotals.mcpAccounts === 1 ? "" : "s"}
               </span>
             </div>
 
@@ -2620,7 +2723,14 @@ export function AccessControlPanel({
                           <div>
                             <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:hidden">Credits</p>
                             <p className="font-semibold text-[color:var(--text-strong)]">{formatCreditCount(row.creditBalance)}</p>
-                            <p className="mt-1 text-xs text-[color:var(--text-muted)]">Current agency balance</p>
+                            <p className="mt-1 text-xs text-[color:var(--text-muted)]">
+                              {row.mcpAccountCount
+                                ? `${row.mcpAccountCount.toLocaleString()} unique MCP account${row.mcpAccountCount === 1 ? "" : "s"} across ${row.mcpConnectedInfluencerCount.toLocaleString()} connected influencer${row.mcpConnectedInfluencerCount === 1 ? "" : "s"}`
+                                : "No connected Higgsfield MCP accounts"}
+                            </p>
+                            {row.mcpAccountEmails.length ? (
+                              <p className="mt-1 truncate text-xs text-[color:var(--text-muted)]">{row.mcpAccountEmails.slice(0, 2).join(", ")}</p>
+                            ) : null}
                           </div>
                           <div>
                             <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)] xl:hidden">Agency-owned influencers</p>
@@ -2796,7 +2906,13 @@ export function AccessControlPanel({
 
             <div className="mt-6 grid gap-3 md:grid-cols-3">
               {[
-                ["Agency pool", formatCreditCount(agencyBillingPlan.creditBalance), "Monthly credit balance"],
+                [
+                  "Higgsfield MCP",
+                  formatCreditCount(agencyMcpCreditBalance),
+                  agencyHiggsfieldBalance.accountCount
+                    ? `${agencyHiggsfieldBalance.accountCount} unique account${agencyHiggsfieldBalance.accountCount === 1 ? "" : "s"} connected`
+                    : "No connected MCP accounts",
+                ],
                 ["Spent estimate", formatCreditCount(agencyEstimatedCreditsSpent), "Based on generated outputs"],
                 ["Unallocated", formatCreditCount(agencyCreditUnallocatedBalance), "Remaining after user caps"],
               ].map(([label, value, hint]) => (
@@ -2900,7 +3016,7 @@ export function AccessControlPanel({
                   const maxAllocationForUser = canReceiveAllocation
                     ? Math.max(
                         0,
-                        agencyBillingPlan.creditBalance -
+                        agencyMcpCreditBalance -
                           agencyCreditAssignableUsers.reduce((sum, user) => {
                             if (user.id === row.user.id) {
                               return sum;
@@ -2934,7 +3050,7 @@ export function AccessControlPanel({
                               max={maxAllocationForUser}
                               min="0"
                               onChange={(event) => handleCreditAllocationChange(row.user.id, event.target.value)}
-                              step="100"
+                              step="0.01"
                               type="number"
                               value={creditAllocationDrafts[row.user.id] ?? "0"}
                             />
@@ -3716,7 +3832,7 @@ export function AccessControlPanel({
                         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           {[
                             ["monthlySubscriptionPrice", "Monthly Subscription", "USD per month"],
-                            ["includedMonthlyCredits", "Included Monthly Credits", "USD credits per month"],
+                            ["includedMonthlyCredits", "Included Monthly Credits", "Credits included per month"],
                             ["aiInfluencerAllowance", "AI Influencer Allowance", "Per agency"],
                             ["workspaceTabAllowance", "Workspace Tab Allowance", "Per employee"],
                             ["parallelRowGenerations", "Parallel Row Generations", "Per seat"],
@@ -4455,8 +4571,8 @@ export function AccessControlPanel({
                 </p>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-white/56">
                   {agencyOpenInfluencerSlots > 0
-                    ? `${agencyOpenInfluencerSlots} AI Influencer slot${agencyOpenInfluencerSlots === 1 ? "" : "s"} still available on ${agencyBillingPlan.currentPlan} Plan.`
-                    : `${agencyBillingPlan.currentPlan} allowance is fully used. Upgrade the plan to add another influencer.`}
+                    ? `${agencyOpenInfluencerSlots} AI Influencer slot${agencyOpenInfluencerSlots === 1 ? "" : "s"} still available on this agency plan.`
+                    : "This agency allowance is fully used. Upgrade the plan to add another influencer."}
                 </p>
               </div>
               <button
@@ -4489,12 +4605,13 @@ export function AccessControlPanel({
                   Connect a dedicated Higgsfield account to each influencer so runs use the right saved token, balance, and workspace context.
                 </p>
               </div>
-              <div className="grid w-full grid-cols-2 gap-3 sm:w-auto xl:grid-cols-4">
+              <div className="grid w-full grid-cols-2 gap-3 sm:w-auto xl:grid-cols-5">
                 {[
                   ["Influencers", models.length.toLocaleString()],
                   ["Connected", `${higgsfieldConnectedCount} / ${models.length}`],
                   ["Needs login", higgsfieldNeedsLoginCount.toLocaleString()],
-                  ["Total balance", formatHiggsfieldCredits(higgsfieldTotalCredits)],
+                  ["Issues", higgsfieldIssueCount.toLocaleString()],
+                  ["Unique balance", formatHiggsfieldCredits(higgsfieldTotalCredits)],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                     <p className="text-xs uppercase tracking-[0.16em] text-white/42">{label}</p>
@@ -4506,109 +4623,185 @@ export function AccessControlPanel({
           </div>
 
           <div className="bg-[color:var(--surface-card)] p-5 sm:p-6">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-white">Connection roster</p>
-                <p className="mt-1 text-sm text-white/52">Login opens the Higgsfield authentication window for that influencer.</p>
-              </div>
+            <div className="mb-5 grid gap-4 xl:grid-cols-[minmax(260px,1fr)_220px_190px_auto] xl:items-end">
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Search influencers</span>
+                <input
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  onChange={(event) => setHiggsfieldSearch(event.target.value)}
+                  placeholder="Name, handle, agency, email..."
+                  type="search"
+                  value={higgsfieldSearch}
+                />
+              </label>
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Agency</span>
+                <select
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  onChange={(event) => setHiggsfieldAgencyFilter(event.target.value)}
+                  value={higgsfieldAgencyFilter}
+                >
+                  <option value="ALL">All agencies</option>
+                  {higgsfieldAgencyOptions.map((agency) => (
+                    <option key={agency.id} value={agency.id}>
+                      {agency.name}
+                    </option>
+                  ))}
+                  {higgsfieldHasUnassignedModels ? <option value="UNASSIGNED">Unassigned</option> : null}
+                </select>
+              </label>
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-white/76">Status</span>
+                <select
+                  className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
+                  onChange={(event) => setHiggsfieldStatusFilter(event.target.value as HiggsfieldStatusFilter)}
+                  value={higgsfieldStatusFilter}
+                >
+                  <option value="ALL">All statuses</option>
+                  <option value="CONNECTED">Connected</option>
+                  <option value="NEEDS_LOGIN">Needs login</option>
+                  <option value="ISSUES">Issues</option>
+                </select>
+              </label>
+              <button
+                className={theme.buttonSecondary + " rounded-xl px-3 py-2.5 text-xs"}
+                onClick={() => {
+                  setHiggsfieldSearch("");
+                  setHiggsfieldAgencyFilter("ALL");
+                  setHiggsfieldStatusFilter("ALL");
+                }}
+                type="button"
+              >
+                Reset filters
+              </button>
+            </div>
+
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-white/56">
+                Showing <span className="font-semibold text-white">{filteredHiggsfieldModels.length}</span> of{" "}
+                <span className="font-semibold text-white">{models.length}</span> influencers across{" "}
+                <span className="font-semibold text-white">{higgsfieldAgencyGroups.length}</span> agency group{higgsfieldAgencyGroups.length === 1 ? "" : "s"}.
+              </p>
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/58">
                 Per-influencer tokens
               </span>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
-              {models.map((model) => {
-                const connection = higgsfieldConnectionsByModelId.get(model.id);
-                const connected = Boolean(connection?.connected);
-                const busy = higgsfieldBusyId === model.id;
-                const connectionError = connection?.status === "error" || connection?.status === "worker_unavailable";
+            <div className="space-y-4">
+              {higgsfieldAgencyGroups.map((group) => {
+                const groupConnectedCount = group.models.filter((model) => higgsfieldConnectionsByModelId.get(model.id)?.connected).length;
+                const groupIssueCount = group.models.filter((model) => {
+                  const connection = higgsfieldConnectionsByModelId.get(model.id);
+                  return connection?.status === "error" || connection?.status === "worker_unavailable";
+                }).length;
                 return (
-                  <article
-                    key={model.id}
-                    className={cx(
-                      "rounded-[24px] border bg-[color:var(--surface-card-strong)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition sm:p-5",
-                      connected
-                        ? "border-lime-300/16"
-                        : connectionError
-                          ? "border-rose-400/20"
-                          : "border-[color:var(--surface-border)]",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <InfluencerAvatar model={model} size="sm" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{model.name}</p>
-                          <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{model.handle}</p>
-                        </div>
+                  <div key={group.id} className="overflow-hidden rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-card-strong)]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 bg-black/14 px-4 py-3 sm:px-5">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{group.label}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/42">
+                          {group.models.length} influencer{group.models.length === 1 ? "" : "s"} · {groupConnectedCount} connected · {Math.max(0, group.models.length - groupConnectedCount - groupIssueCount)} need login
+                        </p>
                       </div>
-                      <span
-                        className={cx(
-                          "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
-                          connected
-                            ? "border-lime-300/25 bg-lime-300/10 text-lime-100"
-                            : connectionError
-                              ? "border-rose-400/25 bg-rose-400/10 text-rose-100"
-                              : "border-white/10 bg-white/[0.04] text-white/54",
-                        )}
-                      >
-                        {connected ? "Connected" : connection?.status === "worker_unavailable" ? "Worker offline" : "Needs login"}
-                      </span>
+                      {groupIssueCount ? (
+                        <span className="rounded-full border border-rose-400/25 bg-rose-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-rose-100">
+                          {groupIssueCount} issue{groupIssueCount === 1 ? "" : "s"}
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-lime-300/20 bg-lime-300/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-lime-100">
+                          Stable
+                        </span>
+                      )}
                     </div>
 
-                    <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
-                      <div className="rounded-2xl border border-white/8 bg-black/14 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">Account</p>
-                        <p className="mt-2 truncate font-semibold text-white">{connection?.email || "No account"}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/8 bg-black/14 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">Balance</p>
-                        <p className="mt-2 truncate font-semibold text-white">{formatHiggsfieldCredits(connection?.credits)}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/8 bg-black/14 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">Checked</p>
-                        <p className="mt-2 truncate font-semibold text-white">{formatTimestamp(connection?.lastCheckedAt || null)}</p>
-                      </div>
-                    </div>
+                    <div className="divide-y divide-white/8">
+                      {group.models.map((model) => {
+                        const connection = higgsfieldConnectionsByModelId.get(model.id);
+                        const connected = Boolean(connection?.connected);
+                        const busy = higgsfieldBusyId === model.id;
+                        const connectionError = connection?.status === "error" || connection?.status === "worker_unavailable";
+                        return (
+                          <div key={model.id} className="grid gap-4 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(220px,1.2fr)_minmax(180px,0.95fr)_150px_150px_250px] xl:items-center">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <InfluencerAvatar model={model} size="sm" />
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{model.name}</p>
+                                <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{model.handle}</p>
+                              </div>
+                            </div>
 
-                    {connection?.subscriptionPlanType ? (
-                      <p className="mt-3 text-xs uppercase tracking-[0.16em] text-white/42">
-                        Plan <span className="font-semibold text-white/72">{connection.subscriptionPlanType}</span>
-                      </p>
-                    ) : null}
-                    {connection?.error ? (
-                      <p className="mt-3 rounded-2xl border border-rose-400/18 bg-rose-400/10 px-3 py-2 text-xs leading-5 text-rose-100/78">{connection.error}</p>
-                    ) : null}
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38 xl:hidden">Account</p>
+                              <p className="truncate text-sm font-semibold text-white">{connection?.email || "No account"}</p>
+                              {connection?.subscriptionPlanType ? <p className="mt-1 truncate text-xs text-white/42">{connection.subscriptionPlanType}</p> : null}
+                            </div>
 
-                    <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-white/8 pt-4">
-                      <button
-                        className={theme.buttonSecondary + " rounded-xl px-3 py-2 text-xs"}
-                        disabled={busy || !connected}
-                        onClick={() => void handleHiggsfieldAction(model.id, "refresh")}
-                        type="button"
-                      >
-                        {busy && connected ? "Working..." : "Refresh balance"}
-                      </button>
-                      <button
-                        className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"}
-                        disabled={busy}
-                        onClick={() => void handleHiggsfieldAction(model.id, "connect")}
-                        type="button"
-                      >
-                        {busy && !connected ? "Opening login..." : connected ? "Reconnect" : "Login"}
-                      </button>
-                      <button
-                        className={theme.buttonDanger + " rounded-xl px-3 py-2 text-xs"}
-                        disabled={busy || !connected}
-                        onClick={() => void handleHiggsfieldAction(model.id, "disconnect")}
-                        type="button"
-                      >
-                        Disconnect
-                      </button>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38 xl:hidden">Balance</p>
+                              <p className="text-sm font-semibold text-white">{formatHiggsfieldCredits(connection?.credits)}</p>
+                            </div>
+
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38 xl:hidden">Status</p>
+                              <span
+                                className={cx(
+                                  "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+                                  connected
+                                    ? "border-lime-300/25 bg-lime-300/10 text-lime-100"
+                                    : connectionError
+                                      ? "border-rose-400/25 bg-rose-400/10 text-rose-100"
+                                      : "border-white/10 bg-white/[0.04] text-white/54",
+                                )}
+                              >
+                                {connected ? "Connected" : connection?.status === "worker_unavailable" ? "Worker offline" : "Needs login"}
+                              </span>
+                              <p className="mt-1 text-xs text-white/38">{formatTimestamp(connection?.lastCheckedAt || null)}</p>
+                            </div>
+
+                            <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
+                              <button
+                                className={theme.buttonSecondary + " rounded-xl px-3 py-2 text-xs"}
+                                disabled={busy || !connected}
+                                onClick={() => void handleHiggsfieldAction(model.id, "refresh")}
+                                type="button"
+                              >
+                                {busy && connected ? "Working..." : "Refresh"}
+                              </button>
+                              <button
+                                className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"}
+                                disabled={busy}
+                                onClick={() => void handleHiggsfieldAction(model.id, "connect")}
+                                type="button"
+                              >
+                                {busy && !connected ? "Opening..." : connected ? "Reconnect" : "Login"}
+                              </button>
+                              <button
+                                className={theme.buttonDanger + " rounded-xl px-3 py-2 text-xs"}
+                                disabled={busy || !connected}
+                                onClick={() => void handleHiggsfieldAction(model.id, "disconnect")}
+                                type="button"
+                              >
+                                Disconnect
+                              </button>
+                            </div>
+
+                            {connection?.error ? (
+                              <p className="rounded-2xl border border-rose-400/18 bg-rose-400/10 px-3 py-2 text-xs leading-5 text-rose-100/78 xl:col-span-5">{connection.error}</p>
+                            ) : null}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </article>
+                  </div>
                 );
               })}
+
+              {!higgsfieldAgencyGroups.length ? (
+                <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.03] px-5 py-10 text-center">
+                  <p className="text-sm font-semibold text-white">No influencer accounts match these filters.</p>
+                  <p className="mt-2 text-sm text-white/52">Clear the search or choose a different agency/status.</p>
+                </div>
+              ) : null}
             </div>
 
             {renderNotice("higgsfieldAccounts", "mt-4")}

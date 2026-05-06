@@ -44,6 +44,7 @@ interface AdminPageProps {
 
 export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminPageProps) {
   const { refresh: refreshSession } = useAuth();
+  const canLoadHiggsfieldConnections = currentUser.role !== "USER";
   const { data: usersData, refetch: refetchUsers } = useQuery<{ users: UserRecord[] }>(USERS_QUERY, {
     fetchPolicy: "cache-and-network",
   });
@@ -67,7 +68,7 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
     {
       fetchPolicy: "cache-and-network",
       pollInterval: 30000,
-      skip: currentUser.role !== "PLATFORM_ADMIN",
+      skip: !canLoadHiggsfieldConnections,
     },
   );
 
@@ -105,7 +106,7 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
       refetchAgencies(),
       refetchModels(),
       currentUser.role === "PLATFORM_ADMIN" ? refetchNotifications() : Promise.resolve(),
-      currentUser.role === "PLATFORM_ADMIN" ? refetchHiggsfieldConnections() : Promise.resolve(),
+      canLoadHiggsfieldConnections ? refetchHiggsfieldConnections() : Promise.resolve(),
     ]);
   }
 

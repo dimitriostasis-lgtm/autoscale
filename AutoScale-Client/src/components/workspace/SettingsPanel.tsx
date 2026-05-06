@@ -108,8 +108,10 @@ export function SettingsPanel({
         : "Auto Prompt stays on while Auto Image is enabled because the image reference needs a generated text prompt."
       : undefined;
   const referenceAutomationOn = settings.autoPromptImage;
-  const autoReferenceCostTitle = `${videoGenerationModel ? "Auto Video" : "Auto Image"} adds ${formatCreditCost(AUTO_IMAGE_CREDITS)} credits per row.`;
-  const promptAutomationCostTitle = `Text Prompt Automation adds ${formatCreditCost(TEXT_PROMPT_AUTOMATION_CREDITS)} credits per row.`;
+  const autoReferenceCostLabel = `${formatCreditCost(AUTO_IMAGE_CREDITS)} credits/row`;
+  const promptAutomationCostLabel = `${formatCreditCost(TEXT_PROMPT_AUTOMATION_CREDITS)} credits/row`;
+  const autoReferenceCostTitle = `${videoGenerationModel ? "Auto Video" : "Auto Image"} adds ${autoReferenceCostLabel}.`;
+  const promptAutomationCostTitle = `Text Prompt Automation adds ${promptAutomationCostLabel}.`;
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
   const displayedAspectRatioOptions = aspectRatioLocked && allowedAspectRatioOptions.includes("auto") ? (["auto"] as const) : allowedAspectRatioOptions;
   const poseWorkerModelControlLocked = poseWorkerModelLocked || isNsfwPoseMultiplierLayout;
@@ -431,7 +433,12 @@ export function SettingsPanel({
                       </svg>
                     )}
                   </span>
-                  <span className="text-center">{promptImageAutomationButtonLabel}</span>
+                  <span className="flex min-w-0 flex-col items-center justify-center gap-0.5 text-center leading-tight">
+                    <span className="truncate">{promptImageAutomationButtonLabel}</span>
+                    {referenceAutomationOn ? (
+                      <span className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#f4ffd8]/72">{autoReferenceCostLabel}</span>
+                    ) : null}
+                  </span>
                   <span
                     className={cx(
                       "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs",
@@ -479,7 +486,12 @@ export function SettingsPanel({
                     />
                   </svg>
                 </span>
-                <span className="text-center">{promptAutomationUnsupported ? "Unsupported" : promptAutomationOn ? "Auto Prompt On" : "Auto Prompt Off"}</span>
+                <span className="flex min-w-0 flex-col items-center justify-center gap-0.5 text-center leading-tight">
+                  <span className="truncate">{promptAutomationUnsupported ? "Unsupported" : promptAutomationOn ? "Auto Prompt On" : "Auto Prompt Off"}</span>
+                  {promptAutomationOn ? (
+                    <span className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#f4ffd8]/72">{promptAutomationCostLabel}</span>
+                  ) : null}
+                </span>
                 <span
                   className={cx(
                     "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs",

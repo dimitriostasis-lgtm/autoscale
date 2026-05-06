@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 
-import { agencyBillingPlan, creditPurchaseOptions, defaultAgencyBillingSettings, paymentMethodOptions, planGlowStyle } from "../lib/billing";
+import { agencyBillingPlan, creditPurchaseOptions, creditsPerDollar, defaultAgencyBillingSettings, paymentMethodOptions, planGlowStyle } from "../lib/billing";
 import { cx } from "../lib/cx";
+import { summarizeHiggsfieldConnections } from "../lib/higgsfieldBalances";
+import { HIGGSFIELD_ACCOUNT_CONNECTIONS_QUERY } from "../queries/higgsfield";
 import { AGENCIES_QUERY, REQUEST_BILLING_FOLLOW_UP_MUTATION } from "../queries/user";
 import { theme } from "../styles/theme";
-import type { AgencyRecord, PlatformNotification, UserRecord } from "../types";
+import type { AgencyRecord, HiggsfieldAccountConnection, PlatformNotification, UserRecord } from "../types";
 
 interface AgencyBillingPageProps {
   currentUser: UserRecord;
@@ -227,6 +229,14 @@ function formatBillingCurrency(value: number): string {
   }).format(Math.max(0, Number(value) || 0));
 }
 
+function formatCreditAmount(value: number): string {
+  return Math.max(0, Number(value) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatIncludedCredits(value: number): string {
+  return `${formatCreditAmount(value)} credits/month included`;
+}
+
 function PaymentLogoStrip({ logos, compact = false }: { logos: PaymentLogoBadge[]; compact?: boolean }) {
   return (
     <div className={cx("flex flex-wrap", compact ? "gap-1.5" : "gap-2")}>
@@ -257,22 +267,38 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
     fetchPolicy: "cache-and-network",
     pollInterval: 5000,
   });
+  const { data: higgsfieldData } = useQuery<{ higgsfieldAccountConnections: HiggsfieldAccountConnection[] }>(
+    HIGGSFIELD_ACCOUNT_CONNECTIONS_QUERY,
+    {
+      fetchPolicy: "cache-and-network",
+      pollInterval: 30000,
+    },
+  );
   const [requestBillingFollowUpMutation] = useMutation<{ requestBillingFollowUp: PlatformNotification }>(
     REQUEST_BILLING_FOLLOW_UP_MUTATION,
   );
   const currentAgency = agenciesData?.agencies.find((agency) => agency.id === currentUser.agencyId) || null;
   const billingSettings = currentAgency?.billingSettings ?? defaultAgencyBillingSettings;
   const monthlySubscriptionLabel = `${formatBillingCurrency(billingSettings.monthlySubscriptionPrice)}/month`;
-  const includedMonthlyCreditsLabel = `${formatBillingCurrency(billingSettings.includedMonthlyCredits)}/month credits included`;
+  const includedMonthlyCreditsLabel = formatIncludedCredits(billingSettings.includedMonthlyCredits);
   const selectedCreditPurchase = creditPurchaseOptions.find((option) => option.id === selectedCreditPurchaseId) || creditPurchaseOptions[0];
-  const customCreditAmountValue = Math.max(0, Number(customCreditAmount) || 0);
-  const selectedCreditAmount = selectedCreditPurchaseId === "custom" ? customCreditAmountValue : selectedCreditPurchase.amount;
-  const selectedCreditLabel = selectedCreditPurchaseId === "custom" ? `$${selectedCreditAmount.toLocaleString()} custom credits` : selectedCreditPurchase.label;
+  const customDollarAmountValue = Math.max(0, Number(customCreditAmount) || 0);
+  const selectedDollarAmount = selectedCreditPurchaseId === "custom" ? customDollarAmountValue : selectedCreditPurchase.dollarAmount;
+  const selectedCreditAmount = selectedCreditPurchaseId === "custom" ? customDollarAmountValue * creditsPerDollar : selectedCreditPurchase.amount;
+  const selectedCreditLabel =
+    selectedCreditPurchaseId === "custom"
+      ? `$${selectedDollarAmount.toLocaleString()} custom package (${formatCreditAmount(selectedCreditAmount)} credits)`
+      : `${selectedCreditPurchase.label} (${formatCreditAmount(selectedCreditAmount)} credits)`;
   const selectedPaymentMethod = paymentMethodOptions.find((option) => option.id === selectedPaymentMethodId) || paymentMethodOptions[0];
   const selectedCryptoPayment = cryptoPaymentOptions.find((option) => option.id === selectedCryptoPaymentId) || cryptoPaymentOptions[2];
-  const paymentDiscount = Math.round(selectedCreditAmount * selectedPaymentMethod.discountRate);
-  const paymentTotal = Math.max(0, selectedCreditAmount - paymentDiscount);
-  const projectedCreditBalance = agencyBillingPlan.creditBalance + selectedCreditAmount;
+  const paymentDiscount = Math.round(selectedDollarAmount * selectedPaymentMethod.discountRate);
+  const paymentTotal = Math.max(0, selectedDollarAmount - paymentDiscount);
+  const higgsfieldBalanceSummary = useMemo(
+    () => summarizeHiggsfieldConnections(higgsfieldData?.higgsfieldAccountConnections || []),
+    [higgsfieldData?.higgsfieldAccountConnections],
+  );
+  const agencyMcpCreditBalance = higgsfieldBalanceSummary.creditBalance;
+  const projectedCreditBalance = agencyMcpCreditBalance + selectedCreditAmount;
   const paymentActionLabel =
     selectedPaymentMethod.id === "bank"
       ? "Generate bank transfer test"
@@ -297,13 +323,20 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
             <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--text-muted)]">Billing</p>
             <h1 className="font-display mt-2 text-4xl text-[color:var(--text-strong)]">Agency plan and credits</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:var(--text-muted)]">
-              {currentUser.agencyName || "Your agency"} currently has {agencyBillingPlan.creditBalance.toLocaleString()} credits available.
+              {higgsfieldBalanceSummary.accountCount
+                ? `${currentUser.agencyName || "Your agency"} currently has ${formatCreditAmount(agencyMcpCreditBalance)} Higgsfield MCP credits available across ${higgsfieldBalanceSummary.accountCount} unique connected account${higgsfieldBalanceSummary.accountCount === 1 ? "" : "s"}.`
+                : `${currentUser.agencyName || "Your agency"} does not have a connected Higgsfield MCP balance yet.`}
             </p>
           </div>
 
           <div className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-5 py-4 text-right">
-            <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit balance</p>
-            <p className="mt-2 text-3xl font-semibold text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">MCP balance</p>
+            <p className="mt-2 text-3xl font-semibold text-[color:var(--text-strong)]">{formatCreditAmount(agencyMcpCreditBalance)}</p>
+            <p className="mt-1 text-xs text-[color:var(--text-muted)]">
+              {higgsfieldBalanceSummary.accountCount
+                ? `${higgsfieldBalanceSummary.accountCount} unique account${higgsfieldBalanceSummary.accountCount === 1 ? "" : "s"}`
+                : "No connected account"}
+            </p>
           </div>
         </div>
       </section>
@@ -352,8 +385,8 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-2">
               <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 xl:col-span-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Credit Balance</p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--text-strong)]">{agencyBillingPlan.creditBalance.toLocaleString()}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">MCP Balance</p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--text-strong)]">{formatCreditAmount(agencyMcpCreditBalance)}</p>
               </div>
               <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3 xl:col-span-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Renews</p>
@@ -435,7 +468,7 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-bold text-[color:var(--accent-text)]">
-                $1 = 1 credit
+                $1 = {creditsPerDollar} credits
               </span>
               <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--text-main)]">
                 Test mode
@@ -463,9 +496,11 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                 >
                   <span>
                     <span className="block text-sm font-semibold text-[color:var(--text-strong)]">{option.label}</span>
-                    <span className="mt-2 block text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Credit package</span>
+                    <span className="mt-2 block text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
+                      {formatCreditAmount(option.amount)} credits
+                    </span>
                   </span>
-                  <span className="block text-xs font-semibold text-[color:var(--text-main)]">Balance to {(agencyBillingPlan.creditBalance + option.amount).toLocaleString()}</span>
+                  <span className="block text-xs font-semibold text-[color:var(--text-main)]">Balance to {formatCreditAmount(agencyMcpCreditBalance + option.amount)}</span>
                 </button>
               );
             })}
@@ -485,9 +520,9 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
             >
               <span>
                 <span className="block text-sm font-semibold text-[color:var(--text-strong)]">Custom credits</span>
-                <span className="mt-2 block text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Choose amount</span>
+                <span className="mt-2 block text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Choose USD amount</span>
               </span>
-              <span className="block text-xs font-semibold text-[color:var(--text-main)]">Balance to {projectedCreditBalance.toLocaleString()}</span>
+              <span className="block text-xs font-semibold text-[color:var(--text-main)]">Balance to {formatCreditAmount(projectedCreditBalance)}</span>
             </button>
           </div>
 
@@ -495,8 +530,10 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
             {selectedCreditPurchaseId === "custom" ? (
               <label className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                 <span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Custom amount</span>
-                  <span className="mt-2 block text-sm leading-6 text-[color:var(--text-muted)]">Set a custom credit top-up in $100 increments.</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Custom USD amount</span>
+                  <span className="mt-2 block text-sm leading-6 text-[color:var(--text-muted)]">
+                    Set a custom top-up in $100 increments. Each dollar adds {creditsPerDollar} credits.
+                  </span>
                 </span>
                 <span className="block space-y-2">
                   <input
@@ -510,7 +547,9 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                     type="number"
                     value={customCreditAmount}
                   />
-                  <span className="block text-xs text-[color:var(--text-muted)]">Projected balance {projectedCreditBalance.toLocaleString()}</span>
+                  <span className="block text-xs text-[color:var(--text-muted)]">
+                    Adds {formatCreditAmount(selectedCreditAmount)} credits · projected balance {formatCreditAmount(projectedCreditBalance)}
+                  </span>
                 </span>
               </label>
             ) : (
@@ -518,10 +557,12 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Selected package</p>
                   <p className="mt-2 text-lg font-semibold text-[color:var(--text-strong)]">{selectedCreditPurchase.label}</p>
-                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">Projected balance {projectedCreditBalance.toLocaleString()} credits.</p>
+                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">
+                    Adds {formatCreditAmount(selectedCreditAmount)} credits. Projected balance {formatCreditAmount(projectedCreditBalance)} credits.
+                  </p>
                 </div>
                 <span className="rounded-full border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-2 text-sm font-bold text-[color:var(--text-strong)]">
-                  ${selectedCreditAmount.toLocaleString()}
+                  ${selectedDollarAmount.toLocaleString()}
                 </span>
               </div>
             )}
@@ -595,7 +636,11 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between gap-3">
                   <span>Credits selected</span>
-                  <span className="font-semibold text-[color:var(--text-strong)]">${selectedCreditAmount.toLocaleString()}</span>
+                  <span className="font-semibold text-[color:var(--text-strong)]">{formatCreditAmount(selectedCreditAmount)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>Package price</span>
+                  <span className="font-semibold text-[color:var(--text-strong)]">${selectedDollarAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span>{selectedPaymentMethod.discountLabel}</span>
@@ -603,7 +648,7 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
                 </div>
                 <div className="flex justify-between gap-3">
                   <span>Projected balance</span>
-                  <span className="font-semibold text-[color:var(--text-strong)]">{projectedCreditBalance.toLocaleString()}</span>
+                  <span className="font-semibold text-[color:var(--text-strong)]">{formatCreditAmount(projectedCreditBalance)}</span>
                 </div>
                 <div className="flex justify-between gap-3 border-t border-[color:var(--surface-border)] pt-3 text-[color:var(--text-strong)]">
                   <span className="font-semibold">Local test total</span>
@@ -679,11 +724,11 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Beneficiary</p>
-                  <p className="mt-1 font-semibold text-[color:var(--text-strong)]">AutoScale Agency Credits</p>
+                  <p className="mt-1 font-semibold text-[color:var(--text-strong)]">Higgsfield MCP Credits</p>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Reference</p>
-                  <p className="mt-1 font-semibold text-[color:var(--text-strong)]">AS-LATTICE-{selectedCreditAmount.toLocaleString()}</p>
+                  <p className="mt-1 font-semibold text-[color:var(--text-strong)]">AS-LATTICE-{selectedDollarAmount.toLocaleString()}</p>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Routing</p>
@@ -748,7 +793,7 @@ export function AgencyBillingPage({ currentUser }: AgencyBillingPageProps) {
             className={theme.buttonPrimary + " mt-5 w-full sm:w-auto"}
             onClick={() =>
               setProcessorNotice(
-                `Local test approved for ${selectedCreditLabel} by ${selectedPaymentMethod.label}. Total after discount: $${paymentTotal.toLocaleString()}. Projected balance: ${projectedCreditBalance.toLocaleString()} credits.`,
+                `Local test approved for ${selectedCreditLabel} by ${selectedPaymentMethod.label}. Total after discount: $${paymentTotal.toLocaleString()}. Projected balance: ${formatCreditAmount(projectedCreditBalance)} credits.`,
               )
             }
             type="button"

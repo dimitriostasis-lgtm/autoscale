@@ -12,9 +12,9 @@ const HIGGSFIELD_PASS_THROUGH_MULTIPLIER = 1;
 const LOCAL_SDXL_IMAGE_CREDITS = 0.01;
 const LOCAL_SDXL_UPSCALE_CREDITS = 0.01;
 const LOCAL_FACE_SWAP_CREDITS = 0.1;
-export const AUTO_IMAGE_CREDITS = 0.002;
-export const TEXT_PROMPT_AUTOMATION_CREDITS = 0.001;
-export const IMPROVE_PROMPT_CREDITS = 0.001;
+export const AUTO_IMAGE_CREDITS = 0.1;
+export const TEXT_PROMPT_AUTOMATION_CREDITS = 0.01;
+export const IMPROVE_PROMPT_CREDITS = 0.01;
 
 const nbProPrices: Record<string, number> = {
   "1k": 2,

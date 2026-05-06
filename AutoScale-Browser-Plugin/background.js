@@ -1,18 +1,21 @@
 const STORAGE_KEY = "autoscaleRobotState";
 const MAX_BOARD_ROWS = 8;
 
-const IMAGE_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"];
+const IMAGE_MODELS = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext", "z_image", "sdxl"];
 const IMAGE_NSFW_MODELS = ["sd_4_5", "sdxl"];
-const VIDEO_MODELS = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"];
-const VIDEO_NSFW_MODELS = ["sd_2_0", "sd_2_0_fast", "grok_imagine"];
-const VOICE_MODELS = ["eleven_v3"];
-const POSE_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2"];
+const VIDEO_MODELS = ["sd_2_0", "kling_3_0"];
+const VIDEO_NSFW_MODELS = ["sd_2_0"];
+const VOICE_MODELS = [];
+const POSE_MODELS = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext"];
 const RESOLUTIONS = ["480p", "720p", "1080p", "1k", "2k", "4k"];
-const ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"];
-const COMMON_IMAGE_ASPECT_RATIOS = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
-const NANO_BANANA_2_ASPECT_RATIOS = [...COMMON_IMAGE_ASPECT_RATIOS, "1:4", "4:1", "1:8", "8:1"];
+const COMMON_IMAGE_ASPECT_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
+const NANO_BANANA_PRO_ASPECT_RATIOS = ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const NANO_BANANA_2_ASPECT_RATIOS = ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const SEEDREAM_ASPECT_RATIOS = ["1:1", "4:3", "16:9", "3:2", "21:9", "3:4", "9:16", "2:3"];
+const GPT_IMAGE_2_ASPECT_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 const KLING_O1_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"];
-const SEEDANCE_ASPECT_RATIOS = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"];
+const SEEDANCE_ASPECT_RATIOS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"];
+const KLING_3_ASPECT_RATIOS = ["16:9", "9:16", "1:1"];
 
 const MODE_PREFIXES = {
   "image-nsfw": "__autoscale_workspace_nsfw__:",
@@ -57,7 +60,7 @@ const DEFAULT_STATE = {
     videoModel: "sd_2_0",
     videoResolution: "720p",
     videoDurationSeconds: 4,
-    audioModel: "eleven_v3",
+    audioModel: "",
   },
   sessionCounts: {
     image: 0,
@@ -377,14 +380,15 @@ function modeForAssetKind(kind, safety) {
 
 function getAllowedResolutions(generationModel) {
   if (generationModel === "sdxl") return ["1k", "2k"];
+  if (generationModel === "nb_pro") return ["1k", "2k", "4k"];
   if (generationModel === "nb2") return ["1k", "2k", "4k"];
   if (generationModel === "gpt_2") return ["1k", "2k", "4k"];
-  if (generationModel === "sd_4_5") return ["1k", "2k", "4k"];
+  if (generationModel === "sd_4_5") return ["2k", "4k"];
+  if (generationModel === "flux_2") return ["1k", "2k"];
   if (generationModel === "kling_o1") return ["1k", "2k"];
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") return ["480p", "720p", "1080p"];
+  if (generationModel === "flux_kontext" || generationModel === "z_image") return [];
+  if (generationModel === "sd_2_0") return ["480p", "720p", "1080p"];
   if (generationModel === "kling_3_0") return ["1080p", "4k"];
-  if (generationModel === "kling_motion_control") return ["1080p"];
-  if (generationModel === "grok_imagine") return ["480p", "720p"];
   return ["1k", "2k", "4k"];
 }
 
@@ -413,14 +417,11 @@ function normalizeQuality(generationModel, value) {
 }
 
 function getVideoDurations(generationModel) {
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+  if (generationModel === "sd_2_0") {
     return Array.from({ length: 12 }, (_, index) => index + 4);
   }
   if (generationModel === "kling_3_0") {
     return Array.from({ length: 13 }, (_, index) => index + 3);
-  }
-  if (generationModel === "grok_imagine") {
-    return [6, 10];
   }
   return [];
 }
@@ -444,24 +445,40 @@ function isPoseWorkspace(generationModel, sdxlWorkspaceMode) {
 }
 
 function getAllowedAspectRatios(generationModel, sdxlWorkspaceMode) {
-  if (generationModel === "kling_motion_control" || isPoseWorkspace(generationModel, sdxlWorkspaceMode)) {
+  if (isPoseWorkspace(generationModel, sdxlWorkspaceMode)) {
     return ["auto"];
   }
 
   if (generationModel === "sdxl") {
-    return COMMON_IMAGE_ASPECT_RATIOS.filter((option) => option !== "auto");
+    return COMMON_IMAGE_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "nb_pro") {
+    return NANO_BANANA_PRO_ASPECT_RATIOS;
   }
 
   if (generationModel === "nb2") {
     return NANO_BANANA_2_ASPECT_RATIOS;
   }
 
+  if (generationModel === "sd_4_5") {
+    return SEEDREAM_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "gpt_2") {
+    return GPT_IMAGE_2_ASPECT_RATIOS;
+  }
+
   if (generationModel === "kling_o1") {
     return KLING_O1_ASPECT_RATIOS;
   }
 
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+  if (generationModel === "sd_2_0") {
     return SEEDANCE_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "kling_3_0") {
+    return KLING_3_ASPECT_RATIOS;
   }
 
   return COMMON_IMAGE_ASPECT_RATIOS;
@@ -474,12 +491,15 @@ function normalizeAspectRatio(generationModel, value, sdxlWorkspaceMode) {
 }
 
 function getMaxQuantity(generationModel) {
-  if (isVideoModel(generationModel) || generationModel === "eleven_v3") return 1;
+  if (isVideoModel(generationModel)) return 1;
   return generationModel === "sdxl" ? 20 : 4;
 }
 
 function selectGenerationModel(mode, allowedGenerationModels = [], currentGenerationModel = "") {
   const options = MODE_MODEL_OPTIONS[mode] || IMAGE_MODELS;
+  if (!options.length) {
+    return "";
+  }
   const allowed = allowedGenerationModels.length ? allowedGenerationModels : options;
   if (currentGenerationModel && options.includes(currentGenerationModel) && allowed.includes(currentGenerationModel)) {
     return currentGenerationModel;
@@ -574,6 +594,9 @@ function settingsInput(settings) {
 function normalizeSettingsForMode(settings, mode, allowedGenerationModels, config = DEFAULT_STATE.config) {
   const preferredGenerationModel = preferredGenerationModelForMode(mode, config) || settings.generationModel;
   const generationModel = selectGenerationModel(mode, allowedGenerationModels, preferredGenerationModel || settings.generationModel);
+  if (!generationModel) {
+    return settings;
+  }
   const requestedImageLayout = ["DEFAULT", "POSE_MULTIPLIER", "FACE_SWAP"].includes(config.imageLayout)
     ? config.imageLayout
     : settings.sdxlWorkspaceMode || "DEFAULT";
@@ -581,7 +604,6 @@ function normalizeSettingsForMode(settings, mode, allowedGenerationModels, confi
   const isPoseLayout = isPoseWorkspace(generationModel, sdxlWorkspaceMode);
   const isFaceSwapLayout = sdxlWorkspaceMode === "FACE_SWAP";
   const isSdxlDefault = generationModel === "sdxl" && !isPoseLayout && !isFaceSwapLayout;
-  const promptUnsupported = generationModel === "kling_motion_control";
   const poseMultiplierGenerationModel = POSE_MODELS.includes(settings.poseMultiplierGenerationModel)
     ? settings.poseMultiplierGenerationModel
     : POSE_MODELS.includes(generationModel)
@@ -604,7 +626,7 @@ function normalizeSettingsForMode(settings, mode, allowedGenerationModels, confi
     videoDurationSeconds: normalizeVideoDuration(generationModel, Number(config.videoDurationSeconds) || settings.videoDurationSeconds),
     quality: normalizeQuality(generationModel, mode.startsWith("image-") ? config.imageQuality : settings.quality),
     aspectRatio: normalizeAspectRatio(generationModel, requestedAspectRatio, sdxlWorkspaceMode),
-    quantity: generationModel === "eleven_v3" ? 1 : quantity,
+    quantity,
     sdxlWorkspaceMode,
     poseMultiplierEnabled: isPoseLayout ? true : isSdxlDefault ? false : quantity === 1 ? Boolean(settings.poseMultiplierEnabled) : false,
     poseMultiplier: Math.max(1, Math.min(4, settings.poseMultiplier || 1)),
@@ -614,8 +636,8 @@ function normalizeSettingsForMode(settings, mode, allowedGenerationModels, confi
     upscaleDenoise: Math.max(0, Math.min(0.4, settings.upscaleDenoise || 0)),
     faceSwap: isFaceSwapLayout ? true : Boolean(settings.faceSwap),
     faceSwapModelStrength: Math.max(0.3, Math.min(0.6, settings.faceSwapModelStrength || 0.5)),
-    autoPromptGen: promptUnsupported || isFaceSwapLayout ? false : mode.startsWith("voice-") ? false : Boolean(settings.autoPromptGen),
-    autoPromptImage: promptUnsupported || isPoseLayout || isFaceSwapLayout || mode.startsWith("voice-") ? false : Boolean(settings.autoPromptImage),
+    autoPromptGen: isFaceSwapLayout ? false : mode.startsWith("voice-") ? false : Boolean(settings.autoPromptGen),
+    autoPromptImage: isPoseLayout || isFaceSwapLayout || mode.startsWith("voice-") ? false : Boolean(settings.autoPromptImage),
     posePromptMode: settings.posePromptMode === "CUSTOM" ? "CUSTOM" : "AUTO",
     posePromptTemplate: settings.posePromptTemplate || "Keep the same framing and styling while varying the body pose for each multiplied shot.",
     posePromptTemplates: settings.posePromptTemplates?.length
@@ -659,6 +681,10 @@ function rowHasReference(row, kind) {
 }
 
 async function prepareTargetBoard(kind, mode, state) {
+  if (kind === "audio" && !VOICE_MODELS.length) {
+    throw new Error("Audio capture is not configured for the current worker set");
+  }
+
   let model = state.models.find((entry) => entry.id === state.selectedModelId);
   if (!model) {
     const refreshed = await refreshModels(state);

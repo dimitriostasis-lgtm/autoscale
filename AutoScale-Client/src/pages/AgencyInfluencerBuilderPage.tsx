@@ -852,7 +852,7 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
 
                 <div className="relative">
                   <button
-                    className="absolute right-0 top-0 inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
+                    className="group/improve absolute right-0 top-0 z-[70] inline-flex h-8 items-center gap-1.5 rounded-lg border border-[color:var(--surface-border)] bg-[color:var(--surface-card)] px-2.5 text-[11px] font-semibold text-[color:var(--text-main)] shadow-[0_8px_18px_rgba(0,0,0,0.10)] transition hover:bg-[color:var(--surface-soft-hover)] hover:text-[color:var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-45"
                     disabled={!prompt.trim() || improvingPrompt}
                     onClick={handleImprovePrompt}
                     title={`Improve the current prompt without turning on Auto Prompt. Cost: ${formatCreditCost(IMPROVE_PROMPT_CREDITS)} credits.`}
@@ -869,6 +869,12 @@ export function AgencyInfluencerBuilderPage({ currentUser, onCancel }: AgencyInf
                       />
                     </svg>
                     {improvingPrompt ? "Improving" : "Improve prompt"}
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute bottom-[calc(100%+0.375rem)] right-0 z-[100] whitespace-nowrap rounded-lg border border-[#c7ff27]/45 bg-[#4d7311] px-2.5 py-1.5 text-[10px] font-extrabold text-[#f4ffd8] opacity-0 shadow-[0_14px_30px_rgba(0,0,0,0.42)] ring-1 ring-black/20 transition group-hover/improve:opacity-100"
+                    >
+                      Cost: {formatCreditCost(IMPROVE_PROMPT_CREDITS)} credits
+                    </span>
                   </button>
                   <textarea
                     className="min-h-16 max-h-32 w-full resize-none border-none bg-transparent pb-1 pr-36 pt-10 text-sm leading-6 text-[color:var(--text-strong)] outline-none placeholder:text-[color:var(--text-muted)]"

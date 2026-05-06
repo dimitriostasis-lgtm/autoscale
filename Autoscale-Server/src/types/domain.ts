@@ -21,7 +21,7 @@ export interface AgencyBillingSettings {
 
 export const DEFAULT_AGENCY_BILLING_SETTINGS: AgencyBillingSettings = {
   monthlySubscriptionPrice: 7500,
-  includedMonthlyCredits: 1000,
+  includedMonthlyCredits: 30000,
   aiInfluencerAllowance: 2,
   workspaceTabAllowance: 9,
   parallelRowGenerations: 8,

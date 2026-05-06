@@ -38,16 +38,21 @@ const els = {
 const DEFAULT_ADMIN_EMAIL = "admin@autoscale.internal";
 const DEFAULT_ADMIN_PASSWORD = "Admin!123";
 
-const IMAGE_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"];
+const IMAGE_MODELS = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext", "z_image", "sdxl"];
 const IMAGE_NSFW_MODELS = ["sd_4_5", "sdxl"];
-const VIDEO_MODELS = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"];
-const VIDEO_NSFW_MODELS = ["sd_2_0", "sd_2_0_fast", "grok_imagine"];
-const VOICE_MODELS = ["eleven_v3"];
-const ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"];
-const COMMON_IMAGE_ASPECT_RATIOS = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
-const NANO_BANANA_2_ASPECT_RATIOS = [...COMMON_IMAGE_ASPECT_RATIOS, "1:4", "4:1", "1:8", "8:1"];
+const VIDEO_MODELS = ["sd_2_0", "kling_3_0"];
+const VIDEO_NSFW_MODELS = ["sd_2_0"];
+const VOICE_MODELS = [];
+const NO_RESOLUTION_OPTION = "__no_resolution__";
+const NO_AUDIO_MODEL_OPTION = "__no_audio_model__";
+const COMMON_IMAGE_ASPECT_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
+const NANO_BANANA_PRO_ASPECT_RATIOS = ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const NANO_BANANA_2_ASPECT_RATIOS = ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"];
+const SEEDREAM_ASPECT_RATIOS = ["1:1", "4:3", "16:9", "3:2", "21:9", "3:4", "9:16", "2:3"];
+const GPT_IMAGE_2_ASPECT_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 const KLING_O1_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"];
-const SEEDANCE_ASPECT_RATIOS = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"];
+const SEEDANCE_ASPECT_RATIOS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"];
+const KLING_3_ASPECT_RATIOS = ["16:9", "9:16", "1:1"];
 const QUALITY_LABELS = {
   low: "Low",
   medium: "Medium",
@@ -55,18 +60,17 @@ const QUALITY_LABELS = {
 };
 
 const MODEL_LABELS = {
-  nb_pro: "NB Pro",
-  nb2: "NB2",
-  sd_4_5: "SD 4.5",
-  kling_o1: "Kling O1",
-  gpt_2: "GPT 2",
+  nb_pro: "Nano Banana Pro",
+  nb2: "Nano Banana 2",
+  sd_4_5: "Seedream 4.5",
+  gpt_2: "GPT Image 2",
+  flux_2: "Flux 2 Pro",
+  kling_o1: "Kling O1 Image",
+  flux_kontext: "Flux Kontext Max",
+  z_image: "Z Image",
   sdxl: "SDXL",
-  sd_2_0: "SD 2.0",
-  sd_2_0_fast: "SD 2.0 Fast",
+  sd_2_0: "Seedance 2.0",
   kling_3_0: "Kling 3.0",
-  kling_motion_control: "Kling Motion",
-  grok_imagine: "Grok Imagine",
-  eleven_v3: "Eleven v3",
 };
 
 const RESOLUTION_LABELS = {
@@ -76,6 +80,8 @@ const RESOLUTION_LABELS = {
   "1k": "1K",
   "2k": "2K",
   "4k": "4K",
+  [NO_RESOLUTION_OPTION]: "N/A",
+  [NO_AUDIO_MODEL_OPTION]: "No audio models",
 };
 
 let currentState = null;
@@ -110,28 +116,25 @@ function allowedModelOptions(model, options) {
 
 function getAllowedResolutions(generationModel) {
   if (generationModel === "sdxl") return ["1k", "2k"];
+  if (generationModel === "nb_pro") return ["1k", "2k", "4k"];
   if (generationModel === "nb2") return ["1k", "2k", "4k"];
   if (generationModel === "gpt_2") return ["1k", "2k", "4k"];
-  if (generationModel === "sd_4_5") return ["1k", "2k", "4k"];
+  if (generationModel === "sd_4_5") return ["2k", "4k"];
+  if (generationModel === "flux_2") return ["1k", "2k"];
   if (generationModel === "kling_o1") return ["1k", "2k"];
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") return ["480p", "720p", "1080p"];
+  if (generationModel === "flux_kontext" || generationModel === "z_image") return [];
+  if (generationModel === "sd_2_0") return ["480p", "720p", "1080p"];
   if (generationModel === "kling_3_0") return ["1080p", "4k"];
-  if (generationModel === "kling_motion_control") return ["1080p"];
-  if (generationModel === "grok_imagine") return ["480p", "720p"];
   return ["1k", "2k", "4k"];
 }
 
 function getVideoDurations(generationModel) {
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+  if (generationModel === "sd_2_0") {
     return Array.from({ length: 12 }, (_, index) => index + 4);
   }
 
   if (generationModel === "kling_3_0") {
     return Array.from({ length: 13 }, (_, index) => index + 3);
-  }
-
-  if (generationModel === "grok_imagine") {
-    return [6, 10];
   }
 
   return [];
@@ -142,24 +145,40 @@ function getQualityOptions(generationModel) {
 }
 
 function getAspectOptions(generationModel, imageLayout) {
-  if (imageLayout === "POSE_MULTIPLIER" || generationModel === "kling_motion_control") {
+  if (imageLayout === "POSE_MULTIPLIER") {
     return ["auto"];
   }
 
   if (generationModel === "sdxl") {
-    return COMMON_IMAGE_ASPECT_RATIOS.filter((option) => option !== "auto");
+    return COMMON_IMAGE_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "nb_pro") {
+    return NANO_BANANA_PRO_ASPECT_RATIOS;
   }
 
   if (generationModel === "nb2") {
     return NANO_BANANA_2_ASPECT_RATIOS;
   }
 
+  if (generationModel === "sd_4_5") {
+    return SEEDREAM_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "gpt_2") {
+    return GPT_IMAGE_2_ASPECT_RATIOS;
+  }
+
   if (generationModel === "kling_o1") {
     return KLING_O1_ASPECT_RATIOS;
   }
 
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
+  if (generationModel === "sd_2_0") {
     return SEEDANCE_ASPECT_RATIOS;
+  }
+
+  if (generationModel === "kling_3_0") {
+    return KLING_3_ASPECT_RATIOS;
   }
 
   return COMMON_IMAGE_ASPECT_RATIOS;
@@ -183,6 +202,24 @@ function renderSelectOptions(select, values, selectedValue, labeler = optionLabe
     option.selected = String(value) === String(selectedValue);
     select.append(option);
   }
+}
+
+function renderResolutionOptions(select, values, selectedValue) {
+  if (!values.length) {
+    renderSelectOptions(select, [NO_RESOLUTION_OPTION], NO_RESOLUTION_OPTION);
+    return;
+  }
+
+  renderSelectOptions(select, values, selectValue(selectedValue, values));
+}
+
+function renderAudioModelOptions(values, selectedValue) {
+  if (!values.length) {
+    renderSelectOptions(els.audioModelSelect, [NO_AUDIO_MODEL_OPTION], NO_AUDIO_MODEL_OPTION);
+    return;
+  }
+
+  renderSelectOptions(els.audioModelSelect, values, selectValue(selectedValue, values));
 }
 
 function buildWorkflowOptions(model) {
@@ -274,7 +311,6 @@ function renderGenerationControls(state, model) {
   const imageLayout = selectValue(config.imageLayout, ["DEFAULT", "POSE_MULTIPLIER", "FACE_SWAP"], "DEFAULT");
   const imageModel = selectValue(config.imageModel, imageModelOptions, imageModelOptions[0] || "nb_pro");
   const videoModel = selectValue(config.videoModel, videoModelOptions, videoModelOptions[0] || "sd_2_0");
-  const audioModel = selectValue(config.audioModel, audioModelOptions, audioModelOptions[0] || "eleven_v3");
   const imageResolutionOptions = getAllowedResolutions(imageModel);
   const videoResolutionOptions = getAllowedResolutions(videoModel);
   const imageAspectOptions = getAspectOptions(imageModel, imageLayout);
@@ -292,11 +328,11 @@ function renderGenerationControls(state, model) {
     selectValue(config.imageQuality, imageQualityOptions, "medium"),
     (value) => QUALITY_LABELS[value] || value,
   );
-  renderSelectOptions(els.imageResolutionSelect, imageResolutionOptions, selectValue(config.imageResolution, imageResolutionOptions));
+  renderResolutionOptions(els.imageResolutionSelect, imageResolutionOptions, config.imageResolution);
   renderSelectOptions(els.imageAspectRatioSelect, imageAspectOptions, selectValue(config.imageAspectRatio, imageAspectOptions));
   renderSelectOptions(els.imageQuantitySelect, quantityOptions, selectValue(Number(config.imageQuantity), quantityOptions, 1), (value) => String(value));
   renderSelectOptions(els.videoModelSelect, videoModelOptions, videoModel);
-  renderSelectOptions(els.videoResolutionSelect, videoResolutionOptions, selectValue(config.videoResolution, videoResolutionOptions));
+  renderResolutionOptions(els.videoResolutionSelect, videoResolutionOptions, config.videoResolution);
 
   if (videoDurationOptions.length) {
     renderSelectOptions(els.videoDurationSelect, videoDurationOptions, selectValue(Number(config.videoDurationSeconds), videoDurationOptions), (value) => `${value}s`);
@@ -304,19 +340,24 @@ function renderGenerationControls(state, model) {
     renderSelectOptions(els.videoDurationSelect, ["auto"], "auto", () => "Auto");
   }
 
-  renderSelectOptions(els.audioModelSelect, audioModelOptions, audioModel);
+  renderAudioModelOptions(audioModelOptions, config.audioModel);
   renderAvailability(state);
 }
 
 function renderAvailability(state) {
   const imageLayout = state.config?.imageLayout || "DEFAULT";
+  const imageResolutionOptions = getAllowedResolutions(state.config?.imageModel || "nb_pro");
+  const videoResolutionOptions = getAllowedResolutions(state.config?.videoModel || "sd_2_0");
   const videoDurations = getVideoDurations(state.config?.videoModel || "sd_2_0");
   const qualityOptions = getQualityOptions(state.config?.imageModel || "nb_pro");
 
   els.imageAspectRatioSelect.disabled = imageLayout === "POSE_MULTIPLIER";
+  els.imageResolutionSelect.disabled = imageResolutionOptions.length === 0;
   els.imageQuantitySelect.disabled = imageLayout !== "DEFAULT";
   els.imageQualitySelect.disabled = qualityOptions.length <= 1;
+  els.videoResolutionSelect.disabled = videoResolutionOptions.length === 0;
   els.videoDurationSelect.disabled = videoDurations.length === 0;
+  els.audioModelSelect.disabled = VOICE_MODELS.length === 0;
 }
 
 function renderState(state) {
@@ -500,7 +541,9 @@ els.imageQualitySelect.addEventListener("change", () =>
 );
 
 els.imageResolutionSelect.addEventListener("change", () =>
-  updateConfig({ config: { imageResolution: els.imageResolutionSelect.value } }, "Image resolution updated."),
+  els.imageResolutionSelect.value === NO_RESOLUTION_OPTION
+    ? undefined
+    : updateConfig({ config: { imageResolution: els.imageResolutionSelect.value } }, "Image resolution updated."),
 );
 
 els.imageAspectRatioSelect.addEventListener("change", () =>
@@ -516,7 +559,9 @@ els.videoModelSelect.addEventListener("change", () =>
 );
 
 els.videoResolutionSelect.addEventListener("change", () =>
-  updateConfig({ config: { videoResolution: els.videoResolutionSelect.value } }, "Video resolution updated."),
+  els.videoResolutionSelect.value === NO_RESOLUTION_OPTION
+    ? undefined
+    : updateConfig({ config: { videoResolution: els.videoResolutionSelect.value } }, "Video resolution updated."),
 );
 
 els.videoDurationSelect.addEventListener("change", () => {
@@ -526,7 +571,9 @@ els.videoDurationSelect.addEventListener("change", () => {
 });
 
 els.audioModelSelect.addEventListener("change", () =>
-  updateConfig({ config: { audioModel: els.audioModelSelect.value } }, "Audio model updated."),
+  els.audioModelSelect.value === NO_AUDIO_MODEL_OPTION
+    ? undefined
+    : updateConfig({ config: { audioModel: els.audioModelSelect.value } }, "Audio model updated."),
 );
 
 els.refreshButton.addEventListener("click", async () => {

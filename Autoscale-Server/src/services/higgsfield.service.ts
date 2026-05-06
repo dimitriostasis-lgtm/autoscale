@@ -3,7 +3,7 @@ import { HIGGSFIELD_MODEL_COSTS } from "../config/higgsfield.js";
 import { readStore } from "../lib/store.js";
 import type { AuthUser, InfluencerModel } from "../types/domain.js";
 
-import { canManageAccounts, requireAuthenticatedUser } from "./permissions.service.js";
+import { canAccessAccountConsole, canManageAccounts, getAccessibleInfluencerIds, requireAuthenticatedUser } from "./permissions.service.js";
 
 interface WorkerHiggsfieldAccountPayload {
   account_key: string;
@@ -109,9 +109,16 @@ async function getModelForAdmin(currentUser: AuthUser | null, influencerModelId:
 }
 
 export async function listHiggsfieldAccountConnections(currentUser: AuthUser | null): Promise<HiggsfieldAccountConnection[]> {
-  assertPlatformAdmin(currentUser);
+  const viewer = requireAuthenticatedUser(currentUser);
+  if (!canAccessAccountConsole(viewer)) {
+    throw new Error("Account console access required");
+  }
+
   const store = await readStore();
-  const models = [...store.influencerModels].sort((left, right) => left.name.localeCompare(right.name));
+  const visibleModelIds = getAccessibleInfluencerIds(store, viewer);
+  const models = [...store.influencerModels]
+    .filter((model) => visibleModelIds.has(model.id) && (canManageAccounts(viewer) || model.isActive))
+    .sort((left, right) => left.name.localeCompare(right.name));
   return Promise.all(models.map((model) => getWorkerConnection(model)));
 }
 
