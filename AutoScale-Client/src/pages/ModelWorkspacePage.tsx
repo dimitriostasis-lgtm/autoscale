@@ -1368,6 +1368,8 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
   const [pickerState, setPickerState] = useState<PickerState | null>(null);
   const [poseLayoutBoardIds, setPoseLayoutBoardIds] = useState<Record<string, boolean>>({});
   const [sharedControlsCollapsed, setSharedControlsCollapsed] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const settingsSaveRef = useRef<Promise<void> | null>(null);
 
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<{ influencerModel: InfluencerModel | null }>(
     INFLUENCER_MODEL_QUERY,
@@ -1614,70 +1616,84 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
     if (!board || board.id !== activeBoardId) {
       return;
     }
-    const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(nextSettings.generationModel, nextSettings.sdxlWorkspaceMode);
-    const isFaceSwapWorkspaceLayout = nextSettings.sdxlWorkspaceMode === "FACE_SWAP";
-    const currentGenerationKind = mode === "playground" ? "image" : workspaceModeMetaByMode[mode].kind;
-    const voiceAutoPromptEnabled = currentGenerationKind === "voice" && nextSettings.autoPromptGen;
-    const shouldClearAudioReferences = voiceAutoPromptEnabled && !board.settings.autoPromptGen;
-    setPoseLayoutBoardIds((current) =>
-      current[board.id] === isPoseMultiplierWorkspaceLayout ? current : { ...current, [board.id]: isPoseMultiplierWorkspaceLayout },
-    );
-
-    await updateSettingsMutation({
-      variables: {
-        boardId: board.id,
-        input: {
-          generationModel: nextSettings.generationModel,
-          resolution: nextSettings.resolution,
-          poseMultiplierResolution: nextSettings.poseMultiplierResolution,
-          videoDurationSeconds: nextSettings.videoDurationSeconds,
-          quality: nextSettings.quality,
-          aspectRatio: nextSettings.aspectRatio,
-          quantity: nextSettings.quantity,
-          sdxlWorkspaceMode: nextSettings.sdxlWorkspaceMode,
-          poseMultiplierEnabled: nextSettings.poseMultiplierEnabled,
-          poseMultiplier: nextSettings.poseMultiplier,
-          poseMultiplierGenerationModel: nextSettings.poseMultiplierGenerationModel,
-          upscale: nextSettings.generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout ? nextSettings.upscale : false,
-          upscaleFactor: [1, 1.5, 2].includes(nextSettings.upscaleFactor) ? nextSettings.upscaleFactor : 1,
-          upscaleDenoise: Math.max(0, Math.min(0.4, nextSettings.upscaleDenoise ?? 0)),
-          faceSwap: isFaceSwapWorkspaceLayout ? true : nextSettings.faceSwap,
-          faceSwapModelStrength: Math.max(0.3, Math.min(0.6, nextSettings.faceSwapModelStrength ?? 0.5)),
-          autoPromptGen: isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptImage ? true : nextSettings.autoPromptGen,
-          autoPromptImage: isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptImage,
-          posePromptMode: nextSettings.posePromptMode,
-          posePromptTemplate: nextSettings.posePromptTemplate,
-          posePromptTemplates: nextSettings.posePromptTemplates,
-          globalReferences: nextSettings.globalReferences.map((reference) => ({
-            id: reference.id,
-            slotIndex: reference.slotIndex,
-            label: reference.label,
-            sourceType: reference.sourceType,
-            assetId: reference.assetId,
-            assetUrl: reference.assetUrl,
-            uploadPath: reference.uploadPath,
-            uploadUrl: reference.uploadUrl,
-          })),
-        },
-      },
-    });
-    if (shouldClearAudioReferences) {
-      const rowsWithAudioReferences = board.rows.filter((row) => row.audioReference);
-      await Promise.all(
-        rowsWithAudioReferences.map((row) =>
-          updateRowMutation({
-            variables: {
-              input: {
-                boardId: board.id,
-                rowId: row.id,
-                clearAudioReference: true,
-              },
-            },
-          }),
-        ),
+    const settingsSave = (async () => {
+      const isPoseMultiplierWorkspaceLayout = isPoseMultiplierWorkspace(nextSettings.generationModel, nextSettings.sdxlWorkspaceMode);
+      const isFaceSwapWorkspaceLayout = nextSettings.sdxlWorkspaceMode === "FACE_SWAP";
+      const currentGenerationKind = mode === "playground" ? "image" : workspaceModeMetaByMode[mode].kind;
+      const voiceAutoPromptEnabled = currentGenerationKind === "voice" && nextSettings.autoPromptGen;
+      const shouldClearAudioReferences = voiceAutoPromptEnabled && !board.settings.autoPromptGen;
+      setPoseLayoutBoardIds((current) =>
+        current[board.id] === isPoseMultiplierWorkspaceLayout ? current : { ...current, [board.id]: isPoseMultiplierWorkspaceLayout },
       );
+
+      await updateSettingsMutation({
+        variables: {
+          boardId: board.id,
+          input: {
+            generationModel: nextSettings.generationModel,
+            resolution: nextSettings.resolution,
+            poseMultiplierResolution: nextSettings.poseMultiplierResolution,
+            videoDurationSeconds: nextSettings.videoDurationSeconds,
+            quality: nextSettings.quality,
+            aspectRatio: nextSettings.aspectRatio,
+            quantity: nextSettings.quantity,
+            sdxlWorkspaceMode: nextSettings.sdxlWorkspaceMode,
+            poseMultiplierEnabled: nextSettings.poseMultiplierEnabled,
+            poseMultiplier: nextSettings.poseMultiplier,
+            poseMultiplierGenerationModel: nextSettings.poseMultiplierGenerationModel,
+            upscale: nextSettings.generationModel === "sdxl" && !isPoseMultiplierWorkspaceLayout ? nextSettings.upscale : false,
+            upscaleFactor: [1, 1.5, 2].includes(nextSettings.upscaleFactor) ? nextSettings.upscaleFactor : 1,
+            upscaleDenoise: Math.max(0, Math.min(0.4, nextSettings.upscaleDenoise ?? 0)),
+            faceSwap: isFaceSwapWorkspaceLayout ? true : nextSettings.faceSwap,
+            faceSwapModelStrength: Math.max(0.3, Math.min(0.6, nextSettings.faceSwapModelStrength ?? 0.5)),
+            autoPromptGen: isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptImage ? true : nextSettings.autoPromptGen,
+            autoPromptImage: isPoseMultiplierWorkspaceLayout || isFaceSwapWorkspaceLayout ? false : nextSettings.autoPromptImage,
+            posePromptMode: nextSettings.posePromptMode,
+            posePromptTemplate: nextSettings.posePromptTemplate,
+            posePromptTemplates: nextSettings.posePromptTemplates,
+            globalReferences: nextSettings.globalReferences.map((reference) => ({
+              id: reference.id,
+              slotIndex: reference.slotIndex,
+              label: reference.label,
+              sourceType: reference.sourceType,
+              assetId: reference.assetId,
+              assetUrl: reference.assetUrl,
+              uploadPath: reference.uploadPath,
+              uploadUrl: reference.uploadUrl,
+            })),
+          },
+        },
+      });
+      if (shouldClearAudioReferences) {
+        const rowsWithAudioReferences = board.rows.filter((row) => row.audioReference);
+        await Promise.all(
+          rowsWithAudioReferences.map((row) =>
+            updateRowMutation({
+              variables: {
+                input: {
+                  boardId: board.id,
+                  rowId: row.id,
+                  clearAudioReference: true,
+                },
+              },
+            }),
+          ),
+        );
+      }
+      await Promise.all([refetchBoard(), refetchModel()]);
+    })();
+
+    settingsSaveRef.current = settingsSave;
+    setSettingsSaving(true);
+
+    try {
+      await settingsSave;
+    } finally {
+      if (settingsSaveRef.current === settingsSave) {
+        settingsSaveRef.current = null;
+        setSettingsSaving(false);
+      }
     }
-    await Promise.all([refetchBoard(), refetchModel()]);
   }, [activeBoardId, board, mode, refetchBoard, refetchModel, updateRowMutation, updateSettingsMutation]);
 
   useEffect(() => {
@@ -1836,6 +1852,17 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
 
   const running = Boolean(board?.rows.some((row) => row.status === "QUEUED" || row.status === "GENERATING"));
   const runCostEstimate = estimateBoardRunCost(board);
+  const runBlocked = !board || running || settingsSaving;
+
+  async function handleRunBoard(): Promise<void> {
+    if (!board || running) {
+      return;
+    }
+
+    await settingsSaveRef.current;
+    await runBoardMutation({ variables: { boardId: board.id } });
+    await refetchBoard();
+  }
 
   if (modelLoading && !model) {
     return <div className="h-[60vh] animate-pulse rounded-[32px] border border-white/8 bg-white/[0.03]" />;
@@ -1889,12 +1916,12 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
         </div>
         <button
           className={theme.buttonPrimary + " min-h-12 flex-col gap-0.5 rounded-xl px-3 py-2 text-xs leading-tight"}
-          disabled={!board || running}
-          onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())}
+          disabled={runBlocked}
+          onClick={() => void handleRunBoard()}
           title={`Estimated configured workflow cost: ${formatGenerationCostEstimate(runCostEstimate)} across ${runCostEstimate.rowCount ?? 0} rows and ${runCostEstimate.outputCount ?? 0} output(s). ${runCostEstimate.readyRowCount ?? 0} row(s) are currently run-ready.`}
           type="button"
         >
-          <span>{running ? "Running..." : "Run workflow"}</span>
+          <span>{running ? "Running..." : settingsSaving ? "Saving settings..." : "Run workflow"}</span>
           <span className="text-[9px] font-semibold uppercase tracking-[0.12em] opacity-75">
             {formatGenerationCostEstimate(runCostEstimate)}
           </span>

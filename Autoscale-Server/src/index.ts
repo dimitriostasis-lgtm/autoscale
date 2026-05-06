@@ -17,11 +17,13 @@ import { csrfCookieMiddleware } from "./middleware/csrf.middleware.js";
 import { loadResolvers } from "./resolvers/index.js";
 import { loadTypeDefs } from "./schemas/index.js";
 import { resetStoreWithSeed } from "./lib/store.js";
+import { startGeneratedAssetRetention } from "./services/generated-asset-retention.service.js";
 import { remoteAssetStatus, saveRemoteAsset } from "./services/remote-asset.service.js";
 import type { GraphQLContext } from "./types/context.js";
 
 async function bootstrap(): Promise<void> {
   await ensureStorageDirectories();
+  startGeneratedAssetRetention();
 
   const typeDefs = await loadTypeDefs();
   const resolvers = await loadResolvers();

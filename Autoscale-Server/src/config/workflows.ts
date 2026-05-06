@@ -10,13 +10,13 @@ export interface WorkerWorkflowConfig {
 
 const WORKFLOWS_BY_MODEL_KEY: Record<string, WorkerWorkflowConfig> = {
   "emily-rhodes": {
-    id: "emily-rhodes-mcp-v9",
-    name: "Emily MCP Workflow",
+    id: "emily-rhodes-mcp-v10",
+    name: "Emily MCP Workflow v10",
     path: path.resolve(process.cwd(), "workflows/emily-rhodes/emily_mcp_workflow.json"),
   },
   "ava-sterling": {
-    id: "emily-rhodes-mcp-v9",
-    name: "Emily MCP Workflow",
+    id: "emily-rhodes-mcp-v10",
+    name: "Emily MCP Workflow v10",
     path: path.resolve(process.cwd(), "workflows/emily-rhodes/emily_mcp_workflow.json"),
   },
 };

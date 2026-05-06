@@ -344,6 +344,7 @@ async function createWorkerJob(options: {
   faceSwapEnabled: boolean;
   autoPromptEnabled: boolean;
   autoPromptImageEnabled: boolean;
+  multiposeAutoPromptEnabled: boolean;
   upscale: boolean;
   upscaleFactor: number;
   upscaleDenoise: number;
@@ -406,6 +407,8 @@ async function createWorkerJob(options: {
   formData.append("face_swap_enabled", options.faceSwapEnabled ? "true" : "false");
   formData.append("auto_prompt_enabled", options.autoPromptEnabled ? "true" : "false");
   formData.append("auto_prompt_image_enabled", options.autoPromptImageEnabled ? "true" : "false");
+  formData.append("multipose_auto_prompt_enabled", options.multiposeAutoPromptEnabled ? "true" : "false");
+  formData.append("pose_prompt_mode", options.multiposeAutoPromptEnabled ? "AUTO" : "CUSTOM");
 
   if (options.isFirst) {
     for (const reference of options.globalReferences) {
@@ -636,6 +639,7 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         faceSwapEnabled: board.settings.faceSwap || row.faceSwap || board.settings.sdxlWorkspaceMode === "FACE_SWAP",
         autoPromptEnabled: board.settings.autoPromptGen,
         autoPromptImageEnabled: board.settings.autoPromptImage,
+        multiposeAutoPromptEnabled: board.settings.posePromptMode === "AUTO",
         upscale: generationModel === "sdxl" && !poseMultiplierActive ? row.upscale : false,
         upscaleFactor: generationModel === "sdxl" && !poseMultiplierActive ? board.settings.upscaleFactor : 1,
         upscaleDenoise: generationModel === "sdxl" && !poseMultiplierActive ? board.settings.upscaleDenoise : 0,
