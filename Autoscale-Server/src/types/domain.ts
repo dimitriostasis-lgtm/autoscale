@@ -85,6 +85,7 @@ export const VOICE_WORKER_GENERATION_MODELS = ["eleven_v3"] as const;
 export const SUPPORTED_WORKER_GENERATION_MODELS = [...IMAGE_WORKER_GENERATION_MODELS, ...VIDEO_WORKER_GENERATION_MODELS, ...VOICE_WORKER_GENERATION_MODELS] as const;
 
 export type WorkerGenerationModel = (typeof SUPPORTED_WORKER_GENERATION_MODELS)[number];
+export type GeneratedAssetMediaKind = "image" | "video" | "voice";
 
 export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext"] as const;
 
@@ -539,11 +540,14 @@ export interface GeneratedAsset {
   filePath: string;
   url: string;
   promptSnapshot: string;
-  generationModel: WorkerGenerationModel;
+  generationModel: string;
   resolution: WorkerResolution;
   aspectRatio: WorkerAspectRatio;
   quantity: number;
   workflowStage: string;
+  mediaKind: GeneratedAssetMediaKind;
+  galleryMode: string;
+  storageNamespace: string;
   width: number | null;
   height: number | null;
   isSyntheticFailure: boolean;

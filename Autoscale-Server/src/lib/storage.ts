@@ -12,6 +12,10 @@ function sanitizeName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
+function sanitizeSegment(segment: string): string {
+  return sanitizeName(segment).toLowerCase() || "misc";
+}
+
 export async function ensureStorageDirectories(): Promise<void> {
   await fs.mkdir(uploadsDir, { recursive: true });
   await fs.mkdir(generatedDir, { recursive: true });
@@ -46,14 +50,16 @@ export async function saveUploadedFile(originalName: string, buffer: Buffer): Pr
   };
 }
 
-export async function saveGeneratedFile(fileName: string, buffer: Buffer): Promise<UploadRecord> {
+export async function saveGeneratedFile(fileName: string, buffer: Buffer, options?: { directorySegments?: string[] }): Promise<UploadRecord> {
   await ensureStorageDirectories();
   const extension = path.extname(fileName) || ".webp";
   const safeBase = sanitizeName(path.basename(fileName, extension)) || "generated";
   const finalName = `${safeBase}-${randomUUID()}${extension}`;
-  const relativePath = path.join("generated", finalName);
+  const directorySegments = (options?.directorySegments || []).map(sanitizeSegment).filter(Boolean);
+  const relativePath = path.join("generated", ...directorySegments, finalName);
   const absolutePath = toAbsoluteStoragePath(relativePath);
 
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
   await fs.writeFile(absolutePath, buffer);
 
   return {

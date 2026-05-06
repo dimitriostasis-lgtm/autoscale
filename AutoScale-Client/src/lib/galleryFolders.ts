@@ -48,21 +48,73 @@ const videoAssetPattern = /(?:^|[^a-z0-9])videos?(?:$|[^a-z0-9])/i;
 const videoAssetExtensionPattern = /\.(?:mp4|mov|m4v|webm)$/i;
 const voiceAssetPattern = /(?:^|[^a-z0-9])(?:voices?|audio)(?:$|[^a-z0-9])/i;
 const audioAssetExtensionPattern = /\.(?:mp3|wav|m4a|aac|ogg|oga|flac|webm)$/i;
+const galleryModeMetadata: Record<string, { label: string; description: string }> = {
+  base: { label: "Base Outputs", description: "Base generation outputs before optional workflow stages." },
+  multipose: { label: "Pose Multiplier", description: "Generated pose multiplier outputs." },
+  face_swap: { label: "Face Swap", description: "Generated face-swap outputs." },
+  upscale: { label: "Upscale", description: "Generated upscale outputs." },
+  inpaint: { label: "Inpaint", description: "Generated inpaint or masking outputs." },
+  video: { label: "Video Outputs", description: "Generated video outputs." },
+  voice: { label: "Voice Outputs", description: "Generated voice or audio outputs." },
+};
 
 function buildAssetSearchText(asset: GeneratedAsset): string {
   return `${asset.fileName} ${asset.promptSnapshot}`;
 }
 
 export function matchesVideoAsset(asset: GeneratedAsset): boolean {
+  if (asset.mediaKind === "video") {
+    return true;
+  }
+
   return videoAssetPattern.test(buildAssetSearchText(asset)) || videoAssetExtensionPattern.test(asset.fileName);
 }
 
 export function matchesVoiceAsset(asset: GeneratedAsset): boolean {
+  if (asset.mediaKind === "voice") {
+    return true;
+  }
+
   return voiceAssetPattern.test(buildAssetSearchText(asset)) || audioAssetExtensionPattern.test(asset.fileName);
 }
 
 export function matchesImageAsset(asset: GeneratedAsset): boolean {
+  if (asset.mediaKind === "image") {
+    return true;
+  }
+
   return !matchesVideoAsset(asset) && !matchesVoiceAsset(asset);
+}
+
+function humanizeIdentifier(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+export function assetGalleryMode(asset: GeneratedAsset): string {
+  if (typeof asset.galleryMode === "string" && asset.galleryMode.trim()) {
+    return asset.galleryMode;
+  }
+
+  if (asset.workflowStage === "face_swap") {
+    return "face_swap";
+  }
+
+  if (asset.workflowStage === "multipose") {
+    return "multipose";
+  }
+
+  if (matchesVideoAsset(asset)) {
+    return "video";
+  }
+
+  if (matchesVoiceAsset(asset)) {
+    return "voice";
+  }
+
+  return "base";
 }
 
 export const galleryFolderGroups: GalleryFolderGroup[] = [
@@ -239,7 +291,42 @@ export function findFolder(folderId: string, folderGroups: GalleryFolderGroup[])
   return folderGroups.flatMap((group) => group.items).find((item) => item.id === folderId) ?? null;
 }
 
-export function buildGalleryFolderGroups(customFolders: StoredCustomGalleryFolder[], customGroups: StoredCustomGalleryGroup[] = []): GalleryFolderGroup[] {
+export function buildDynamicGalleryFolderGroups(assets: GeneratedAsset[]): GalleryFolderGroup[] {
+  const galleryModes = Array.from(new Set(assets.map(assetGalleryMode))).filter(Boolean);
+  const generationModels = Array.from(new Set(assets.map((asset) => asset.generationModel).filter(Boolean))).sort();
+  const modeItems = galleryModes.flatMap((mode) => {
+    const metadata = galleryModeMetadata[mode] ?? {
+      label: humanizeIdentifier(mode),
+      description: `Generated outputs stored in ${humanizeIdentifier(mode)} mode.`,
+    };
+
+    return [{
+      id: `mode:${mode}`,
+      label: metadata.label,
+      description: metadata.description,
+      matcher: (asset: GeneratedAsset) => assetGalleryMode(asset) === mode,
+      source: "smart" as const,
+    }];
+  });
+  const modelItems = generationModels.map((generationModel) => ({
+    id: `worker-model:${generationModel}`,
+    label: humanizeIdentifier(generationModel),
+    description: `Generated outputs from ${humanizeIdentifier(generationModel)}.`,
+    matcher: (asset: GeneratedAsset) => asset.generationModel === generationModel,
+    source: "smart" as const,
+  }));
+
+  return [
+    ...(modeItems.length ? [{ id: "workflow-modes", label: "Workflow modes", items: modeItems }] : []),
+    ...(modelItems.length ? [{ id: "worker-models", label: "Worker models", items: modelItems }] : []),
+  ];
+}
+
+export function buildGalleryFolderGroups(
+  customFolders: StoredCustomGalleryFolder[],
+  customGroups: StoredCustomGalleryGroup[] = [],
+  dynamicGroups: GalleryFolderGroup[] = [],
+): GalleryFolderGroup[] {
   const customFolderGroups = [
     { id: customFolderGroupId, label: customFolderGroupLabel, createdAt: new Date(0).toISOString() },
     ...customGroups,
@@ -251,5 +338,7 @@ export function buildGalleryFolderGroups(customFolders: StoredCustomGalleryFolde
       : [];
   });
 
-  return customFolderGroups.length > 0 ? [...galleryFolderGroups, ...customFolderGroups] : galleryFolderGroups;
+  const baseGroups = [...galleryFolderGroups, ...dynamicGroups];
+
+  return customFolderGroups.length > 0 ? [...baseGroups, ...customFolderGroups] : baseGroups;
 }

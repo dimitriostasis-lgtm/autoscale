@@ -151,6 +151,9 @@ type GeneratedAsset {
   aspectRatio: String!
   quantity: Int!
   workflowStage: String!
+  mediaKind: String!
+  galleryMode: String!
+  storageNamespace: String!
   width: Int
   height: Int
   isSyntheticFailure: Boolean!
@@ -346,7 +349,7 @@ type Query {
   influencerModels(includeInactive: Boolean = false): [InfluencerModel!]!
   influencerModel(slug: String!): InfluencerModel
   workspaceBoard(boardId: ID!): WorkspaceBoard
-  modelAssets(influencerModelId: ID!, limit: Int = 80): [GeneratedAsset!]!
+  modelAssets(influencerModelId: ID!, limit: Int = 1000): [GeneratedAsset!]!
   users: [User!]!
   platformNotifications: [PlatformNotification!]!
 }

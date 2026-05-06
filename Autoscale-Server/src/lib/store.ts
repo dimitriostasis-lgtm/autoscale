@@ -11,6 +11,8 @@ import {
   DEFAULT_UPSCALE_DENOISE,
   DEFAULT_UPSCALE_FACTOR,
   SUPPORTED_WORKER_GENERATION_MODELS,
+  VIDEO_WORKER_GENERATION_MODELS,
+  VOICE_WORKER_GENERATION_MODELS,
   getMaxBoardQuantityForGenerationModel,
   isNsfwPoseMultiplierWorkspace,
   isPoseMultiplierWorkspace,
@@ -295,10 +297,51 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
         })),
       };
     }),
-    assets: (rawStore.assets || []).map((asset) => ({
-      ...asset,
-      workflowStage: typeof (asset as { workflowStage?: unknown }).workflowStage === "string" ? (asset as { workflowStage: string }).workflowStage : "base",
-    })),
+    assets: (rawStore.assets || []).map((asset) => {
+      const workflowStage = typeof (asset as { workflowStage?: unknown }).workflowStage === "string" ? (asset as { workflowStage: string }).workflowStage : "base";
+      const generationModel = typeof (asset as { generationModel?: unknown }).generationModel === "string" ? (asset as { generationModel: string }).generationModel : "";
+      const fileName = typeof (asset as { fileName?: unknown }).fileName === "string" ? (asset as { fileName: string }).fileName : "";
+      const filePath = typeof (asset as { filePath?: unknown }).filePath === "string" ? (asset as { filePath: string }).filePath : "";
+      const rawMediaKind = (asset as { mediaKind?: unknown }).mediaKind;
+      const mediaKind =
+        rawMediaKind === "video" || rawMediaKind === "voice" || rawMediaKind === "image"
+          ? rawMediaKind
+          : VIDEO_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VIDEO_WORKER_GENERATION_MODELS)[number]) || /\.(?:mp4|mov|m4v|webm)$/i.test(fileName)
+            ? "video"
+          : VOICE_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VOICE_WORKER_GENERATION_MODELS)[number]) || /\.(?:mp3|wav|m4a|aac|ogg|oga|flac)$/i.test(fileName)
+            ? "voice"
+          : "image";
+      const rawGalleryMode = (asset as { galleryMode?: unknown }).galleryMode;
+      const galleryMode =
+        typeof rawGalleryMode === "string" && rawGalleryMode.trim()
+          ? rawGalleryMode
+          : workflowStage === "face_swap"
+            ? "face_swap"
+          : workflowStage === "multipose"
+            ? "multipose"
+          : mediaKind === "video"
+            ? "video"
+          : mediaKind === "voice"
+            ? "voice"
+          : /upscale/i.test(`${fileName} ${filePath}`)
+            ? "upscale"
+          : /inpaint/i.test(`${fileName} ${filePath}`)
+            ? "inpaint"
+          : "base";
+      const rawStorageNamespace = (asset as { storageNamespace?: unknown }).storageNamespace;
+      const storageNamespace =
+        typeof rawStorageNamespace === "string" && rawStorageNamespace.trim()
+          ? rawStorageNamespace
+          : filePath.split(/[\\/]/).slice(1, -1).join("/");
+
+      return {
+        ...asset,
+        workflowStage,
+        mediaKind,
+        galleryMode,
+        storageNamespace,
+      };
+    }),
     platformNotifications: rawStore.platformNotifications || [],
   };
 }

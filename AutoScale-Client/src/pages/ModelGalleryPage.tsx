@@ -6,6 +6,7 @@ import { GalleryMasonry } from "../components/gallery/GalleryMasonry";
 import { InfluencerAvatar } from "../components/model/InfluencerAvatar";
 import {
   buildFolderCounts,
+  buildDynamicGalleryFolderGroups,
   buildGalleryFolderGroups,
   createCustomFolderId,
   createCustomFolderGroupId,
@@ -14,6 +15,7 @@ import {
   faceSwapFolderId,
   findFolder,
   inpaintFolderId,
+  assetGalleryMode,
   multiPoseFolderId,
   readStoredCustomFolderGroups,
   readStoredCustomFolders,
@@ -102,6 +104,10 @@ function resolveBoardGalleryMode(boardName: string): GalleryAssetMode {
 }
 
 function resolveAssetGalleryMode(asset: GeneratedAsset, assetModesByBoardId: Map<string, GalleryAssetMode>): GalleryAssetMode {
+  if (asset.mediaKind === "video" || asset.mediaKind === "voice" || asset.mediaKind === "image") {
+    return { kind: asset.mediaKind, safety: assetModesByBoardId.get(asset.boardId)?.safety ?? "SFW" };
+  }
+
   return assetModesByBoardId.get(asset.boardId) ?? { kind: "image", safety: "SFW" };
 }
 
@@ -120,17 +126,18 @@ function matchesSpecialImageFilter(
   }
 
   const rowSignals = assetRowSignalsById.get(asset.id);
+  const mode = assetGalleryMode(asset);
 
   if (folderId === faceSwapFolderId) {
-    return Boolean(rowSignals?.faceSwap) || faceSwapAssetPattern.test(buildAssetSearchText(asset));
+    return mode === "face_swap" || asset.workflowStage === "face_swap" || Boolean(rowSignals?.faceSwap) || faceSwapAssetPattern.test(buildAssetSearchText(asset));
   }
 
   if (folderId === inpaintFolderId) {
-    return inpaintAssetPattern.test(buildAssetSearchText(asset));
+    return mode === "inpaint" || inpaintAssetPattern.test(buildAssetSearchText(asset));
   }
 
   if (folderId === multiPoseFolderId) {
-    return (rowSignals?.poseMultiplier ?? 1) > 1 || asset.quantity > 1;
+    return mode === "multipose" || asset.workflowStage === "multipose" || (rowSignals?.poseMultiplier ?? 1) > 1 || asset.quantity > 1;
   }
 
   return false;
@@ -162,13 +169,14 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
 
   const { data: assetsData } = useQuery<{ modelAssets: GeneratedAsset[] }>(MODEL_ASSETS_QUERY, {
     skip: !model?.id,
-    variables: { influencerModelId: model?.id || "", limit: 180 },
+    variables: { influencerModelId: model?.id || "", limit: 5000 },
     fetchPolicy: "cache-and-network",
   });
 
   const assets = useMemo(() => assetsData?.modelAssets ?? [], [assetsData]);
   const availableAssetIds = useMemo(() => new Set(assets.map((asset) => asset.id)), [assets]);
-  const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups), [customFolderGroups, customFolders]);
+  const dynamicFolderGroups = useMemo(() => buildDynamicGalleryFolderGroups(assets), [assets]);
+  const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups, dynamicFolderGroups), [customFolderGroups, customFolders, dynamicFolderGroups]);
   const assetModesByBoardId = useMemo(() => {
     return new Map((model?.boards ?? []).map((board) => [board.id, resolveBoardGalleryMode(board.name)] as const));
   }, [model?.boards]);
@@ -465,7 +473,7 @@ export function ModelGalleryPage({ slug }: ModelGalleryPageProps) {
             </div>
           </div>
           <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/68">
-            {assets.length} generated images
+            {assets.length} generated assets
           </div>
         </div>
       </section>

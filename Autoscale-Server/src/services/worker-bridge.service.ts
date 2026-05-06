@@ -75,6 +75,17 @@ interface RowJobLink {
   videoDurationSeconds: number | null;
   aspectRatio: GeneratedAsset["aspectRatio"];
   quantity: number;
+  baseGenerationModel: string;
+  baseResolution: string;
+  baseAspectRatio: string;
+  baseQuantity: number;
+  multiposeGenerationModel: string;
+  multiposeResolution: string;
+  multiposeAspectRatio: string;
+  multiposeQuantity: number;
+  poseMultiplierActive: boolean;
+  faceSwapEnabled: boolean;
+  upscale: boolean;
 }
 
 function isVideoWorkerModel(generationModel: string): boolean {
@@ -83,6 +94,95 @@ function isVideoWorkerModel(generationModel: string): boolean {
 
 function isVoiceWorkerModel(generationModel: string): boolean {
   return VOICE_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VOICE_WORKER_GENERATION_MODELS)[number]);
+}
+
+function safeStorageSegment(value: string | null | undefined, fallback: string): string {
+  return String(value || fallback)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    || fallback;
+}
+
+function boardSafetySegment(boardName: string): "sfw" | "nsfw" {
+  return boardName.startsWith("__autoscale_workspace_nsfw__:") || boardName.startsWith("__autoscale_workspace_video_nsfw__:") || boardName.startsWith("__autoscale_workspace_voice_nsfw__:")
+    ? "nsfw"
+    : "sfw";
+}
+
+function mediaKindForStage(stage: string, generationModel: string): GeneratedAsset["mediaKind"] {
+  if (stage === "multipose" || stage === "face_swap") {
+    return "image";
+  }
+
+  if (isVideoWorkerModel(generationModel)) {
+    return "video";
+  }
+
+  if (isVoiceWorkerModel(generationModel)) {
+    return "voice";
+  }
+
+  return "image";
+}
+
+function galleryModeForStage(stage: string, generationModel: string, upscale: boolean): string {
+  if (stage === "face_swap") {
+    return "face_swap";
+  }
+
+  if (stage === "multipose") {
+    return "multipose";
+  }
+
+  if (upscale) {
+    return "upscale";
+  }
+
+  if (isVideoWorkerModel(generationModel)) {
+    return "video";
+  }
+
+  if (isVoiceWorkerModel(generationModel)) {
+    return "voice";
+  }
+
+  return "base";
+}
+
+function stageAssetContext(result: RowJobLink, stage: string) {
+  if (stage === "multipose") {
+    return {
+      generationModel: result.multiposeGenerationModel,
+      resolution: result.multiposeResolution,
+      aspectRatio: result.multiposeAspectRatio,
+      quantity: result.multiposeQuantity,
+      galleryMode: galleryModeForStage(stage, result.multiposeGenerationModel, false),
+      mediaKind: mediaKindForStage(stage, result.multiposeGenerationModel),
+    };
+  }
+
+  if (stage === "face_swap") {
+    return {
+      generationModel: "face_swap",
+      resolution: result.resolution,
+      aspectRatio: result.aspectRatio,
+      quantity: 1,
+      galleryMode: "face_swap",
+      mediaKind: "image" as const,
+    };
+  }
+
+  return {
+    generationModel: result.baseGenerationModel || result.generationModel,
+    resolution: result.baseResolution || result.resolution,
+    aspectRatio: result.baseAspectRatio || result.aspectRatio,
+    quantity: result.baseQuantity || result.quantity,
+    galleryMode: galleryModeForStage(stage, result.baseGenerationModel || result.generationModel, result.upscale),
+    mediaKind: mediaKindForStage(stage, result.baseGenerationModel || result.generationModel),
+  };
 }
 
 function resolveGenerationLane(generationModel: string): GenerationLane {
@@ -546,7 +646,27 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         isLast: index === activeRows.length - 1,
       });
 
-      rowJobs.push({ rowId: row.id, jobId, prompt: row.prompt, generationModel, resolution, videoDurationSeconds, aspectRatio, quantity });
+      rowJobs.push({
+        rowId: row.id,
+        jobId,
+        prompt: row.prompt,
+        generationModel,
+        resolution,
+        videoDurationSeconds,
+        aspectRatio,
+        quantity,
+        baseGenerationModel,
+        baseResolution,
+        baseAspectRatio,
+        baseQuantity,
+        multiposeGenerationModel,
+        multiposeResolution,
+        multiposeAspectRatio,
+        multiposeQuantity,
+        poseMultiplierActive,
+        faceSwapEnabled: board.settings.faceSwap || row.faceSwap || board.settings.sdxlWorkspaceMode === "FACE_SWAP",
+        upscale: generationModel === "sdxl" && !poseMultiplierActive ? row.upscale : false,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to submit this row to the generation worker";
       const remainingIds = activeRows.slice(index).map((entry) => entry.id);
@@ -568,12 +688,25 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
 
   const statusResults = await Promise.all(
     rowJobs.map(async (entry) => ({
+      jobId: entry.jobId,
       rowId: entry.rowId,
       prompt: entry.prompt,
       generationModel: entry.generationModel,
       resolution: entry.resolution,
       aspectRatio: entry.aspectRatio,
       quantity: entry.quantity,
+      videoDurationSeconds: entry.videoDurationSeconds,
+      baseGenerationModel: entry.baseGenerationModel,
+      baseResolution: entry.baseResolution,
+      baseAspectRatio: entry.baseAspectRatio,
+      baseQuantity: entry.baseQuantity,
+      multiposeGenerationModel: entry.multiposeGenerationModel,
+      multiposeResolution: entry.multiposeResolution,
+      multiposeAspectRatio: entry.multiposeAspectRatio,
+      multiposeQuantity: entry.multiposeQuantity,
+      poseMultiplierActive: entry.poseMultiplierActive,
+      faceSwapEnabled: entry.faceSwapEnabled,
+      upscale: entry.upscale,
       job: await getWorkerJob(entry.jobId),
     })),
   );
@@ -590,7 +723,18 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
       for (const [index, artifact] of artifacts.entries()) {
       try {
         const buffer = await downloadArtifact(artifact);
-        const fileRecord = await saveGeneratedFile(artifact.name || `${result.rowId}-${index + 1}.webp`, buffer);
+        const assetContext = stageAssetContext(result, stage);
+        const storageSegments = [
+          safeStorageSegment(influencerModel?.slug || influencerModel?.name || board.influencerModelId, "influencer"),
+          assetContext.mediaKind === "video" ? "videos" : assetContext.mediaKind === "voice" ? "voices" : "images",
+          safeStorageSegment(assetContext.galleryMode, "base"),
+          safeStorageSegment(assetContext.generationModel, "model"),
+          boardSafetySegment(board.name),
+        ];
+        const storageNamespace = storageSegments.join("/");
+        const fileRecord = await saveGeneratedFile(artifact.name || `${result.rowId}-${index + 1}.webp`, buffer, {
+          directorySegments: storageSegments,
+        });
         createdAssets.push({
           id: randomUUID(),
           influencerModelId: board.influencerModelId,
@@ -601,11 +745,14 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
           filePath: fileRecord.filePath,
           url: fileRecord.url,
           promptSnapshot: result.prompt,
-          generationModel: result.generationModel,
-          resolution: result.resolution,
-          aspectRatio: result.aspectRatio,
-          quantity: result.quantity,
+          generationModel: assetContext.generationModel,
+          resolution: assetContext.resolution as GeneratedAsset["resolution"],
+          aspectRatio: assetContext.aspectRatio as GeneratedAsset["aspectRatio"],
+          quantity: assetContext.quantity,
           workflowStage: stage,
+          mediaKind: assetContext.mediaKind,
+          galleryMode: assetContext.galleryMode,
+          storageNamespace,
           width: artifact.width ?? null,
           height: artifact.height ?? null,
           isSyntheticFailure: Boolean(artifact.synthetic_failure || artifact.syntheticFailure),

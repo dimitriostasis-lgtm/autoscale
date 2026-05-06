@@ -119,6 +119,9 @@ export const BOARD_DETAIL_QUERY = gql`
           width
           height
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           failureLabel
         }
@@ -131,6 +134,9 @@ export const BOARD_DETAIL_QUERY = gql`
           width
           height
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           failureLabel
         }
@@ -143,6 +149,9 @@ export const BOARD_DETAIL_QUERY = gql`
           width
           height
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           failureLabel
         }
@@ -350,6 +359,9 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
           width
           height
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           failureLabel
         }
@@ -362,6 +374,9 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
           width
           height
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           failureLabel
         }
@@ -374,6 +389,9 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
           width
           height
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           failureLabel
         }

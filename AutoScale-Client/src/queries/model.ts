@@ -63,6 +63,9 @@ export const INFLUENCER_MODEL_FIELDS = gql`
           aspectRatio
           quantity
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           createdAt
         }
@@ -75,6 +78,9 @@ export const INFLUENCER_MODEL_FIELDS = gql`
           aspectRatio
           quantity
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           createdAt
         }
@@ -87,6 +93,9 @@ export const INFLUENCER_MODEL_FIELDS = gql`
           aspectRatio
           quantity
           workflowStage
+          mediaKind
+          galleryMode
+          storageNamespace
           isSyntheticFailure
           createdAt
         }
@@ -163,6 +172,10 @@ export const MODEL_ASSETS_QUERY = gql`
       resolution
       aspectRatio
       quantity
+      workflowStage
+      mediaKind
+      galleryMode
+      storageNamespace
       width
       height
       isSyntheticFailure

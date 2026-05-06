@@ -137,17 +137,19 @@ export async function getInfluencerModel(currentUser: AuthUser | null, slug: str
   return presentInfluencerModel(model.id, store, viewer);
 }
 
-export async function listModelAssets(currentUser: AuthUser | null, influencerModelId: string, limit = 80) {
+export async function listModelAssets(currentUser: AuthUser | null, influencerModelId: string, limit = 1000) {
   const viewer = requireAuthenticatedUser(currentUser);
   const store = await readStore();
   assertInfluencerAccess(store, viewer, influencerModelId);
+  const normalizedLimit = Math.max(1, Math.min(Number.isFinite(limit) ? Math.floor(limit) : 1000, 5000));
+
   return filterAssetsForUser(
     store,
     viewer,
     store.assets.filter((asset) => asset.influencerModelId === influencerModelId),
   )
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
-    .slice(0, limit);
+    .slice(0, normalizedLimit);
 }
 
 export async function createInfluencerModel(

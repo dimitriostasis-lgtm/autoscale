@@ -85,6 +85,9 @@ export interface GeneratedAsset {
   aspectRatio: string;
   quantity: number;
   workflowStage: string;
+  mediaKind: "image" | "video" | "voice";
+  galleryMode: string;
+  storageNamespace: string;
   width: number | null;
   height: number | null;
   isSyntheticFailure: boolean;

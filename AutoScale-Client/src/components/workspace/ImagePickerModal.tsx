@@ -3,12 +3,14 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { cx } from "../../lib/cx";
 import {
   buildFolderCounts,
+  buildDynamicGalleryFolderGroups,
   buildGalleryFolderGroups,
   allMediaFolderId,
   defaultGalleryFolderId,
   faceSwapFolderId,
   findFolder,
   inpaintFolderId,
+  assetGalleryMode,
   matchesVideoAsset,
   matchesVoiceAsset,
   multiPoseFolderId,
@@ -69,6 +71,10 @@ function targetMediaKindForVariant(variant: PickerVariant): PickerMediaKind {
 }
 
 function resolveAssetGalleryMode(asset: GeneratedAsset, assetModesByBoardId: Map<string, GalleryAssetMode>): GalleryAssetMode {
+  if (asset.mediaKind === "video" || asset.mediaKind === "voice" || asset.mediaKind === "image") {
+    return { kind: asset.mediaKind, safety: assetModesByBoardId.get(asset.boardId)?.safety ?? "SFW" };
+  }
+
   const boardMode = assetModesByBoardId.get(asset.boardId);
 
   if (boardMode && boardMode.kind !== "image") {
@@ -105,17 +111,18 @@ function matchesSpecialImageFilter(
   }
 
   const rowSignals = assetRowSignalsById.get(asset.id);
+  const mode = assetGalleryMode(asset);
 
   if (folderId === faceSwapFolderId) {
-    return Boolean(rowSignals?.faceSwap) || faceSwapAssetPattern.test(buildAssetSearchText(asset));
+    return mode === "face_swap" || asset.workflowStage === "face_swap" || Boolean(rowSignals?.faceSwap) || faceSwapAssetPattern.test(buildAssetSearchText(asset));
   }
 
   if (folderId === inpaintFolderId) {
-    return inpaintAssetPattern.test(buildAssetSearchText(asset));
+    return mode === "inpaint" || inpaintAssetPattern.test(buildAssetSearchText(asset));
   }
 
   if (folderId === multiPoseFolderId) {
-    return (rowSignals?.poseMultiplier ?? 1) > 1 || asset.quantity > 1;
+    return mode === "multipose" || asset.workflowStage === "multipose" || (rowSignals?.poseMultiplier ?? 1) > 1 || asset.quantity > 1;
   }
 
   return false;
@@ -134,6 +141,10 @@ function allowedMediaFolderForVariant(variant: PickerVariant): string {
 function canSelectFolderForVariant(item: GalleryFolderItem, variant: PickerVariant): boolean {
   if (item.source === "custom") {
     return variant === "image";
+  }
+
+  if (item.id.startsWith("mode:") || item.id.startsWith("worker-model:")) {
+    return true;
   }
 
   return item.id === allowedMediaFolderForVariant(variant);
@@ -168,7 +179,8 @@ export function ImagePickerModal({ open, slug, assets, boards = [], variant = "i
   const [customFolderGroups, setCustomFolderGroups] = useState(() => readStoredCustomFolderGroups(slug));
   const [customFolders, setCustomFolders] = useState(() => readStoredCustomFolders(slug));
   const deferredQuery = useDeferredValue(query);
-  const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups), [customFolderGroups, customFolders]);
+  const dynamicFolderGroups = useMemo(() => buildDynamicGalleryFolderGroups(assets), [assets]);
+  const folderGroups = useMemo(() => buildGalleryFolderGroups(customFolders, customFolderGroups, dynamicFolderGroups), [customFolderGroups, customFolders, dynamicFolderGroups]);
   const assetModesByBoardId = useMemo(() => new Map(boards.map((board) => [board.id, resolveBoardGalleryMode(board.name)] as const)), [boards]);
   const assetRowSignalsById = useMemo(() => {
     const entries = boards.flatMap((board) =>
