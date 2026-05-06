@@ -659,6 +659,11 @@ async function getBoard(boardId) {
   return data.workspaceBoard;
 }
 
+function isMissingBoardError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("board not found") || message.includes("workspace table was not found");
+}
+
 async function ensureBoardSettings(board, mode, model, state) {
   const normalized = normalizeSettingsForMode(board.settings, mode, model.allowedGenerationModels || [], state.config);
   if (!settingsChanged(board.settings, normalized)) {
@@ -670,6 +675,22 @@ async function ensureBoardSettings(board, mode, model, state) {
     input: settingsInput(normalized),
   });
   return getBoard(board.id);
+}
+
+async function resolvePluginModel(state) {
+  let model = state.models.find((entry) => entry.id === state.selectedModelId);
+  let resolvedState = state;
+
+  if (!model) {
+    resolvedState = await refreshModels(state);
+    model = resolvedState.models.find((entry) => entry.id === resolvedState.selectedModelId);
+  }
+
+  if (!model) {
+    throw new Error("Select an influencer profile in the AutoScale plugin first");
+  }
+
+  return { model, state: resolvedState };
 }
 
 function rowHasReference(row, kind) {
@@ -685,15 +706,7 @@ async function prepareTargetBoard(kind, mode, state) {
     throw new Error("Audio capture is not configured for the current worker set");
   }
 
-  let model = state.models.find((entry) => entry.id === state.selectedModelId);
-  if (!model) {
-    const refreshed = await refreshModels(state);
-    model = refreshed.models.find((entry) => entry.id === refreshed.selectedModelId);
-  }
-
-  if (!model) {
-    throw new Error("Select an influencer profile in the AutoScale plugin first");
-  }
+  const { model } = await resolvePluginModel(state);
 
   const modeBoards = boardsForMode(model, mode);
   const targetBoards = modeBoards.filter((board) => boardMatchesTargetSettings(board, mode, model, state));
@@ -731,6 +744,23 @@ async function prepareTargetBoard(kind, mode, state) {
   }
 
   return { model, board: createdBoard, row };
+}
+
+async function prepareTargetBoardWithFreshRetry(kind, mode, state) {
+  try {
+    return await prepareTargetBoard(kind, mode, state);
+  } catch (error) {
+    if (!isMissingBoardError(error)) {
+      throw error;
+    }
+
+    const refreshed = await refreshModels({
+      ...state,
+      touchedBoardIds: [],
+      lastMessage: "Plugin table list refreshed after a missing table.",
+    });
+    return prepareTargetBoard(kind, mode, refreshed);
+  }
 }
 
 function filenameFromAsset(asset, blobType = "") {
@@ -1169,7 +1199,7 @@ async function captureAsset(rawAsset) {
   const mode = modeForAssetKind(asset.kind, state.safety);
   const upload = await uploadAsset(asset, state);
   const reference = buildUploadReference(asset, upload);
-  const { board, row } = await prepareTargetBoard(asset.kind, mode, state);
+  const { board, row } = await prepareTargetBoardWithFreshRetry(asset.kind, mode, state);
   const input = {
     boardId: board.id,
     rowId: row.id,
@@ -1269,6 +1299,23 @@ function boardIdsForRunTarget(model, state, runTarget) {
   return state.touchedBoardIds || [];
 }
 
+async function runBoardIds(boardIds) {
+  const missingBoardIds = [];
+
+  for (const boardId of boardIds) {
+    try {
+      await graphqlRequest(RUN_BOARD_MUTATION, { boardId });
+    } catch (error) {
+      if (!isMissingBoardError(error)) {
+        throw error;
+      }
+      missingBoardIds.push(boardId);
+    }
+  }
+
+  return missingBoardIds;
+}
+
 async function runWorkflow(payload = {}) {
   const state = await loadState();
   const nextWorkflow = {
@@ -1290,8 +1337,23 @@ async function runWorkflow(payload = {}) {
     throw new Error(runTarget === "captured" ? "Capture at least one asset before running a workflow" : "No tables found for the selected run target");
   }
 
-  for (const boardId of boardIds) {
-    await graphqlRequest(RUN_BOARD_MUTATION, { boardId });
+  const missingBoardIds = await runBoardIds(boardIds);
+  const startedBoardIds = boardIds.filter((boardId) => !missingBoardIds.includes(boardId));
+  let startedBoardCount = startedBoardIds.length;
+
+  if (missingBoardIds.length) {
+    const refreshed = await refreshModels({
+      ...nextState,
+      touchedBoardIds: (nextState.touchedBoardIds || []).filter((boardId) => !missingBoardIds.includes(boardId)),
+      lastMessage: "Plugin table list refreshed after a missing table.",
+    });
+    model = refreshed.models.find((entry) => entry.id === refreshed.selectedModelId);
+    const refreshedBoardIds = [
+      ...new Set(model ? boardIdsForRunTarget(model, refreshed, runTarget) : refreshed.touchedBoardIds || []),
+    ].filter((boardId) => !missingBoardIds.includes(boardId) && !startedBoardIds.includes(boardId));
+
+    const secondMissingBoardIds = refreshedBoardIds.length ? await runBoardIds(refreshedBoardIds) : [];
+    startedBoardCount += refreshedBoardIds.length - secondMissingBoardIds.length;
   }
 
   const workflowLabel = selectedWorkflowLabel(nextState, model);
@@ -1299,7 +1361,10 @@ async function runWorkflow(payload = {}) {
     ...nextState,
     touchedBoardIds: [],
     sessionCounts: { image: 0, video: 0, audio: 0 },
-    lastMessage: `Started ${boardIds.length} table run${boardIds.length === 1 ? "" : "s"} with ${workflowLabel}.`,
+    lastMessage:
+      startedBoardCount > 0
+        ? `Started ${startedBoardCount} table run${startedBoardCount === 1 ? "" : "s"} with ${workflowLabel}.`
+        : "No existing tables were available to run. Capture a new asset first.",
   });
 
   return {
