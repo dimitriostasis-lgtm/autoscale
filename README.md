@@ -97,3 +97,23 @@ npm run dev
 1. Install Node.js and run both packages to surface any dependency-level type issues that cannot be checked without `node_modules`.
 2. Swap the JSON-backed persistence layer to the included Prisma/PostgreSQL schema once the database environment is ready.
 3. Point the worker URL and API key values in `Autoscale-Server/.env` at the live worker instance and test a full end-to-end board run.
+
+## Higgsfield MCP worker
+
+The server is configured for the local Higgsfield MCP worker bridge on `http://127.0.0.1:8190`.
+
+- Emily Rhodes is mapped to `Autoscale-Server/workflows/emily-rhodes/emily_mcp_workflow.json`.
+- Workspace runs send `workflow_id`, `workflow_name`, `workflow_path`, `board_run_id`, `row_id`, and `row_index` to the worker.
+- Platform admins can connect a separate Higgsfield MCP login per AI influencer from Admin Access → Higgsfield MCP. The worker stores those OAuth tokens separately and generation jobs use the token matching `influencer_model_id`.
+- Website model aliases use the curated MCP ids: `nb_pro` → `nano_banana_2`, `nb2` → `nano_banana_flash`, `sd_4_5` → `seedream_v4_5`, `gpt_2` → `gpt_image_2`, `flux_2` → `flux_2`, `kling_o1` → `kling_omni_image`, `flux_kontext` → `flux_kontext`, `z_image` → `z_image`, `sd_2_0` / `sd_2_0_fast` → `seedance_2_0`, and `kling_3_0` → `kling3_0`.
+- The website cost estimator now uses Higgsfield credit units directly, including resolution and quality tiers where the model exposes those controls. Confirmed transaction-log rates are marked in the Admin Access → Higgsfield MCP cost map; inferred tiers should be rechecked after the first live transaction for that exact tier.
+- Rows can run prompt-only by default for MCP-backed image/video models. Set `HIGGSFIELD_REQUIRE_REFERENCE_IMAGES=true` only for older worker stacks that require a row reference.
+- Board runs are queued by lane so one image tab, one video tab, and one audio tab can run at a time.
+
+Dry-run worker:
+
+```bash
+cd ../MCPNODE
+HIGGSFIELD_MCP_WORKER_DRY_RUN=true HIGGSFIELD_WORKER_API_KEY=local-dev \
+  /Users/dimitriostasis/Documents/ComfyUILaptop/.venv/bin/python autoscale_mcp_worker.py --port 8190
+```

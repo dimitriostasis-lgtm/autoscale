@@ -8,7 +8,7 @@ import { ImagePickerModal } from "../components/workspace/ImagePickerModal";
 import { SettingsPanel } from "../components/workspace/SettingsPanel";
 import { WorkspaceGrid } from "../components/workspace/WorkspaceGrid";
 import { cx } from "../lib/cx";
-import { IMPROVE_PROMPT_CREDITS, estimateBoardRunCost, estimatePlaygroundCost, formatCreditCost } from "../lib/generationCosts";
+import { IMPROVE_PROMPT_CREDITS, estimateBoardRunCost, estimatePlaygroundCost, formatCreditCost, formatGenerationCostEstimate } from "../lib/generationCosts";
 import { improvePromptDraft } from "../lib/promptImprovement";
 import type { WorkspaceMode } from "../lib/router";
 import { uploadReferenceFile } from "../lib/uploads";
@@ -605,10 +605,11 @@ function PlaygroundSurface({
   const voiceGenerationModel = voiceGenerationModelOptions.includes(generationModel as (typeof voiceGenerationModelOptions)[number]);
   const aspectRatioLocked = klingMotionControlModel || isPoseMultiplierWorkspace(generationModel, settings.sdxlWorkspaceMode);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(generationModel);
+  const showResolutionControl = allowedResolutionOptions.length > 0;
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(generationModel);
   const allowedQualityOptions = getQualityOptionsForGenerationModel(generationModel);
   const showQualityControl = allowedQualityOptions.length > 1;
-  const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
+  const displayedAspectRatioOptions = aspectRatioLocked && allowedAspectRatioOptions.includes("auto") ? (["auto"] as const) : allowedAspectRatioOptions;
   const allowedVideoDurationOptions = getVideoDurationOptionsForGenerationModel(generationModel);
   const maxQuantity = getMaxQuantityForGenerationModel(generationModel);
   const quantityOptions = Array.from({ length: maxQuantity }, (_, index) => index + 1);
@@ -1172,19 +1173,21 @@ function PlaygroundSurface({
 
               {!voiceGenerationModel ? (
                 <>
-                  <select
-                    aria-label="Resolution"
-                    className={controlClass + " w-24"}
-                    disabled={!board}
-                    onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
-                    value={settings.resolution}
-                  >
-                    {allowedResolutionOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {resolutionLabels[option]}
-                      </option>
-                    ))}
-                  </select>
+                  {showResolutionControl ? (
+                    <select
+                      aria-label="Resolution"
+                      className={controlClass + " w-24"}
+                      disabled={!board}
+                      onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
+                      value={normalizeResolutionForGenerationModel(generationModel, settings.resolution)}
+                    >
+                      {allowedResolutionOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {resolutionLabels[option]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
 
                   {showQualityControl ? (
                     <select
@@ -1277,7 +1280,7 @@ function PlaygroundSurface({
           <button className={theme.buttonPrimary + " h-20 w-full flex-col gap-1 rounded-2xl px-5 text-sm leading-tight lg:w-40"} disabled={generateDisabled} type="submit">
             <span>Generate</span>
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-78">
-              {formatCreditCost(playgroundCost.credits)} credits
+              {formatGenerationCostEstimate(playgroundCost)}
             </span>
           </button>
         </fieldset>
@@ -1860,6 +1863,42 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
       </select>
     </label>
   ) : null;
+  const boardActionControls =
+    mode === "playground" ? null : (
+      <div className="flex min-w-max items-center justify-end gap-2">
+        <div
+          className="inline-flex min-h-10 flex-col justify-center rounded-xl border border-lime-300/28 bg-lime-300/10 px-3 py-1.5 text-left text-lime-100 shadow-[0_0_24px_rgba(190,242,100,0.12)]"
+          title={`Estimated configured workflow cost: ${formatGenerationCostEstimate(runCostEstimate)} across ${runCostEstimate.rowCount ?? 0} rows and ${runCostEstimate.outputCount ?? 0} output(s). ${runCostEstimate.readyRowCount ?? 0} row(s) are currently run-ready.`}
+        >
+          <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-lime-100/62">Estimated cost</span>
+          <span className="whitespace-nowrap text-xs font-bold text-lime-50">
+            {formatGenerationCostEstimate(runCostEstimate)} · {runCostEstimate.outputCount ?? 0} outputs
+          </span>
+        </div>
+        <button
+          className={theme.buttonPrimary + " min-h-12 flex-col gap-0.5 rounded-xl px-3 py-2 text-xs leading-tight"}
+          disabled={!board || running}
+          onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())}
+          title={`Estimated configured workflow cost: ${formatGenerationCostEstimate(runCostEstimate)} across ${runCostEstimate.rowCount ?? 0} rows and ${runCostEstimate.outputCount ?? 0} output(s). ${runCostEstimate.readyRowCount ?? 0} row(s) are currently run-ready.`}
+          type="button"
+        >
+          <span>{running ? "Running..." : "Run workflow"}</span>
+          <span className="text-[9px] font-semibold uppercase tracking-[0.12em] opacity-75">
+            {formatGenerationCostEstimate(runCostEstimate)}
+          </span>
+        </button>
+        <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
+          Clear table
+        </button>
+      </div>
+    );
+  const boardTabsRightAddon =
+    boardLayoutControl || boardActionControls ? (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {boardLayoutControl}
+        {boardActionControls}
+      </div>
+    ) : null;
   return (
     <div className="generation-workspace space-y-4">
       <section className={theme.cardStrong + " overflow-hidden border-white/10 bg-[#171717]/92 shadow-[0_28px_80px_rgba(0,0,0,0.35)]"}>
@@ -1891,34 +1930,6 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                 <span className="rounded-full border border-lime-300/45 bg-lime-300/12 px-3.5 py-1.5 font-bold uppercase tracking-[0.16em] text-lime-100 shadow-[0_0_24px_rgba(190,242,100,0.16)]">
                   {activeModeLabel}
                 </span>
-              )}
-              {mode === "playground" ? null : (
-                <div className="flex flex-wrap items-center gap-2">
-                  <div
-                    className="inline-flex min-h-10 flex-col justify-center rounded-xl border border-lime-300/28 bg-lime-300/10 px-3 py-1.5 text-left text-lime-100 shadow-[0_0_24px_rgba(190,242,100,0.12)]"
-                    title={`Estimated configured workflow cost: ${formatCreditCost(runCostEstimate.credits)} credits across ${runCostEstimate.rowCount ?? 0} rows and ${runCostEstimate.outputCount ?? 0} output(s). ${runCostEstimate.readyRowCount ?? 0} row(s) are currently run-ready.`}
-                  >
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-lime-100/62">Estimated cost</span>
-                    <span className="whitespace-nowrap text-xs font-bold text-lime-50">
-                      {formatCreditCost(runCostEstimate.credits)} credits · {runCostEstimate.outputCount ?? 0} outputs
-                    </span>
-                  </div>
-                  <button
-                    className={theme.buttonPrimary + " min-h-12 flex-col gap-0.5 rounded-xl px-3 py-2 text-xs leading-tight"}
-                    disabled={!board || running}
-                    onClick={() => void runBoardMutation({ variables: { boardId: board?.id } }).then(() => refetchBoard())}
-                    title={`Estimated configured workflow cost: ${formatCreditCost(runCostEstimate.credits)} credits across ${runCostEstimate.rowCount ?? 0} rows and ${runCostEstimate.outputCount ?? 0} output(s). ${runCostEstimate.readyRowCount ?? 0} row(s) are currently run-ready.`}
-                    type="button"
-                  >
-                    <span>{running ? "Running..." : "Run workflow"}</span>
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] opacity-75">
-                      {formatCreditCost(runCostEstimate.credits)} credits
-                    </span>
-                  </button>
-                  <button className={theme.buttonSecondary + " rounded-xl border-white/10 bg-[#2a2a2a] px-3 py-2 text-xs font-semibold text-white/80 hover:bg-[#333333]"} disabled={!board || running} onClick={() => void clearBoardMutation({ variables: { boardId: board?.id } }).then(() => refreshCurrentBoard())} type="button">
-                    Clear table
-                  </button>
-                </div>
               )}
             </div>
           </div>
@@ -2017,7 +2028,7 @@ export function ModelWorkspacePage({ slug, boardId, mode, onSelectBoard, onSelec
                   onCreate={() => void handleCreateBoard()}
                   onDelete={(nextBoardId) => void handleDeleteBoard(nextBoardId)}
                   onSelect={onSelectBoard}
-                  rightAddon={boardLayoutControl}
+                  rightAddon={boardTabsRightAddon}
                 />
 
                 <WorkspaceGrid

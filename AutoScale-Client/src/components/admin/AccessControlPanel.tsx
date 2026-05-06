@@ -4,6 +4,7 @@ import { AgencyDeleteModal } from "./AgencyDeleteModal";
 import { ProfileImageCropModal } from "./ProfileImageCropModal";
 import { agencyBillingPlan, defaultAgencyBillingSettings } from "../../lib/billing";
 import { cx } from "../../lib/cx";
+import { estimateGenerationModelCost } from "../../lib/generationCosts";
 import { uploadReferenceFile } from "../../lib/uploads";
 import { InfluencerAvatar } from "../model/InfluencerAvatar";
 import {
@@ -12,7 +13,18 @@ import {
   resolutionOptions,
   theme,
 } from "../../styles/theme";
-import type { AgencyBillingSettings, AgencyRecord, GeneratedAsset, InfluencerModel, ManagerPermissions, PlatformNotification, Role, UserAccessScope, UserRecord } from "../../types";
+import type {
+  AgencyBillingSettings,
+  AgencyRecord,
+  GeneratedAsset,
+  HiggsfieldAccountConnection,
+  InfluencerModel,
+  ManagerPermissions,
+  PlatformNotification,
+  Role,
+  UserAccessScope,
+  UserRecord,
+} from "../../types";
 
 interface AccessControlPanelProps {
   currentUser: UserRecord;
@@ -20,6 +32,7 @@ interface AccessControlPanelProps {
   platformNotifications: PlatformNotification[];
   users: UserRecord[];
   models: InfluencerModel[];
+  higgsfieldConnections: HiggsfieldAccountConnection[];
   onCreateAgency: (name: string) => Promise<void>;
   onRenameAgency: (agencyId: string, name: string) => Promise<void>;
   onDeleteAgency: (agencyId: string) => Promise<void>;
@@ -57,6 +70,9 @@ interface AccessControlPanelProps {
   }) => Promise<void>;
   onDeleteInfluencerModel: (influencerModelId: string) => Promise<void>;
   onSetInfluencerModelAgencyAccess: (influencerModelId: string, agencyIds: string[]) => Promise<void>;
+  onConnectHiggsfieldAccount: (influencerModelId: string) => Promise<void>;
+  onRefreshHiggsfieldAccount: (influencerModelId: string) => Promise<void>;
+  onDisconnectHiggsfieldAccount: (influencerModelId: string) => Promise<void>;
   onUpdateAssignments: (userId: string, influencerModelIds: string[]) => Promise<void>;
   onUpdateManagerPermissions: (userId: string, input: ManagerPermissions) => Promise<void>;
   onUpdateOrganization: (userId: string, input: { agencyId?: string | null }) => Promise<void>;
@@ -78,7 +94,8 @@ type NoticePlacement =
   | "createInfluencer"
   | "influencerProfile"
   | "deleteInfluencer"
-  | "influencerOwnership";
+  | "influencerOwnership"
+  | "higgsfieldAccounts";
 
 type Notice = {
   tone: "success" | "error";
@@ -294,13 +311,30 @@ function normalizeManagerPermissions(value: ManagerPermissions | null | undefine
   };
 }
 
-function estimateAssetCreditCost(asset: Pick<GeneratedAsset, "isSyntheticFailure">): number {
-  return asset.isSyntheticFailure ? 0 : 1;
+function estimateAssetCreditCost(asset: Pick<GeneratedAsset, "aspectRatio" | "generationModel" | "isSyntheticFailure" | "quantity" | "resolution">): number {
+  if (asset.isSyntheticFailure) {
+    return 0;
+  }
+
+  return estimateGenerationModelCost({
+    generationModel: asset.generationModel,
+    resolution: asset.resolution,
+    aspectRatio: asset.aspectRatio,
+    quantity: asset.quantity,
+  }).credits;
 }
 
 function formatCreditCount(value: number | null | undefined): string {
   const normalizedValue = Math.max(0, Number(value) || 0);
   return `${normalizedValue.toLocaleString()} credit${normalizedValue === 1 ? "" : "s"}`;
+}
+
+function formatHiggsfieldCredits(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "Not available";
+  }
+
+  return `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits`;
 }
 
 function formatCurrency(value: number): string {
@@ -664,6 +698,7 @@ export function AccessControlPanel({
   platformNotifications,
   users,
   models,
+  higgsfieldConnections,
   onCreateAgency,
   onRenameAgency,
   onDeleteAgency,
@@ -676,6 +711,9 @@ export function AccessControlPanel({
   onUpdateInfluencerModelProfile,
   onDeleteInfluencerModel,
   onSetInfluencerModelAgencyAccess,
+  onConnectHiggsfieldAccount,
+  onRefreshHiggsfieldAccount,
+  onDisconnectHiggsfieldAccount,
   onUpdateRole,
   onUpdateAssignments,
   onUpdateManagerPermissions,
@@ -742,11 +780,19 @@ export function AccessControlPanel({
   const [influencerAgencyDraft, setInfluencerAgencyDraft] = useState<string[]>([]);
   const [agencyCreditAccessMode, setAgencyCreditAccessMode] = useState<CreditAccessMode>("AGENCY_POOL");
   const [creditAllocationDrafts, setCreditAllocationDrafts] = useState<Record<string, string>>({});
+  const [higgsfieldBusyId, setHiggsfieldBusyId] = useState<string | null>(null);
 
   const roleOptions = getRoleOptions(currentUser);
   const currentManagerPermissions = normalizeManagerPermissions(currentUser.managerPermissions);
   const canManageAgencyCreditPolicy = isAgencyAdmin || (currentUser.role === "AGENCY_MANAGER" && currentManagerPermissions.canManageCredits);
   const selectedSalesSnapshot = platformSalesSnapshots[salesRange];
+  const higgsfieldConnectionsByModelId = useMemo(
+    () => new Map(higgsfieldConnections.map((connection) => [connection.influencerModelId, connection])),
+    [higgsfieldConnections],
+  );
+  const higgsfieldConnectedCount = higgsfieldConnections.filter((connection) => connection.connected).length;
+  const higgsfieldNeedsLoginCount = Math.max(0, models.length - higgsfieldConnectedCount);
+  const higgsfieldTotalCredits = higgsfieldConnections.reduce((sum, connection) => sum + (connection.credits ?? 0), 0);
   const maxSalesPoint = Math.max(...selectedSalesSnapshot.chartPoints.map((point) => point.value), 1);
   const salesChart = buildSalesChartGeometry(selectedSalesSnapshot.chartPoints);
   const salesChartGradientId = `sales-chart-area-${salesRange.toLowerCase()}`;
@@ -1432,6 +1478,28 @@ export function AccessControlPanel({
       setNotice(null);
     }
     setIsClearingPlatformNotifications(false);
+  }
+
+  async function handleHiggsfieldAction(
+    influencerModelId: string,
+    action: "connect" | "refresh" | "disconnect",
+  ): Promise<void> {
+    const model = models.find((entry) => entry.id === influencerModelId);
+    setHiggsfieldBusyId(influencerModelId);
+    const actionRunner =
+      action === "connect"
+        ? onConnectHiggsfieldAccount
+        : action === "refresh"
+          ? onRefreshHiggsfieldAccount
+          : onDisconnectHiggsfieldAccount;
+    const successText =
+      action === "connect"
+        ? `Connected Higgsfield MCP for ${model?.name || "this influencer"}.`
+        : action === "refresh"
+          ? `Refreshed Higgsfield balance for ${model?.name || "this influencer"}.`
+          : `Disconnected Higgsfield MCP for ${model?.name || "this influencer"}.`;
+    await executeAction(() => actionRunner(influencerModelId), successText, "higgsfieldAccounts");
+    setHiggsfieldBusyId(null);
   }
 
   if (!selectedUser || !accountDraft) {
@@ -4400,6 +4468,150 @@ export function AccessControlPanel({
                 Draft AI Influencer
               </button>
             </div>
+          </div>
+        </section>
+      ) : null}
+
+      {isPlatformAdmin ? (
+        <section id="access-higgsfield-mcp" className={theme.cardStrong + " glass-panel scroll-mt-32 overflow-hidden p-0"}>
+          <div
+            className="border-b border-white/8 px-6 py-6 sm:px-7 sm:py-7"
+            style={{
+              background:
+                "radial-gradient(circle at top left, color-mix(in srgb, var(--accent-main) 16%, transparent), transparent 36%), linear-gradient(180deg, color-mix(in srgb, var(--surface-card-strong) 92%, black) 0%, var(--surface-card) 100%)",
+            }}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-white/42">Higgsfield MCP</p>
+                <h2 className="font-display mt-2 text-2xl text-white sm:text-3xl">Influencer Account Connections</h2>
+                <p className="mt-3 max-w-4xl text-sm leading-7 text-white/58">
+                  Connect a dedicated Higgsfield account to each influencer so runs use the right saved token, balance, and workspace context.
+                </p>
+              </div>
+              <div className="grid w-full grid-cols-2 gap-3 sm:w-auto xl:grid-cols-4">
+                {[
+                  ["Influencers", models.length.toLocaleString()],
+                  ["Connected", `${higgsfieldConnectedCount} / ${models.length}`],
+                  ["Needs login", higgsfieldNeedsLoginCount.toLocaleString()],
+                  ["Total balance", formatHiggsfieldCredits(higgsfieldTotalCredits)],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                    <p className="text-xs uppercase tracking-[0.16em] text-white/42">{label}</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[color:var(--surface-card)] p-5 sm:p-6">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Connection roster</p>
+                <p className="mt-1 text-sm text-white/52">Login opens the Higgsfield authentication window for that influencer.</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/58">
+                Per-influencer tokens
+              </span>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              {models.map((model) => {
+                const connection = higgsfieldConnectionsByModelId.get(model.id);
+                const connected = Boolean(connection?.connected);
+                const busy = higgsfieldBusyId === model.id;
+                const connectionError = connection?.status === "error" || connection?.status === "worker_unavailable";
+                return (
+                  <article
+                    key={model.id}
+                    className={cx(
+                      "rounded-[24px] border bg-[color:var(--surface-card-strong)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition sm:p-5",
+                      connected
+                        ? "border-lime-300/16"
+                        : connectionError
+                          ? "border-rose-400/20"
+                          : "border-[color:var(--surface-border)]",
+                    )}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <InfluencerAvatar model={model} size="sm" />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[color:var(--text-strong)]">{model.name}</p>
+                          <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{model.handle}</p>
+                        </div>
+                      </div>
+                      <span
+                        className={cx(
+                          "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+                          connected
+                            ? "border-lime-300/25 bg-lime-300/10 text-lime-100"
+                            : connectionError
+                              ? "border-rose-400/25 bg-rose-400/10 text-rose-100"
+                              : "border-white/10 bg-white/[0.04] text-white/54",
+                        )}
+                      >
+                        {connected ? "Connected" : connection?.status === "worker_unavailable" ? "Worker offline" : "Needs login"}
+                      </span>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+                      <div className="rounded-2xl border border-white/8 bg-black/14 px-3 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">Account</p>
+                        <p className="mt-2 truncate font-semibold text-white">{connection?.email || "No account"}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-black/14 px-3 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">Balance</p>
+                        <p className="mt-2 truncate font-semibold text-white">{formatHiggsfieldCredits(connection?.credits)}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-black/14 px-3 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">Checked</p>
+                        <p className="mt-2 truncate font-semibold text-white">{formatTimestamp(connection?.lastCheckedAt || null)}</p>
+                      </div>
+                    </div>
+
+                    {connection?.subscriptionPlanType ? (
+                      <p className="mt-3 text-xs uppercase tracking-[0.16em] text-white/42">
+                        Plan <span className="font-semibold text-white/72">{connection.subscriptionPlanType}</span>
+                      </p>
+                    ) : null}
+                    {connection?.error ? (
+                      <p className="mt-3 rounded-2xl border border-rose-400/18 bg-rose-400/10 px-3 py-2 text-xs leading-5 text-rose-100/78">{connection.error}</p>
+                    ) : null}
+
+                    <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-white/8 pt-4">
+                      <button
+                        className={theme.buttonSecondary + " rounded-xl px-3 py-2 text-xs"}
+                        disabled={busy || !connected}
+                        onClick={() => void handleHiggsfieldAction(model.id, "refresh")}
+                        type="button"
+                      >
+                        {busy && connected ? "Working..." : "Refresh balance"}
+                      </button>
+                      <button
+                        className={theme.buttonPrimary + " rounded-xl px-3 py-2 text-xs"}
+                        disabled={busy}
+                        onClick={() => void handleHiggsfieldAction(model.id, "connect")}
+                        type="button"
+                      >
+                        {busy && !connected ? "Opening login..." : connected ? "Reconnect" : "Login"}
+                      </button>
+                      <button
+                        className={theme.buttonDanger + " rounded-xl px-3 py-2 text-xs"}
+                        disabled={busy || !connected}
+                        onClick={() => void handleHiggsfieldAction(model.id, "disconnect")}
+                        type="button"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {renderNotice("higgsfieldAccounts", "mt-4")}
           </div>
         </section>
       ) : null}

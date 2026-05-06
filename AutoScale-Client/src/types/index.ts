@@ -192,6 +192,31 @@ export interface InfluencerModel {
   boards: WorkspaceBoard[];
 }
 
+export interface HiggsfieldModelCost {
+  generationModel: string;
+  higgsfieldModelId: string;
+  label: string;
+  unit: string;
+  credits: number | null;
+  resolution?: string | null;
+  quality?: string | null;
+  notes: string;
+}
+
+export interface HiggsfieldAccountConnection {
+  influencerModelId: string;
+  influencerModelName: string;
+  influencerModelHandle: string;
+  connected: boolean;
+  status: string;
+  email: string | null;
+  credits: number | null;
+  subscriptionPlanType: string | null;
+  lastCheckedAt: string | null;
+  error: string | null;
+  costTable: HiggsfieldModelCost[];
+}
+
 export interface AuthPayload {
   user: UserRecord;
   csrfToken: string;

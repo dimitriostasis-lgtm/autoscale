@@ -8,44 +8,62 @@ import {
 } from "../styles/theme";
 import type { BoardSettings, WorkspaceBoard, WorkspaceRow } from "../types";
 
-const WAVESPEED_MARKUP = 1.3;
-const LOCAL_SDXL_IMAGE_CREDITS = 0.001;
-const LOCAL_SDXL_UPSCALE_CREDITS = 0.001;
-const LOCAL_FACE_SWAP_CREDITS = 0.01;
+const HIGGSFIELD_PASS_THROUGH_MULTIPLIER = 1;
+const LOCAL_SDXL_IMAGE_CREDITS = 0.01;
+const LOCAL_SDXL_UPSCALE_CREDITS = 0.01;
+const LOCAL_FACE_SWAP_CREDITS = 0.1;
 export const AUTO_IMAGE_CREDITS = 0.002;
 export const TEXT_PROMPT_AUTOMATION_CREDITS = 0.001;
 export const IMPROVE_PROMPT_CREDITS = 0.001;
 
 const nbProPrices: Record<string, number> = {
-  "1k": 0.14,
-  "2k": 0.14,
-  "4k": 0.24,
+  "1k": 2,
+  "2k": 2,
+  "4k": 4,
 };
 
 const nb2Prices: Record<string, number> = {
-  "0.5k": 0.045,
-  "1k": 0.07,
-  "2k": 0.105,
-  "4k": 0.14,
+  "0.5k": 1.5,
+  "1k": 1.5,
+  "2k": 2,
+  "4k": 3,
 };
 
-const gptImage2Prices: Record<string, Record<string, number>> = {
+const gptImage2Prices: Record<string, Record<"low" | "medium" | "high", number>> = {
   "1k": {
-    low: 0.03,
-    medium: 0.06,
-    high: 0.22,
+    low: 0.5,
+    medium: 2,
+    high: 4,
   },
   "2k": {
-    low: 0.06,
-    medium: 0.12,
-    high: 0.44,
+    low: 0.75,
+    medium: 3,
+    high: 7,
   },
   "4k": {
-    low: 0.09,
-    medium: 0.18,
-    high: 0.66,
+    low: 1,
+    medium: 6,
+    high: 12,
   },
 };
+
+const flux2Prices: Record<string, number> = {
+  "1k": 4,
+  "2k": 6,
+};
+
+const seedance2PricesPerSecond: Record<string, number> = {
+  "480p": 9,
+  "720p": 13.5,
+  "1080p": 27,
+};
+
+const klingO1Prices: Record<string, number> = {
+  "1k": 0.5,
+  "2k": 0.5,
+};
+
+const KLING_3_CREDITS_PER_FIVE_SECOND_VIDEO = 6;
 
 interface GenerationCostInput {
   generationModel: string;
@@ -61,13 +79,19 @@ interface GenerationCostInput {
 
 export interface GenerationCostEstimate {
   credits: number;
+  pricingKnown?: boolean;
   rowCount?: number;
   readyRowCount?: number;
   outputCount?: number;
 }
 
-function withMarkup(usd: number): number {
-  return usd * WAVESPEED_MARKUP;
+interface CostPart {
+  credits: number;
+  pricingKnown: boolean;
+}
+
+function withMarkup(credits: number): number {
+  return credits * HIGGSFIELD_PASS_THROUGH_MULTIPLIER;
 }
 
 function normalizedQuantity(quantity: number | null | undefined): number {
@@ -90,83 +114,97 @@ function estimateAutomationCost(settings: Pick<BoardSettings, "autoPromptGen" | 
   return (settings.autoPromptGen ? TEXT_PROMPT_AUTOMATION_CREDITS : 0) + (settings.autoPromptImage ? AUTO_IMAGE_CREDITS : 0);
 }
 
-function estimateImageCost(input: GenerationCostInput): number {
+function knownCost(credits: number): CostPart {
+  return { credits, pricingKnown: true };
+}
+
+function addCostPart(current: CostPart, next: CostPart): CostPart {
+  return {
+    credits: current.credits + next.credits,
+    pricingKnown: current.pricingKnown && next.pricingKnown,
+  };
+}
+
+function estimateImageCost(input: GenerationCostInput): CostPart {
   const quantity = normalizedQuantity(input.quantity);
   const resolution = input.resolution.toLowerCase();
-  let total = 0;
+  let estimate = knownCost(0);
 
   if (input.generationModel === "sdxl") {
-    total += LOCAL_SDXL_IMAGE_CREDITS * quantity;
+    estimate = addCostPart(estimate, knownCost(LOCAL_SDXL_IMAGE_CREDITS * quantity));
   } else if (input.generationModel === "nb_pro") {
-    total += withMarkup((nbProPrices[resolution] ?? nbProPrices["1k"]) * quantity);
+    estimate = addCostPart(estimate, knownCost(withMarkup((nbProPrices[resolution] ?? nbProPrices["1k"]) * quantity)));
   } else if (input.generationModel === "nb2") {
-    total += withMarkup((nb2Prices[resolution] ?? nb2Prices["1k"]) * quantity);
+    estimate = addCostPart(estimate, knownCost(withMarkup((nb2Prices[resolution] ?? nb2Prices["1k"]) * quantity)));
   } else if (input.generationModel === "sd_4_5") {
-    total += withMarkup(0.04 * quantity);
+    estimate = addCostPart(estimate, knownCost(withMarkup(1 * quantity)));
+  } else if (input.generationModel === "flux_2") {
+    estimate = addCostPart(estimate, knownCost(withMarkup((flux2Prices[resolution] ?? flux2Prices["1k"]) * quantity)));
+  } else if (input.generationModel === "flux_kontext") {
+    estimate = addCostPart(estimate, knownCost(withMarkup(1.5 * quantity)));
+  } else if (input.generationModel === "z_image") {
+    estimate = addCostPart(estimate, knownCost(withMarkup(0.15 * quantity)));
   } else if (input.generationModel === "kling_o1") {
-    total += withMarkup(0.028 * quantity);
+    estimate = addCostPart(estimate, knownCost(withMarkup((klingO1Prices[resolution] ?? klingO1Prices["1k"]) * quantity)));
   } else if (input.generationModel === "gpt_2") {
-    const priceByQuality = gptImage2Prices[resolution] ?? gptImage2Prices["1k"];
-    total += withMarkup(priceByQuality[gptQuality(input.quality)] * quantity);
+    const price = gptImage2Prices[resolution]?.[gptQuality(input.quality)] ?? gptImage2Prices["1k"].medium;
+    estimate = addCostPart(estimate, knownCost(withMarkup(price * quantity)));
   }
 
   if (input.generationModel === "sdxl" && input.upscale) {
-    total += LOCAL_SDXL_UPSCALE_CREDITS * quantity;
+    estimate = addCostPart(estimate, knownCost(LOCAL_SDXL_UPSCALE_CREDITS * quantity));
   }
 
   if (input.faceSwap) {
-    total += LOCAL_FACE_SWAP_CREDITS * quantity;
+    estimate = addCostPart(estimate, knownCost(LOCAL_FACE_SWAP_CREDITS * quantity));
   }
 
-  return total;
+  return estimate;
 }
 
-function estimateVideoCost(input: GenerationCostInput): number {
+function estimateVideoCost(input: GenerationCostInput): CostPart {
   const duration = input.durationSeconds ?? (input.generationModel === "grok_imagine" ? 6 : 5);
   const resolution = input.resolution.toLowerCase();
 
   if (input.generationModel === "sd_2_0" || input.generationModel === "sd_2_0_fast") {
-    const basePricePerSecondAt480p = input.generationModel === "sd_2_0" ? 0.12 : 0.1;
-    const resolutionMultiplier = resolution === "1080p" ? 5 : resolution === "720p" ? 2 : 1;
-    return withMarkup(basePricePerSecondAt480p * resolutionMultiplier * duration);
+    return knownCost(withMarkup((seedance2PricesPerSecond[resolution] ?? seedance2PricesPerSecond["720p"]) * duration));
   }
 
   if (input.generationModel === "kling_3_0") {
-    const perSecondPrice = resolution === "4k" ? 0.42 : 0.112;
-    return withMarkup(perSecondPrice * duration);
+    return knownCost(withMarkup(KLING_3_CREDITS_PER_FIVE_SECOND_VIDEO * (duration / 5)));
   }
 
   if (input.generationModel === "kling_motion_control") {
-    return withMarkup(0.84 * (duration / 5));
+    return knownCost(withMarkup(67.5 * (duration / 5)));
   }
 
   if (input.generationModel === "grok_imagine") {
-    return withMarkup(duration === 10 ? 0.5 : 0.3);
+    return knownCost(withMarkup(duration === 10 ? 0.5 : 0.3));
   }
 
-  return 0;
+  return knownCost(0);
 }
 
-function estimateVoiceCost(input: GenerationCostInput): number {
+function estimateVoiceCost(input: GenerationCostInput): CostPart {
   const text = (input.prompt || "").trim();
   if (!text) {
-    return 0;
+    return knownCost(0);
   }
 
   const billableBlocks = Math.max(1, Math.ceil(text.length / 1000));
-  return withMarkup(0.1 * billableBlocks);
+  return knownCost(withMarkup(0.1 * billableBlocks));
 }
 
 export function estimateGenerationModelCost(input: GenerationCostInput): GenerationCostEstimate {
   if (isVoiceModel(input.generationModel)) {
-    return { credits: estimateVoiceCost(input) };
+    return estimateVoiceCost(input);
   }
 
   if (isVideoModel(input.generationModel)) {
-    return { credits: estimateVideoCost(input) };
+    return estimateVideoCost(input);
   }
 
-  return { credits: estimateImageCost(input) };
+  return estimateImageCost(input);
 }
 
 function resolveRowCostContext(board: WorkspaceBoard, row: WorkspaceRow) {
@@ -231,10 +269,10 @@ function isExecutableRow(board: WorkspaceBoard, row: WorkspaceRow): boolean {
     return Boolean(row.reference);
   }
 
-  return hasPrompt && Boolean(row.reference);
+  return hasPrompt;
 }
 
-function estimateRowCost(board: WorkspaceBoard, row: WorkspaceRow): { credits: number; outputCount: number } {
+function estimateRowCost(board: WorkspaceBoard, row: WorkspaceRow): { credits: number; outputCount: number; pricingKnown: boolean } {
   const faceSwapEnabled = board.settings.sdxlWorkspaceMode === "FACE_SWAP" || row.faceSwap || board.settings.faceSwap;
   const automationCredits = estimateAutomationCost(board.settings);
 
@@ -268,6 +306,7 @@ function estimateRowCost(board: WorkspaceBoard, row: WorkspaceRow): { credits: n
     return {
       credits: baseEstimate.credits + poseEstimate.credits + automationCredits,
       outputCount: baseQuantity + poseQuantity,
+      pricingKnown: Boolean(baseEstimate.pricingKnown && poseEstimate.pricingKnown),
     };
   }
 
@@ -287,20 +326,23 @@ function estimateRowCost(board: WorkspaceBoard, row: WorkspaceRow): { credits: n
   return {
     credits: estimate.credits + automationCredits,
     outputCount: context.quantity,
+    pricingKnown: Boolean(estimate.pricingKnown),
   };
 }
 
 export function estimateBoardRunCost(board: WorkspaceBoard | null | undefined): GenerationCostEstimate {
   if (!board) {
-    return { credits: 0, outputCount: 0, readyRowCount: 0, rowCount: 0 };
+    return { credits: 0, pricingKnown: true, outputCount: 0, readyRowCount: 0, rowCount: 0 };
   }
 
   const rowEstimates = board.rows.map((row) => estimateRowCost(board, row));
   const credits = rowEstimates.reduce((total, estimate) => total + estimate.credits, 0);
   const outputCount = rowEstimates.reduce((total, estimate) => total + estimate.outputCount, 0);
+  const pricingKnown = rowEstimates.every((estimate) => estimate.pricingKnown);
 
   return {
     credits,
+    pricingKnown,
     outputCount,
     readyRowCount: board.rows.filter((row) => isExecutableRow(board, row)).length,
     rowCount: board.rows.length,
@@ -331,12 +373,24 @@ export function estimatePlaygroundCost(settings: BoardSettings, prompt: string):
 
 export function formatCreditCost(credits: number): string {
   if (!Number.isFinite(credits) || credits <= 0) {
-    return "0.000";
+    return "0";
   }
 
   if (credits < 1) {
-    return credits.toFixed(3);
+    return credits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  return credits.toFixed(2);
+  if (Number.isInteger(credits)) {
+    return credits.toLocaleString();
+  }
+
+  return credits.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+export function formatGenerationCostEstimate(estimate: Pick<GenerationCostEstimate, "credits" | "pricingKnown">): string {
+  if (!estimate.pricingKnown) {
+    return "Live price required";
+  }
+
+  return `${formatCreditCost(estimate.credits)} credits`;
 }

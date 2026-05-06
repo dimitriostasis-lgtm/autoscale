@@ -13,3 +13,4 @@
 # Runtime/generated server assets
 Autoscale-Server/storage/generated/
 Autoscale-Server/storage/uploads/
+Autoscale-Server/data/*.bak*

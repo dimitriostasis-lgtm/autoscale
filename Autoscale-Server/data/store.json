@@ -220,7 +220,7 @@
       "handle": "@iamemilyrhodes",
       "archetype": "Luxury editorial",
       "description": "60 years young",
-      "avatarImageUrl": "/files/uploads/2025-09-2317350221602688_00143_-profile-1a9c10c3-6ec4-490c-99c8-8fc38f370e7b.png",
+      "avatarImageUrl": null,
       "accentFrom": "from-lime-300",
       "accentTo": "to-emerald-400",
       "avatarLabel": "ER",
@@ -244,14 +244,17 @@
         "kling_3_0",
         "kling_motion_control",
         "grok_imagine",
-        "eleven_v3"
+        "eleven_v3",
+        "flux_2",
+        "flux_kontext",
+        "z_image"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
         "360b69c5-37e1-4cbc-9e54-f8fe0269533b"
       ],
-      "defaultPlatformWorkflowName": "Default platform workflow",
-      "platformWorkflowCount": 3,
+      "defaultPlatformWorkflowName": "Emily MCP Workflow",
+      "platformWorkflowCount": 1,
       "customWorkflowCount": 0
     },
     {
@@ -285,7 +288,10 @@
         "kling_3_0",
         "kling_motion_control",
         "grok_imagine",
-        "eleven_v3"
+        "eleven_v3",
+        "flux_2",
+        "flux_kontext",
+        "z_image"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
@@ -326,7 +332,10 @@
         "kling_3_0",
         "kling_motion_control",
         "grok_imagine",
-        "eleven_v3"
+        "eleven_v3",
+        "flux_2",
+        "flux_kontext",
+        "z_image"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
@@ -367,7 +376,10 @@
         "kling_3_0",
         "kling_motion_control",
         "grok_imagine",
-        "eleven_v3"
+        "eleven_v3",
+        "flux_2",
+        "flux_kontext",
+        "z_image"
       ],
       "createdAt": "2026-04-21T10:01:08.196Z",
       "agencyIds": [
@@ -384,7 +396,7 @@
       "handle": "@lauralanes",
       "archetype": "",
       "description": "Beautiful busty 60 years old",
-      "avatarImageUrl": "/files/uploads/2026-04-1119580016162016_00004_-profile-cf164634-9645-4667-8415-36b892b91fd7.png",
+      "avatarImageUrl": null,
       "accentFrom": "from-violet-300",
       "accentTo": "to-indigo-400",
       "avatarLabel": "LL",
@@ -414,7 +426,10 @@
         "kling_3_0",
         "kling_motion_control",
         "grok_imagine",
-        "eleven_v3"
+        "eleven_v3",
+        "flux_2",
+        "flux_kontext",
+        "z_image"
       ],
       "createdAt": "2026-04-25T17:54:51.040Z"
     }
@@ -493,7 +508,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -568,7 +586,7 @@
       "settings": {
         "generationModel": "sd_4_5",
         "resolution": "2k",
-        "aspectRatio": "4:5",
+        "aspectRatio": "1:1",
         "quantity": 4,
         "poseMultiplierEnabled": false,
         "poseMultiplier": 4,
@@ -630,7 +648,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -722,7 +743,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -859,7 +883,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -996,7 +1023,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -1133,7 +1163,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -1270,7 +1303,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -1407,7 +1443,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -1544,7 +1583,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -1681,7 +1723,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -1878,7 +1923,10 @@
         ],
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -2015,7 +2063,10 @@
         ],
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -2086,21 +2137,24 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_video_sfw__:Table 1",
       "createdAt": "2026-04-26T15:09:09.064Z",
-      "updatedAt": "2026-04-29T11:38:44.559Z",
+      "updatedAt": "2026-05-05T23:53:56.248Z",
       "settings": {
         "generationModel": "grok_imagine",
         "resolution": "720p",
         "poseMultiplierResolution": "2k",
-        "videoDurationSeconds": 3,
+        "videoDurationSeconds": 6,
         "quality": "medium",
-        "aspectRatio": "auto",
+        "aspectRatio": "16:9",
         "quantity": 1,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierEnabled": false,
         "poseMultiplier": 1,
         "poseMultiplierGenerationModel": "nb_pro",
         "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
         "faceSwap": false,
+        "faceSwapModelStrength": 0.5,
         "autoPromptGen": false,
         "autoPromptImage": false,
         "posePromptMode": "AUTO",
@@ -2230,8 +2284,8 @@
         "poseMultiplierResolution": "2k",
         "videoDurationSeconds": null,
         "quality": "medium",
-        "aspectRatio": "3:4",
-        "quantity": 4,
+        "aspectRatio": "auto",
+        "quantity": 1,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierEnabled": false,
         "poseMultiplier": 1,
@@ -2289,7 +2343,10 @@
             "uploadPath": null,
             "uploadUrl": null
           }
-        ]
+        ],
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -2413,7 +2470,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -2550,7 +2610,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -2687,7 +2750,10 @@
         "videoDurationSeconds": null,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -2824,7 +2890,10 @@
         ],
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierResolution": "2k",
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -2895,7 +2964,7 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "__autoscale_workspace_nsfw__:Table 3",
       "createdAt": "2026-04-28T16:46:58.485Z",
-      "updatedAt": "2026-04-28T18:36:18.651Z",
+      "updatedAt": "2026-05-05T23:54:38.354Z",
       "settings": {
         "generationModel": "sdxl",
         "resolution": "2k",
@@ -2903,13 +2972,16 @@
         "videoDurationSeconds": null,
         "quality": "medium",
         "aspectRatio": "1:1",
-        "quantity": 1,
-        "sdxlWorkspaceMode": "FACE_SWAP",
+        "quantity": 20,
+        "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierEnabled": false,
         "poseMultiplier": 4,
         "poseMultiplierGenerationModel": "nb_pro",
         "upscale": false,
-        "faceSwap": true,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwap": false,
+        "faceSwapModelStrength": 0.5,
         "autoPromptGen": false,
         "autoPromptImage": false,
         "posePromptMode": "AUTO",
@@ -2971,7 +3043,7 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": true,
+          "faceSwap": false,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
@@ -2987,7 +3059,7 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": true,
+          "faceSwap": false,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
@@ -3003,7 +3075,7 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": true,
+          "faceSwap": false,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
@@ -3019,7 +3091,7 @@
           "prompt": "",
           "poseMultiplier": 4,
           "posePromptTemplates": null,
-          "faceSwap": true,
+          "faceSwap": false,
           "reference": null,
           "audioReference": null,
           "status": "IDLE",
@@ -3102,7 +3174,10 @@
             "uploadUrl": null
           }
         ],
-        "upscale": false
+        "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
+        "faceSwapModelStrength": 0.5
       },
       "rows": [
         {
@@ -3177,21 +3252,24 @@
       "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
       "name": "Table 2",
       "createdAt": "2026-04-28T18:32:59.165Z",
-      "updatedAt": "2026-04-29T11:42:58.914Z",
+      "updatedAt": "2026-05-05T23:59:46.162Z",
       "settings": {
         "generationModel": "nb_pro",
         "resolution": "2k",
-        "poseMultiplierResolution": "2k",
+        "poseMultiplierResolution": "4k",
         "videoDurationSeconds": null,
         "quality": "medium",
-        "aspectRatio": "auto",
+        "aspectRatio": "1:1",
         "quantity": 1,
         "sdxlWorkspaceMode": "DEFAULT",
         "poseMultiplierEnabled": false,
         "poseMultiplier": 2,
         "poseMultiplierGenerationModel": "nb_pro",
         "upscale": false,
+        "upscaleFactor": 1,
+        "upscaleDenoise": 0,
         "faceSwap": true,
+        "faceSwapModelStrength": 0.5,
         "autoPromptGen": false,
         "autoPromptImage": false,
         "posePromptMode": "AUTO",
@@ -3250,7 +3328,7 @@
           "id": "529eb09f-8614-4972-9609-2b93a5e32859",
           "orderIndex": 0,
           "label": "1",
-          "prompt": "",
+          "prompt": "make this ai generated person look more real by improving skin quality, realism.",
           "poseMultiplier": 2,
           "posePromptTemplates": null,
           "upscale": false,
@@ -3260,264 +3338,152 @@
           "status": "IDLE",
           "errorMessage": null,
           "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "6cee93da-0914-4588-907f-4c8347009c7f",
-          "orderIndex": 1,
-          "label": "2",
-          "prompt": "",
-          "poseMultiplier": 2,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": true,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "341d2405-301a-4951-bf5a-2e0bb1d2f6ac",
-          "orderIndex": 2,
-          "label": "3",
-          "prompt": "",
-          "poseMultiplier": 2,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": true,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "daff9d88-f944-4402-8e58-09059c9d7c0e",
-          "orderIndex": 3,
-          "label": "4",
-          "prompt": "",
-          "poseMultiplier": 2,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": true,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "a5811f2c-e75c-49b9-a3f6-a8f474ae8df6",
-          "orderIndex": 4,
-          "label": "5",
-          "prompt": "",
-          "poseMultiplier": 2,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": true,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "f27aa837-8d86-469f-94ab-b0f630c8a965",
-          "orderIndex": 5,
-          "label": "6",
-          "prompt": "",
-          "poseMultiplier": 2,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": true,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "36783412-d25d-45b3-b2a6-9326a237fc21",
-          "orderIndex": 6,
-          "label": "7",
-          "prompt": "",
-          "poseMultiplier": 2,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": true,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "c89dafac-814a-4115-a20d-bdd4ba62e37c",
-          "orderIndex": 7,
-          "label": "8",
-          "prompt": "",
-          "poseMultiplier": 2,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": true,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        }
-      ]
-    },
-    {
-      "id": "43fec363-e752-4c6c-a5f6-22bddc248060",
-      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
-      "ownerId": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
-      "name": "Table 2",
-      "createdAt": "2026-04-28T21:21:34.608Z",
-      "updatedAt": "2026-04-28T21:21:34.608Z",
-      "settings": {
-        "generationModel": "nb_pro",
-        "resolution": "2k",
-        "poseMultiplierResolution": "2k",
-        "videoDurationSeconds": null,
-        "quality": "medium",
-        "aspectRatio": "3:4",
-        "quantity": 4,
-        "sdxlWorkspaceMode": "DEFAULT",
-        "poseMultiplierEnabled": false,
-        "poseMultiplier": 1,
-        "poseMultiplierGenerationModel": "nb_pro",
-        "upscale": false,
-        "faceSwap": false,
-        "autoPromptGen": false,
-        "autoPromptImage": false,
-        "posePromptMode": "AUTO",
-        "posePromptTemplate": "Keep the same framing and styling while varying the body pose for each multiplied shot.",
-        "posePromptTemplates": [
-          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
-          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
-          "Keep the same framing and styling while varying the body pose for each multiplied shot.",
-          "Keep the same framing and styling while varying the body pose for each multiplied shot."
-        ],
-        "globalReferences": [
-          {
-            "id": "fd502811-179b-4337-add2-69a0ff8b7cdb",
-            "slotIndex": 0,
-            "label": "Global 1",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "505af005-ae94-460b-b7fb-d29e9cd94f20",
-            "slotIndex": 1,
-            "label": "Global 2",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "080363f6-532c-4f68-ac93-3735dffb615c",
-            "slotIndex": 2,
-            "label": "Global 3",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          },
-          {
-            "id": "0d0fd6af-f7a0-4d4d-af34-59d7133f53bd",
-            "slotIndex": 3,
-            "label": "Global 4",
-            "sourceType": "UPLOAD",
-            "assetId": null,
-            "assetUrl": null,
-            "uploadPath": null,
-            "uploadUrl": null
-          }
-        ]
-      },
-      "rows": [
-        {
-          "id": "94d73ac4-d927-4811-9945-926d5088c579",
-          "orderIndex": 0,
-          "label": "1",
-          "prompt": "",
-          "poseMultiplier": 1,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": false,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "dbe3ffcb-d9b8-4411-b62d-42a26560bf07",
-          "orderIndex": 1,
-          "label": "2",
-          "prompt": "",
-          "poseMultiplier": 1,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": false,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "e3951424-0e36-452a-b89c-337cc248e54f",
-          "orderIndex": 2,
-          "label": "3",
-          "prompt": "",
-          "poseMultiplier": 1,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": false,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
-        },
-        {
-          "id": "a92422ba-51ae-4c48-9cdf-2460252fbf79",
-          "orderIndex": 3,
-          "label": "4",
-          "prompt": "",
-          "poseMultiplier": 1,
-          "posePromptTemplates": null,
-          "upscale": false,
-          "faceSwap": false,
-          "reference": null,
-          "audioReference": null,
-          "status": "IDLE",
-          "errorMessage": null,
-          "outputAssetIds": [],
-          "lastRunAt": null
+          "lastRunAt": "2026-05-05T23:17:15.393Z"
         }
       ]
     }
   ],
-  "assets": [],
+  "assets": [
+    {
+      "id": "aa308f01-9ef5-442f-87ed-d6b9daacce4b",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "boardId": "79c5647b-ecc4-4709-86a3-1451352aa253",
+      "rowId": "52e67791-53be-482e-935e-4d658524f8c2",
+      "createdById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "fileName": "autoscale_mcp_dry_run-cebaf89e-2bf7-4832-bbd0-474099cff92a.png",
+      "filePath": "generated/autoscale_mcp_dry_run-cebaf89e-2bf7-4832-bbd0-474099cff92a.png",
+      "url": "/files/generated/autoscale_mcp_dry_run-cebaf89e-2bf7-4832-bbd0-474099cff92a.png",
+      "promptSnapshot": "Emily Rhodes dry-run website integration test, luxury editorial portrait, polished studio lighting.",
+      "generationModel": "nb_pro",
+      "resolution": "2k",
+      "aspectRatio": "3:4",
+      "quantity": 1,
+      "width": 1024,
+      "height": 1365,
+      "isSyntheticFailure": false,
+      "failureLabel": null,
+      "createdAt": "2026-05-05T17:46:03.438Z"
+    },
+    {
+      "id": "65deff0b-a2c2-4592-83c1-a68abd3701aa",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "boardId": "702dc4b9-7254-4acb-b238-d1273a69cf0c",
+      "rowId": "529eb09f-8614-4972-9609-2b93a5e32859",
+      "createdById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "fileName": "autoscale_mcp_dry_run-445fe38d-8ea6-4ef5-8f35-338d4ecd83a1.png",
+      "filePath": "generated/autoscale_mcp_dry_run-445fe38d-8ea6-4ef5-8f35-338d4ecd83a1.png",
+      "url": "/files/generated/autoscale_mcp_dry_run-445fe38d-8ea6-4ef5-8f35-338d4ecd83a1.png",
+      "promptSnapshot": "make this ai generated person look more real by improving skin quality, realism",
+      "generationModel": "gpt_2",
+      "resolution": "4k",
+      "aspectRatio": "1:1",
+      "quantity": 1,
+      "width": 1024,
+      "height": 1365,
+      "isSyntheticFailure": true,
+      "failureLabel": "Worker dry-run placeholder.",
+      "createdAt": "2026-05-05T22:26:36.323Z"
+    },
+    {
+      "id": "a3896810-bd3f-4056-81b9-2c90128f7933",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "boardId": "702dc4b9-7254-4acb-b238-d1273a69cf0c",
+      "rowId": "529eb09f-8614-4972-9609-2b93a5e32859",
+      "createdById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "fileName": "1_higgsfield_1778021778842_1-d1d6bf9b-7352-4c8e-86f1-074436997a90.jpg",
+      "filePath": "generated/1_higgsfield_1778021778842_1-d1d6bf9b-7352-4c8e-86f1-074436997a90.jpg",
+      "url": "/files/generated/1_higgsfield_1778021778842_1-d1d6bf9b-7352-4c8e-86f1-074436997a90.jpg",
+      "promptSnapshot": "make this ai generated person look more real by improving skin quality, realism",
+      "generationModel": "gpt_2",
+      "resolution": "1k",
+      "aspectRatio": "1:1",
+      "quantity": 1,
+      "width": 1529,
+      "height": 2048,
+      "isSyntheticFailure": true,
+      "failureLabel": "Higgsfield returned nsfw; no generated output was available.",
+      "createdAt": "2026-05-05T22:56:20.361Z"
+    },
+    {
+      "id": "9a0aa83e-db1e-48da-9d70-1a45480e8232",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "boardId": "702dc4b9-7254-4acb-b238-d1273a69cf0c",
+      "rowId": "529eb09f-8614-4972-9609-2b93a5e32859",
+      "createdById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "fileName": "1_higgsfield_1778022713045_1-07ed5bf0-624c-4c7a-97c2-e79a58404782.png",
+      "filePath": "generated/1_higgsfield_1778022713045_1-07ed5bf0-624c-4c7a-97c2-e79a58404782.png",
+      "url": "/files/generated/1_higgsfield_1778022713045_1-07ed5bf0-624c-4c7a-97c2-e79a58404782.png",
+      "promptSnapshot": "make this ai generated person look more real by improving skin quality, realism.",
+      "generationModel": "sd_4_5",
+      "resolution": "1k",
+      "aspectRatio": "3:4",
+      "quantity": 1,
+      "width": 1728,
+      "height": 2304,
+      "isSyntheticFailure": false,
+      "failureLabel": null,
+      "createdAt": "2026-05-05T23:11:55.111Z"
+    },
+    {
+      "id": "88dca620-2e25-4ce1-833c-973db7d25c96",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "boardId": "702dc4b9-7254-4acb-b238-d1273a69cf0c",
+      "rowId": "529eb09f-8614-4972-9609-2b93a5e32859",
+      "createdById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "fileName": "2_higgsfield_1778022713596_2-49b17618-1ea0-4a88-8719-d050a9bd2c70.webp",
+      "filePath": "generated/2_higgsfield_1778022713596_2-49b17618-1ea0-4a88-8719-d050a9bd2c70.webp",
+      "url": "/files/generated/2_higgsfield_1778022713596_2-49b17618-1ea0-4a88-8719-d050a9bd2c70.webp",
+      "promptSnapshot": "make this ai generated person look more real by improving skin quality, realism.",
+      "generationModel": "sd_4_5",
+      "resolution": "1k",
+      "aspectRatio": "3:4",
+      "quantity": 1,
+      "width": 1728,
+      "height": 2304,
+      "isSyntheticFailure": false,
+      "failureLabel": null,
+      "createdAt": "2026-05-05T23:11:55.113Z"
+    },
+    {
+      "id": "31e447b7-2dcc-429d-b486-37e9eaff961d",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "boardId": "702dc4b9-7254-4acb-b238-d1273a69cf0c",
+      "rowId": "529eb09f-8614-4972-9609-2b93a5e32859",
+      "createdById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "fileName": "1_higgsfield_1778022785025_1-9e803506-3580-43c6-bcb3-01abc3c5364c.png",
+      "filePath": "generated/1_higgsfield_1778022785025_1-9e803506-3580-43c6-bcb3-01abc3c5364c.png",
+      "url": "/files/generated/1_higgsfield_1778022785025_1-9e803506-3580-43c6-bcb3-01abc3c5364c.png",
+      "promptSnapshot": "make this ai generated person look more real by improving skin quality, realism.",
+      "generationModel": "nb2",
+      "resolution": "1k",
+      "aspectRatio": "3:4",
+      "quantity": 1,
+      "width": 896,
+      "height": 1200,
+      "isSyntheticFailure": false,
+      "failureLabel": null,
+      "createdAt": "2026-05-05T23:13:06.216Z"
+    },
+    {
+      "id": "f5bd2077-bbb0-4d81-9b75-1ba3d6b05861",
+      "influencerModelId": "7bb891e6-0dba-4afe-9cc6-d3c8962faa59",
+      "boardId": "702dc4b9-7254-4acb-b238-d1273a69cf0c",
+      "rowId": "529eb09f-8614-4972-9609-2b93a5e32859",
+      "createdById": "ebbac75b-2034-4874-845a-d1734c0dbe2f",
+      "fileName": "2_higgsfield_1778022785546_2-b68bb042-f865-4a1a-b933-bb59cc44732a.webp",
+      "filePath": "generated/2_higgsfield_1778022785546_2-b68bb042-f865-4a1a-b933-bb59cc44732a.webp",
+      "url": "/files/generated/2_higgsfield_1778022785546_2-b68bb042-f865-4a1a-b933-bb59cc44732a.webp",
+      "promptSnapshot": "make this ai generated person look more real by improving skin quality, realism.",
+      "generationModel": "nb2",
+      "resolution": "1k",
+      "aspectRatio": "3:4",
+      "quantity": 1,
+      "width": 896,
+      "height": 1200,
+      "isSyntheticFailure": true,
+      "failureLabel": "Higgsfield preview duplicate; hidden from row output.",
+      "createdAt": "2026-05-05T23:13:06.219Z"
+    }
+  ],
   "platformNotifications": []
 }

@@ -1,0 +1,34 @@
+type HiggsfieldModelCost {
+  generationModel: String!
+  higgsfieldModelId: String!
+  label: String!
+  unit: String!
+  credits: Float
+  resolution: String
+  quality: String
+  notes: String!
+}
+
+type HiggsfieldAccountConnection {
+  influencerModelId: ID!
+  influencerModelName: String!
+  influencerModelHandle: String!
+  connected: Boolean!
+  status: String!
+  email: String
+  credits: Float
+  subscriptionPlanType: String
+  lastCheckedAt: String
+  error: String
+  costTable: [HiggsfieldModelCost!]!
+}
+
+extend type Query {
+  higgsfieldAccountConnections: [HiggsfieldAccountConnection!]!
+}
+
+extend type Mutation {
+  connectHiggsfieldAccount(influencerModelId: ID!): HiggsfieldAccountConnection!
+  refreshHiggsfieldAccountBalance(influencerModelId: ID!): HiggsfieldAccountConnection!
+  disconnectHiggsfieldAccount(influencerModelId: ID!): HiggsfieldAccountConnection!
+}

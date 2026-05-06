@@ -16,14 +16,17 @@ export const theme = {
 };
 
 export const workerModelLabels: Record<string, string> = {
-  nb_pro: "NB Pro",
-  nb2: "NB 2",
-  sd_4_5: "SD 4.5",
-  kling_o1: "Kling O1",
-  gpt_2: "GPT-2",
+  nb_pro: "Nano Banana Pro",
+  nb2: "Nano Banana 2",
+  sd_4_5: "Seedream 4.5",
+  gpt_2: "GPT Image 2",
+  flux_2: "Flux 2 Pro",
+  kling_o1: "Kling O1 Image",
+  flux_kontext: "Flux Kontext Max",
+  z_image: "Z Image",
   sdxl: "SDXL",
-  sd_2_0: "SD 2.0",
-  sd_2_0_fast: "SD 2.0 Fast",
+  sd_2_0: "Seedance 2.0",
+  sd_2_0_fast: "Seedance 2.0 Fast",
   kling_3_0: "Kling 3.0",
   kling_motion_control: "Kling Motion Control",
   grok_imagine: "Grok Imagine",
@@ -45,47 +48,46 @@ export const qualityLabels: Record<string, string> = {
   high: "High",
 };
 
-export const imageGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
+export const imageGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext", "z_image", "sdxl"] as const;
 export const videoGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"] as const;
 export const videoNsfwGenerationModelOptions = ["sd_2_0", "sd_2_0_fast", "grok_imagine"] as const;
 export const voiceGenerationModelOptions = ["eleven_v3"] as const;
 export const generationModelOptions = [...imageGenerationModelOptions, ...videoGenerationModelOptions, ...voiceGenerationModelOptions] as const;
-export const poseMultiplierGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2"] as const;
+export const poseMultiplierGenerationModelOptions = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext"] as const;
 export const resolutionOptions = ["1k", "2k", "4k"] as const;
 export const poseMultiplierResolutionOptions = ["2k", "4k"] as const;
 export const videoResolutionOptions = ["480p", "720p", "1080p"] as const;
 export const workerResolutionOptions = [...videoResolutionOptions, ...resolutionOptions] as const;
 export const qualityOptions = ["low", "medium", "high"] as const;
-export const aspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"] as const;
+export const aspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
 export const videoDurationOptions = Array.from({ length: 13 }, (_, index) => index + 3);
 
-const commonImageAspectRatioOptions = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] as const;
-const nanoBanana2AspectRatioOptions = [...commonImageAspectRatioOptions, "1:4", "4:1", "1:8", "8:1"] as const;
-const klingO1AspectRatioOptions = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"] as const;
-const seedanceAspectRatioOptions = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"] as const;
+type AspectRatioOption = (typeof aspectRatioOptions)[number];
+
+const higgsfieldAspectRatioOptionsByGenerationModel: Record<string, readonly AspectRatioOption[]> = {
+  nb_pro: ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"],
+  nb2: ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"],
+  sd_4_5: ["1:1", "4:3", "16:9", "3:2", "21:9", "3:4", "9:16", "2:3"],
+  gpt_2: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"],
+  flux_2: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  kling_o1: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"],
+  flux_kontext: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  z_image: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  sd_2_0: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+  sd_2_0_fast: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+  kling_3_0: ["16:9", "9:16", "1:1"],
+  grok_imagine: ["16:9", "9:16", "1:1"],
+  sdxl: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  kling_motion_control: ["auto"],
+  eleven_v3: ["auto"],
+};
 
 export function isVideoGenerationModel(generationModel: string): boolean {
   return (videoGenerationModelOptions as readonly string[]).includes(generationModel);
 }
 
 export function getAspectRatioOptionsForGenerationModel(generationModel: string): readonly (typeof aspectRatioOptions)[number][] {
-  if (generationModel === "sdxl") {
-    return commonImageAspectRatioOptions.filter((option) => option !== "auto");
-  }
-
-  if (generationModel === "nb2") {
-    return nanoBanana2AspectRatioOptions;
-  }
-
-  if (generationModel === "kling_o1") {
-    return klingO1AspectRatioOptions;
-  }
-
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
-    return seedanceAspectRatioOptions;
-  }
-
-  return commonImageAspectRatioOptions;
+  return higgsfieldAspectRatioOptionsByGenerationModel[generationModel] ?? ["1:1"];
 }
 
 export function isSdxlPoseMultiplierWorkspace(generationModel: string, sdxlWorkspaceMode?: string | null): boolean {
@@ -116,7 +118,10 @@ export function normalizeBoardAspectRatio(
   sdxlWorkspaceMode?: string | null,
 ): (typeof aspectRatioOptions)[number] {
   if (generationModel === "kling_motion_control" || isPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode)) {
-    return "auto";
+    const allowedAspectRatios = getAspectRatioOptionsForGenerationModel(generationModel);
+    if (allowedAspectRatios.includes("auto")) {
+      return "auto";
+    }
   }
 
   return normalizeAspectRatioForGenerationModel(generationModel, aspectRatio);
@@ -135,7 +140,7 @@ export function getResolutionOptionsForGenerationModel(generationModel: string):
     return ["1k", "2k"];
   }
 
-  if (generationModel === "nb2") {
+  if (generationModel === "nb_pro" || generationModel === "nb2") {
     return ["1k", "2k", "4k"];
   }
 
@@ -144,7 +149,15 @@ export function getResolutionOptionsForGenerationModel(generationModel: string):
   }
 
   if (generationModel === "sd_4_5") {
-    return ["1k", "2k", "4k"];
+    return ["2k", "4k"];
+  }
+
+  if (generationModel === "flux_2") {
+    return ["1k", "2k"];
+  }
+
+  if (generationModel === "flux_kontext" || generationModel === "z_image") {
+    return [];
   }
 
   if (generationModel === "kling_o1") {
@@ -182,7 +195,15 @@ export function getPoseMultiplierResolutionOptionsForGenerationModel(
 }
 
 export function normalizeResolutionForGenerationModel(generationModel: string, resolution: string): (typeof workerResolutionOptions)[number] {
+  if (generationModel === "gpt_2" && resolution.toLowerCase() === "3k") {
+    return "2k";
+  }
+
   const allowedResolutions = getResolutionOptionsForGenerationModel(generationModel);
+
+  if (!allowedResolutions.length) {
+    return resolutionOptions[0];
+  }
 
   if (allowedResolutions.includes(resolution as (typeof workerResolutionOptions)[number])) {
     return resolution as (typeof workerResolutionOptions)[number];
@@ -204,6 +225,10 @@ export function normalizePoseMultiplierResolution(
   generationModel?: string,
   isSdxlPoseMultiplierLayout = false,
 ): (typeof workerResolutionOptions)[number] {
+  if (generationModel === "gpt_2" && resolution?.toLowerCase() === "3k") {
+    return "2k";
+  }
+
   const allowedResolutions = getPoseMultiplierResolutionOptionsForGenerationModel(generationModel ?? poseMultiplierGenerationModelOptions[0], isSdxlPoseMultiplierLayout);
 
   if (allowedResolutions.includes(resolution as (typeof workerResolutionOptions)[number])) {

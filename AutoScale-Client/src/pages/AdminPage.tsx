@@ -3,6 +3,12 @@ import { useQuery, useMutation } from "@apollo/client/react";
 import { AccessControlPanel } from "../components/admin/AccessControlPanel";
 import { useAuth } from "../context/AuthContext";
 import {
+  CONNECT_HIGGSFIELD_ACCOUNT_MUTATION,
+  DISCONNECT_HIGGSFIELD_ACCOUNT_MUTATION,
+  HIGGSFIELD_ACCOUNT_CONNECTIONS_QUERY,
+  REFRESH_HIGGSFIELD_ACCOUNT_BALANCE_MUTATION,
+} from "../queries/higgsfield";
+import {
   CREATE_INFLUENCER_MODEL_MUTATION,
   DELETE_INFLUENCER_MODEL_MUTATION,
   INFLUENCER_MODELS_QUERY,
@@ -28,7 +34,7 @@ import {
   UPDATE_USER_ROLE_MUTATION,
   USERS_QUERY,
 } from "../queries/user";
-import type { AgencyBillingSettings, AgencyRecord, InfluencerModel, PlatformNotification, UserRecord } from "../types";
+import type { AgencyBillingSettings, AgencyRecord, HiggsfieldAccountConnection, InfluencerModel, PlatformNotification, UserRecord } from "../types";
 import { theme } from "../styles/theme";
 
 interface AdminPageProps {
@@ -56,6 +62,14 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
       skip: currentUser.role !== "PLATFORM_ADMIN",
     },
   );
+  const { data: higgsfieldData, refetch: refetchHiggsfieldConnections } = useQuery<{ higgsfieldAccountConnections: HiggsfieldAccountConnection[] }>(
+    HIGGSFIELD_ACCOUNT_CONNECTIONS_QUERY,
+    {
+      fetchPolicy: "cache-and-network",
+      pollInterval: 30000,
+      skip: currentUser.role !== "PLATFORM_ADMIN",
+    },
+  );
 
   const [createAgencyMutation] = useMutation(CREATE_AGENCY_MUTATION);
   const [createUserMutation] = useMutation(CREATE_USER_MUTATION);
@@ -77,6 +91,9 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
     RESET_USER_PASSWORD_MUTATION,
   );
   const [deleteUserMutation] = useMutation(DELETE_USER_MUTATION);
+  const [connectHiggsfieldAccountMutation] = useMutation(CONNECT_HIGGSFIELD_ACCOUNT_MUTATION);
+  const [refreshHiggsfieldAccountBalanceMutation] = useMutation(REFRESH_HIGGSFIELD_ACCOUNT_BALANCE_MUTATION);
+  const [disconnectHiggsfieldAccountMutation] = useMutation(DISCONNECT_HIGGSFIELD_ACCOUNT_MUTATION);
 
   if (currentUser.role === "USER") {
     return <div className={theme.cardStrong + " glass-panel p-10 text-white/58"}>You do not have access to account management.</div>;
@@ -88,6 +105,7 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
       refetchAgencies(),
       refetchModels(),
       currentUser.role === "PLATFORM_ADMIN" ? refetchNotifications() : Promise.resolve(),
+      currentUser.role === "PLATFORM_ADMIN" ? refetchHiggsfieldConnections() : Promise.resolve(),
     ]);
   }
 
@@ -129,6 +147,19 @@ export function AdminPage({ currentUser, onOpenAgencyInfluencerBuilder }: AdminP
       onSetInfluencerModelAgencyAccess={async (influencerModelId, agencyIds) => {
         await setInfluencerModelAgencyAccessMutation({ variables: { influencerModelId, agencyIds } });
         await refreshAll();
+      }}
+      higgsfieldConnections={higgsfieldData?.higgsfieldAccountConnections || []}
+      onConnectHiggsfieldAccount={async (influencerModelId) => {
+        await connectHiggsfieldAccountMutation({ variables: { influencerModelId } });
+        await refetchHiggsfieldConnections();
+      }}
+      onDisconnectHiggsfieldAccount={async (influencerModelId) => {
+        await disconnectHiggsfieldAccountMutation({ variables: { influencerModelId } });
+        await refetchHiggsfieldConnections();
+      }}
+      onRefreshHiggsfieldAccount={async (influencerModelId) => {
+        await refreshHiggsfieldAccountBalanceMutation({ variables: { influencerModelId } });
+        await refetchHiggsfieldConnections();
       }}
       onCreateUser={async (input) => {
         await createUserMutation({ variables: { input } });

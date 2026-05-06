@@ -2,12 +2,14 @@ import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 
 import { env } from "../config/env.js";
+import { resolveWorkerWorkflow } from "../config/workflows.js";
 import { readStore, updateStore } from "../lib/store.js";
 import { saveGeneratedFile, toAbsoluteStoragePath } from "../lib/storage.js";
 import {
   VIDEO_WORKER_GENERATION_MODELS,
   VOICE_WORKER_GENERATION_MODELS,
   isNsfwPoseMultiplierWorkspace,
+  normalizeBoardAspectRatio,
   normalizePoseMultiplierResolution,
   normalizeResolutionForGenerationModel,
   normalizeVideoDurationForGenerationModel,
@@ -21,6 +23,12 @@ import { presentBoard } from "./presenters.js";
 const WORKER_TIMEOUT_MS = 20 * 60 * 1000;
 const WORKER_POLL_INTERVAL_MS = 2500;
 const runningBoards = new Set<string>();
+type GenerationLane = "image" | "video" | "voice";
+const laneQueues: Record<GenerationLane, Promise<void>> = {
+  image: Promise.resolve(),
+  video: Promise.resolve(),
+  voice: Promise.resolve(),
+};
 
 interface FilePayload {
   buffer: Buffer;
@@ -69,6 +77,16 @@ function isVoiceWorkerModel(generationModel: string): boolean {
   return VOICE_WORKER_GENERATION_MODELS.includes(generationModel as (typeof VOICE_WORKER_GENERATION_MODELS)[number]);
 }
 
+function resolveGenerationLane(generationModel: string): GenerationLane {
+  if (isVoiceWorkerModel(generationModel)) {
+    return "voice";
+  }
+  if (isVideoWorkerModel(generationModel)) {
+    return "video";
+  }
+  return "image";
+}
+
 function resolveRowGenerationContext(board: StoreData["boards"][number], row: StoreData["boards"][number]["rows"][number]) {
   const poseMultiplierActive = board.settings.poseMultiplierEnabled && row.poseMultiplier > 1;
   const generationModel = poseMultiplierActive ? board.settings.poseMultiplierGenerationModel : board.settings.generationModel;
@@ -81,6 +99,7 @@ function resolveRowGenerationContext(board: StoreData["boards"][number], row: St
     ? normalizePoseMultiplierResolution(board.settings.poseMultiplierResolution, generationModel, isNsfwPoseMultiplierLayout)
     : normalizeResolutionForGenerationModel(generationModel, board.settings.resolution);
   const videoDurationSeconds = normalizeVideoDurationForGenerationModel(generationModel, board.settings.videoDurationSeconds);
+  const aspectRatio = normalizeBoardAspectRatio(generationModel, board.settings.aspectRatio, board.settings.sdxlWorkspaceMode);
   const quantity = poseMultiplierActive
     ? Math.max(1, Math.min(4, row.poseMultiplier))
     : isVideoWorkerModel(generationModel) || isVoiceWorkerModel(generationModel)
@@ -92,8 +111,20 @@ function resolveRowGenerationContext(board: StoreData["boards"][number], row: St
     generationModel,
     resolution,
     videoDurationSeconds,
+    aspectRatio,
     quantity,
   };
+}
+
+function requiresRowReferenceForGeneration(
+  board: StoreData["boards"][number],
+  generationModel: string,
+): boolean {
+  return (
+    env.requireRowReferenceImages ||
+    generationModel === "kling_motion_control" ||
+    board.settings.sdxlWorkspaceMode === "FACE_SWAP"
+  );
 }
 
 function getRowReadiness(board: StoreData["boards"][number], row: StoreData["boards"][number]["rows"][number]): { ready: boolean; reason: string | null } {
@@ -107,25 +138,22 @@ function getRowReadiness(board: StoreData["boards"][number], row: StoreData["boa
       : { ready: false, reason: hasAnyInput ? "Voice text is required" : null };
   }
 
-  if (generationModel === "kling_motion_control") {
-    return row.reference
-      ? { ready: true, reason: null }
-      : { ready: false, reason: hasAnyInput ? "Motion reference video is required" : null };
+  if (requiresRowReferenceForGeneration(board, generationModel) && !row.reference) {
+    const reason = generationModel === "kling_motion_control"
+      ? "Motion reference video is required"
+      : board.settings.sdxlWorkspaceMode === "FACE_SWAP"
+        ? "Reference image is required"
+        : "Reference image is required by the configured generation bridge";
+    return { ready: false, reason: hasAnyInput ? reason : null };
   }
 
-  if (board.settings.sdxlWorkspaceMode === "FACE_SWAP") {
-    return row.reference
-      ? { ready: true, reason: null }
-      : { ready: false, reason: hasAnyInput ? "Reference image is required" : null };
-  }
-
-  if (hasPrompt && row.reference) {
+  if (hasPrompt || (generationModel === "kling_motion_control" && row.reference)) {
     return { ready: true, reason: null };
   }
 
   return {
     ready: false,
-    reason: hasAnyInput ? "Prompt and a reference image are both required" : null,
+    reason: hasAnyInput ? "Prompt is required" : null,
   };
 }
 
@@ -178,6 +206,17 @@ async function readSelectionFile(selection: ReferenceSelection, store: StoreData
 }
 
 async function createWorkerJob(options: {
+  boardRunId: string;
+  boardId: string;
+  rowId: string;
+  rowIndex: number;
+  totalRows: number;
+  influencerModelId: string;
+  influencerModelSlug: string;
+  influencerModelName: string;
+  workflowId: string;
+  workflowName: string;
+  workflowPath: string;
   prompt: string;
   generationModel: string;
   resolution: string;
@@ -185,6 +224,10 @@ async function createWorkerJob(options: {
   aspectRatio: string;
   quantity: number;
   quality: string;
+  poseMultiplierActive: boolean;
+  faceSwapEnabled: boolean;
+  autoPromptEnabled: boolean;
+  autoPromptImageEnabled: boolean;
   upscale: boolean;
   upscaleFactor: number;
   upscaleDenoise: number;
@@ -195,6 +238,18 @@ async function createWorkerJob(options: {
   isLast: boolean;
 }): Promise<string> {
   const formData = new FormData();
+  formData.append("board_run_id", options.boardRunId);
+  formData.append("board_id", options.boardId);
+  formData.append("row_id", options.rowId);
+  formData.append("row_index", String(options.rowIndex));
+  formData.append("total_rows", String(options.totalRows));
+  formData.append("influencer_model_id", options.influencerModelId);
+  formData.append("higgsfield_account_key", options.influencerModelId);
+  formData.append("influencer_model_slug", options.influencerModelSlug);
+  formData.append("influencer_model_name", options.influencerModelName);
+  formData.append("workflow_id", options.workflowId);
+  formData.append("workflow_name", options.workflowName);
+  formData.append("workflow_path", options.workflowPath);
   formData.append("prompt", options.prompt);
   formData.append("model", options.generationModel);
   formData.append("resolution", options.resolution);
@@ -208,11 +263,23 @@ async function createWorkerJob(options: {
   formData.append("upscale_factor", String(options.upscaleFactor));
   formData.append("upscale_denoise", String(options.upscaleDenoise));
   formData.append("headless", "false");
-  formData.append("reference_mode", options.rowReference ? (options.isFirst ? "replace" : "patch_slot") : options.isFirst ? "replace" : "keep");
+  const hasFirstJobGlobalReferences = options.isFirst && options.globalReferences.length > 0;
+  const referenceMode = options.rowReference
+    ? options.isFirst
+      ? "replace"
+      : "patch_slot"
+    : hasFirstJobGlobalReferences
+      ? "replace"
+      : "keep";
+  formData.append("reference_mode", referenceMode);
   formData.append("reference_patch_indices", "[]");
   formData.append("reuse_browser", "true");
   formData.append("settings_already_set", options.isFirst ? "false" : "true");
   formData.append("fire_only", options.isLast ? "false" : "true");
+  formData.append("pose_multiplier_enabled", options.poseMultiplierActive ? "true" : "false");
+  formData.append("face_swap_enabled", options.faceSwapEnabled ? "true" : "false");
+  formData.append("auto_prompt_enabled", options.autoPromptEnabled ? "true" : "false");
+  formData.append("auto_prompt_image_enabled", options.autoPromptImageEnabled ? "true" : "false");
 
   if (options.isFirst) {
     for (const reference of options.globalReferences) {
@@ -340,6 +407,12 @@ async function failRows(boardId: string, rowIds: string[], message: string): Pro
   await publishBoardUpdate(boardId, updatedStore);
 }
 
+function enqueueLane(lane: GenerationLane, task: () => Promise<void>): void {
+  const previous = laneQueues[lane].catch(() => undefined);
+  const next = previous.then(task);
+  laneQueues[lane] = next.catch(() => undefined);
+}
+
 async function processBoardGeneration(boardId: string, requestedById: string): Promise<void> {
   const initialStore = await readStore();
   const board = initialStore.boards.find((entry) => entry.id === boardId);
@@ -347,6 +420,9 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
     return;
   }
 
+  const influencerModel = initialStore.influencerModels.find((entry) => entry.id === board.influencerModelId);
+  const workflow = resolveWorkerWorkflow(influencerModel);
+  const boardRunId = randomUUID();
   const activeRows = [...board.rows].sort((left, right) => left.orderIndex - right.orderIndex).filter((row) => row.status === "QUEUED");
   const globalSelections = board.settings.globalReferences.filter(
     (selection) => Boolean(selection.uploadPath || selection.assetId),
@@ -366,8 +442,8 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
       });
       await publishBoardUpdate(boardId, generatingStore);
 
-      const { poseMultiplierActive, generationModel, resolution, videoDurationSeconds, quantity } = resolveRowGenerationContext(board, row);
-      const needsRowReference = !isVoiceWorkerModel(generationModel);
+      const { poseMultiplierActive, generationModel, resolution, videoDurationSeconds, aspectRatio, quantity } = resolveRowGenerationContext(board, row);
+      const needsRowReference = !isVoiceWorkerModel(generationModel) && requiresRowReferenceForGeneration(board, generationModel);
       if (needsRowReference && !row.reference) {
         throw new Error(isVideoWorkerModel(generationModel) ? "Missing row reference media" : "Missing row reference image");
       }
@@ -375,13 +451,28 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
       const rowReference = row.reference ? await readSelectionFile(row.reference, initialStore) : null;
       const audioReference = row.audioReference ? await readSelectionFile(row.audioReference, initialStore) : null;
       const jobId = await createWorkerJob({
+        boardRunId,
+        boardId,
+        rowId: row.id,
+        rowIndex: row.orderIndex + 1,
+        totalRows: board.rows.length,
+        influencerModelId: board.influencerModelId,
+        influencerModelSlug: influencerModel?.slug || "",
+        influencerModelName: influencerModel?.name || "",
+        workflowId: workflow?.id || "default-platform",
+        workflowName: workflow?.name || influencerModel?.defaultPlatformWorkflowName || "Default platform workflow",
+        workflowPath: workflow?.path || "",
         prompt: row.prompt,
         generationModel,
         resolution,
         videoDurationSeconds,
-        aspectRatio: board.settings.aspectRatio,
+        aspectRatio,
         quantity,
         quality: board.settings.quality,
+        poseMultiplierActive,
+        faceSwapEnabled: board.settings.faceSwap || row.faceSwap || board.settings.sdxlWorkspaceMode === "FACE_SWAP",
+        autoPromptEnabled: board.settings.autoPromptGen,
+        autoPromptImageEnabled: board.settings.autoPromptImage,
         upscale: generationModel === "sdxl" && !poseMultiplierActive ? row.upscale : false,
         upscaleFactor: generationModel === "sdxl" && !poseMultiplierActive ? board.settings.upscaleFactor : 1,
         upscaleDenoise: generationModel === "sdxl" && !poseMultiplierActive ? board.settings.upscaleDenoise : 0,
@@ -392,7 +483,7 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         isLast: index === activeRows.length - 1,
       });
 
-      rowJobs.push({ rowId: row.id, jobId, prompt: row.prompt, generationModel, resolution, videoDurationSeconds, aspectRatio: board.settings.aspectRatio, quantity });
+      rowJobs.push({ rowId: row.id, jobId, prompt: row.prompt, generationModel, resolution, videoDurationSeconds, aspectRatio, quantity });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to submit this row to the generation worker";
       const remainingIds = activeRows.slice(index).map((entry) => entry.id);
@@ -535,10 +626,14 @@ export async function queueBoardRun(currentUser: AuthUser | null, boardId: strin
     return presentBoard(preparedBoard, preparedStore);
   }
 
+  const firstQueuedRow = preparedBoard.rows.find((row) => row.status === "QUEUED");
+  const lane = resolveGenerationLane(
+    firstQueuedRow ? resolveRowGenerationContext(preparedBoard, firstQueuedRow).generationModel : preparedBoard.settings.generationModel,
+  );
   runningBoards.add(boardId);
-  void processBoardGeneration(boardId, viewer.id).finally(() => {
+  enqueueLane(lane, () => processBoardGeneration(boardId, viewer.id).finally(() => {
     runningBoards.delete(boardId);
-  });
+  }));
 
   return presentBoard(preparedBoard, preparedStore);
 }

@@ -55,6 +55,7 @@ function accessJumpOptions(currentUser: UserRecord): AccessJumpOption[] {
       { id: "access-agency-settings", label: "Agency settings" },
       { id: "access-create-accounts", label: "Create accounts" },
       { id: "access-influencer-profiles", label: "Influencer profiles" },
+      { id: "access-higgsfield-mcp", label: "Higgsfield MCP" },
     ];
   }
 

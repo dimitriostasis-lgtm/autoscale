@@ -65,6 +65,7 @@ export function SettingsPanel({
   const maxQuantity = getMaxQuantityForGenerationModel(settings.generationModel);
   const allowedAspectRatioOptions = getAspectRatioOptionsForGenerationModel(settings.generationModel);
   const allowedResolutionOptions = getResolutionOptionsForGenerationModel(settings.generationModel);
+  const showResolutionControl = allowedResolutionOptions.length > 0;
   const allowedVideoDurationOptions = getVideoDurationOptionsForGenerationModel(settings.generationModel);
   const selectedVideoDuration = normalizeVideoDurationForGenerationModel(settings.generationModel, settings.videoDurationSeconds);
   const firstVideoDuration = allowedVideoDurationOptions[0] ?? null;
@@ -110,7 +111,7 @@ export function SettingsPanel({
   const autoReferenceCostTitle = `${videoGenerationModel ? "Auto Video" : "Auto Image"} adds ${formatCreditCost(AUTO_IMAGE_CREDITS)} credits per row.`;
   const promptAutomationCostTitle = `Text Prompt Automation adds ${formatCreditCost(TEXT_PROMPT_AUTOMATION_CREDITS)} credits per row.`;
   const aspectRatioLocked = settings.generationModel === "kling_motion_control" || isPoseMultiplierWorkspaceLayout;
-  const displayedAspectRatioOptions = aspectRatioLocked ? (["auto"] as const) : allowedAspectRatioOptions;
+  const displayedAspectRatioOptions = aspectRatioLocked && allowedAspectRatioOptions.includes("auto") ? (["auto"] as const) : allowedAspectRatioOptions;
   const poseWorkerModelControlLocked = poseWorkerModelLocked || isNsfwPoseMultiplierLayout;
   const faceSwapOn = isFaceSwapWorkspaceLayout || settings.faceSwap;
   const upscaleFactor = [1, 1.5, 2].includes(settings.upscaleFactor) ? settings.upscaleFactor : 1;
@@ -201,12 +202,12 @@ export function SettingsPanel({
             </label>
               ) : null}
 
-              {!isVoiceWorkspace && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout ? (
+              {!isVoiceWorkspace && showResolutionControl && !isPoseMultiplierWorkspaceLayout && !isFaceSwapWorkspaceLayout ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Resolution</span>
                 <select
                   className={theme.input + " rounded-xl border-white/8 bg-[#262626] px-3 py-2.5"}
-                  value={settings.resolution}
+                  value={normalizeResolutionForGenerationModel(settings.generationModel, settings.resolution)}
                   onChange={(event) => onSettingsChange({ ...settings, resolution: event.target.value })}
                 >
                   {allowedResolutionOptions.map((option) => (
@@ -273,7 +274,7 @@ export function SettingsPanel({
               </>
             ) : null}
 
-            {isPoseMultiplierWorkspaceLayout ? (
+            {isPoseMultiplierWorkspaceLayout && allowedPoseMultiplierResolutionOptions.length > 0 ? (
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-white/76">Pose Multiplier Resolution</span>
                 <select
@@ -608,7 +609,7 @@ export function SettingsPanel({
                     </select>
                   </label>
                 ) : null}
-                {!isPoseMultiplierWorkspaceLayout && poseMultiplierEnabled ? (
+                {!isPoseMultiplierWorkspaceLayout && poseMultiplierEnabled && allowedPoseMultiplierResolutionOptions.length > 0 ? (
                   <label className="block space-y-2">
                     <span className="text-sm font-semibold text-white/76">Pose Multiplier Resolution</span>
                     <select

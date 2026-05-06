@@ -78,7 +78,7 @@ export type GenerationStatus =
 
 export type ReferenceSourceType = "UPLOAD" | "ASSET";
 
-export const IMAGE_WORKER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2", "sdxl"] as const;
+export const IMAGE_WORKER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext", "z_image", "sdxl"] as const;
 export const VIDEO_WORKER_GENERATION_MODELS = ["sd_2_0", "sd_2_0_fast", "kling_3_0", "kling_motion_control", "grok_imagine"] as const;
 export const VIDEO_NSFW_WORKER_GENERATION_MODELS = ["sd_2_0", "sd_2_0_fast", "grok_imagine"] as const;
 export const VOICE_WORKER_GENERATION_MODELS = ["eleven_v3"] as const;
@@ -86,7 +86,7 @@ export const SUPPORTED_WORKER_GENERATION_MODELS = [...IMAGE_WORKER_GENERATION_MO
 
 export type WorkerGenerationModel = (typeof SUPPORTED_WORKER_GENERATION_MODELS)[number];
 
-export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "kling_o1", "gpt_2"] as const;
+export const SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS = ["nb_pro", "nb2", "sd_4_5", "gpt_2", "flux_2", "kling_o1", "flux_kontext"] as const;
 
 export type PoseMultiplierGenerationModel = (typeof SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS)[number];
 
@@ -124,7 +124,7 @@ export function getAllowedResolutionsForGenerationModel(generationModel: WorkerG
     return ["1k", "2k"];
   }
 
-  if (generationModel === "nb2") {
+  if (generationModel === "nb_pro" || generationModel === "nb2") {
     return ["1k", "2k", "4k"];
   }
 
@@ -133,7 +133,15 @@ export function getAllowedResolutionsForGenerationModel(generationModel: WorkerG
   }
 
   if (generationModel === "sd_4_5") {
-    return ["1k", "2k", "4k"];
+    return ["2k", "4k"];
+  }
+
+  if (generationModel === "flux_2") {
+    return ["1k", "2k"];
+  }
+
+  if (generationModel === "flux_kontext" || generationModel === "z_image") {
+    return [];
   }
 
   if (generationModel === "kling_o1") {
@@ -163,7 +171,15 @@ export function normalizeResolutionForGenerationModel(
   generationModel: WorkerGenerationModel | string,
   resolution: WorkerResolution | string,
 ): WorkerResolution {
+  if (generationModel === "gpt_2" && resolution.toLowerCase() === "3k") {
+    return "2k";
+  }
+
   const allowedResolutions = getAllowedResolutionsForGenerationModel(generationModel);
+
+  if (!allowedResolutions.length) {
+    return "1k";
+  }
 
   if (allowedResolutions.includes(resolution as WorkerResolution)) {
     return resolution as WorkerResolution;
@@ -185,9 +201,17 @@ export function normalizePoseMultiplierResolution(
   generationModel?: WorkerGenerationModel | string,
   isSdxlPoseMultiplierLayout = false,
 ): PoseMultiplierResolution {
+  if (generationModel === "gpt_2" && resolution?.toLowerCase() === "3k") {
+    return "2k";
+  }
+
   const allowedResolutions = isSdxlPoseMultiplierLayout
     ? [...SUPPORTED_POSE_MULTIPLIER_RESOLUTIONS]
     : getAllowedResolutionsForGenerationModel(generationModel ?? SUPPORTED_POSE_MULTIPLIER_GENERATION_MODELS[0]);
+
+  if (!allowedResolutions.length) {
+    return "1k";
+  }
 
   if (allowedResolutions.includes(resolution as WorkerResolution)) {
     return resolution as PoseMultiplierResolution;
@@ -288,33 +312,30 @@ export function normalizeOptionalPosePromptTemplates(templates: unknown, fallbac
   return normalizePosePromptTemplates(templates, fallbackTemplate);
 }
 
-export const SUPPORTED_WORKER_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9", "1:4", "4:1", "1:8", "8:1"] as const;
+export const SUPPORTED_WORKER_ASPECT_RATIOS = ["auto", "1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2", "5:4", "4:5", "21:9"] as const;
 
 export type WorkerAspectRatio = (typeof SUPPORTED_WORKER_ASPECT_RATIOS)[number];
 
-const COMMON_WORKER_ASPECT_RATIOS: WorkerAspectRatio[] = ["auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
-const NANO_BANANA_2_ASPECT_RATIOS: WorkerAspectRatio[] = [...COMMON_WORKER_ASPECT_RATIOS, "1:4", "4:1", "1:8", "8:1"];
-const KLING_O1_ASPECT_RATIOS: WorkerAspectRatio[] = ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"];
-const SEEDANCE_ASPECT_RATIOS: WorkerAspectRatio[] = ["auto", "16:9", "9:16", "4:3", "3:4", "1:1", "21:9"];
+const HIGGSFIELD_ASPECT_RATIOS_BY_WORKER_MODEL: Record<string, WorkerAspectRatio[]> = {
+  nb_pro: ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"],
+  nb2: ["1:1", "3:2", "2:3", "4:3", "3:4", "4:5", "5:4", "9:16", "16:9", "21:9"],
+  sd_4_5: ["1:1", "4:3", "16:9", "3:2", "21:9", "3:4", "9:16", "2:3"],
+  gpt_2: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"],
+  flux_2: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  kling_o1: ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"],
+  flux_kontext: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  z_image: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  sd_2_0: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+  sd_2_0_fast: ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+  kling_3_0: ["16:9", "9:16", "1:1"],
+  grok_imagine: ["16:9", "9:16", "1:1"],
+  sdxl: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  kling_motion_control: ["auto"],
+  eleven_v3: ["auto"],
+};
 
 export function getAllowedAspectRatiosForGenerationModel(generationModel: WorkerGenerationModel | string): WorkerAspectRatio[] {
-  if (generationModel === "sdxl") {
-    return COMMON_WORKER_ASPECT_RATIOS.filter((option) => option !== "auto");
-  }
-
-  if (generationModel === "nb2") {
-    return [...NANO_BANANA_2_ASPECT_RATIOS];
-  }
-
-  if (generationModel === "kling_o1") {
-    return [...KLING_O1_ASPECT_RATIOS];
-  }
-
-  if (generationModel === "sd_2_0" || generationModel === "sd_2_0_fast") {
-    return [...SEEDANCE_ASPECT_RATIOS];
-  }
-
-  return [...COMMON_WORKER_ASPECT_RATIOS];
+  return [...(HIGGSFIELD_ASPECT_RATIOS_BY_WORKER_MODEL[generationModel] ?? ["1:1"])];
 }
 
 export function normalizeAspectRatioForGenerationModel(
@@ -358,7 +379,10 @@ export function normalizeBoardAspectRatio(
   sdxlWorkspaceMode?: string | null,
 ): WorkerAspectRatio {
   if (generationModel === "kling_motion_control" || isPoseMultiplierWorkspace(generationModel, sdxlWorkspaceMode)) {
-    return "auto";
+    const allowedAspectRatios = getAllowedAspectRatiosForGenerationModel(generationModel);
+    if (allowedAspectRatios.includes("auto")) {
+      return "auto";
+    }
   }
 
   return normalizeAspectRatioForGenerationModel(generationModel, aspectRatio);

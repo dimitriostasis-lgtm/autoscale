@@ -60,6 +60,7 @@ export const INFLUENCER_MODEL_FIELDS = gql`
           createdById
           generationModel
           resolution
+          aspectRatio
           quantity
           isSyntheticFailure
           createdAt
