@@ -289,9 +289,9 @@ export function WorkspaceGrid({
     );
   };
 
-  const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false) => {
-    const outputCount = row.outputAssets.length;
-    const visibleOutputAssets = row.outputAssets.slice(0, 4);
+  const renderOutputGrid = (row: WorkspaceRow, awaitingOutput: boolean, compact = false, assets = row.outputAssets) => {
+    const outputCount = assets.length;
+    const visibleOutputAssets = assets.slice(0, 4);
     const hiddenOutputCount = Math.max(0, outputCount - visibleOutputAssets.length);
 
     return (
@@ -305,7 +305,7 @@ export function WorkspaceGrid({
         {hiddenOutputCount > 0 ? (
           <button
             className="col-span-full inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/18 bg-lime-300/10 px-3 text-xs font-bold uppercase tracking-[0.16em] text-lime-100/82 transition hover:border-lime-200/38 hover:bg-lime-300/16 hover:text-lime-50"
-            onClick={() => setOutputPreview({ rowLabel: row.label || `Row ${row.orderIndex + 1}`, assets: row.outputAssets })}
+            onClick={() => setOutputPreview({ rowLabel: row.label || `Row ${row.orderIndex + 1}`, assets })}
             type="button"
           >
             View all {outputCount}
@@ -349,9 +349,16 @@ export function WorkspaceGrid({
             const audioReferenceUrl = audioReference?.asset?.url || audioReference?.assetUrl || audioReference?.uploadUrl || null;
             const promptLockedByAudioReference = showAudioReferenceColumn && Boolean(audioReference);
             const awaitingOutput = !row.outputAssets.length;
+            const awaitingPoseOutput = !row.poseOutputAssets.length;
+            const awaitingFaceSwapOutput = !row.faceSwapOutputAssets.length;
             const poseMultiplierEnabled = board.settings.poseMultiplierEnabled;
-            const poseColumnSkipped = showPoseColumn && !isPoseMultiplierWorkspaceLayout && !poseMultiplierEnabled;
-            const faceSwapColumnSkipped = showFaceSwapColumn && !isFaceSwapWorkspaceLayout && !row.faceSwap;
+            const hasPoseOutputs = row.poseOutputAssets.length > 0;
+            const hasFaceSwapOutputs = row.faceSwapOutputAssets.length > 0;
+            const poseRowActive = poseMultiplierEnabled || row.poseMultiplier > 1 || hasPoseOutputs;
+            const faceSwapEnabled = isFaceSwapWorkspaceLayout || row.faceSwap;
+            const faceSwapRowActive = faceSwapEnabled || hasFaceSwapOutputs;
+            const poseColumnSkipped = showPoseColumn && !isPoseMultiplierWorkspaceLayout && !poseRowActive;
+            const faceSwapColumnSkipped = showFaceSwapColumn && !isFaceSwapWorkspaceLayout && !faceSwapRowActive;
             const upscaleColumnSkipped = showUpscaleColumn && !row.upscale;
             return (
               <div
@@ -731,12 +738,12 @@ export function WorkspaceGrid({
                         <div
                           className={cx(
                             "inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                            poseMultiplierEnabled
+                            poseRowActive
                               ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0]"
                               : "border-white/8 bg-[#222222] text-white/62",
                           )}
                         >
-                          {poseMultiplierEnabled ? (
+                          {poseRowActive ? (
                             <>
                               <span>{row.poseMultiplier}x</span>
                               {board.settings.posePromptMode === "AUTO" ? <span className="workspace-auto-prompt-live-dot" aria-hidden="true" /> : null}
@@ -745,10 +752,12 @@ export function WorkspaceGrid({
                             "Off"
                           )}
                         </div>
-                        {isPoseMultiplierWorkspaceLayout ? renderOutputGrid(row, awaitingOutput, true) : awaitingOutput ? (
-                          <div className={pendingJobClass}>
-                            Pending
-                          </div>
+                        {isPoseMultiplierWorkspaceLayout ? (
+                          renderOutputGrid(row, awaitingPoseOutput, true, row.poseOutputAssets.length ? row.poseOutputAssets : row.outputAssets)
+                        ) : poseRowActive ? (
+                          renderOutputGrid(row, awaitingPoseOutput, true, row.poseOutputAssets)
+                        ) : awaitingOutput ? (
+                          <div className={pendingJobClass}>Pending</div>
                         ) : null}
                       </div>
                     )}
@@ -816,7 +825,7 @@ export function WorkspaceGrid({
                         <button
                           className={cx(
                             "inline-flex w-full items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                            row.faceSwap
+                            faceSwapEnabled
                               ? "border-[#4e6b22] bg-[#314513] text-[#dcf6a0] hover:bg-[#395119]"
                               : "border-white/8 bg-[#222222] text-white/62 hover:bg-[#2a2a2a]",
                           )}
@@ -828,12 +837,12 @@ export function WorkspaceGrid({
                           }}
                           type="button"
                         >
-                          {isFaceSwapWorkspaceLayout || row.faceSwap ? "On" : "Off"}
+                          {faceSwapEnabled ? "On" : "Off"}
                         </button>
-                        {!isPoseMultiplierWorkspaceLayout && awaitingOutput ? (
-                          <div className={pendingJobClass}>
-                            Pending
-                          </div>
+                        {faceSwapRowActive ? (
+                          renderOutputGrid(row, awaitingFaceSwapOutput, true, row.faceSwapOutputAssets)
+                        ) : !isPoseMultiplierWorkspaceLayout && awaitingOutput ? (
+                          <div className={pendingJobClass}>Pending</div>
                         ) : null}
                       </div>
                     )}

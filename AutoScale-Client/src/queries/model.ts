@@ -62,6 +62,31 @@ export const INFLUENCER_MODEL_FIELDS = gql`
           resolution
           aspectRatio
           quantity
+          workflowStage
+          isSyntheticFailure
+          createdAt
+        }
+        poseOutputAssets {
+          id
+          influencerModelId
+          createdById
+          generationModel
+          resolution
+          aspectRatio
+          quantity
+          workflowStage
+          isSyntheticFailure
+          createdAt
+        }
+        faceSwapOutputAssets {
+          id
+          influencerModelId
+          createdById
+          generationModel
+          resolution
+          aspectRatio
+          quantity
+          workflowStage
           isSyntheticFailure
           createdAt
         }

@@ -84,6 +84,7 @@ export interface GeneratedAsset {
   resolution: string;
   aspectRatio: string;
   quantity: number;
+  workflowStage: string;
   width: number | null;
   height: number | null;
   isSyntheticFailure: boolean;
@@ -142,6 +143,8 @@ export interface WorkspaceRow {
   status: GenerationStatus;
   errorMessage: string | null;
   outputAssets: GeneratedAsset[];
+  poseOutputAssets: GeneratedAsset[];
+  faceSwapOutputAssets: GeneratedAsset[];
   lastRunAt: string | null;
 }
 

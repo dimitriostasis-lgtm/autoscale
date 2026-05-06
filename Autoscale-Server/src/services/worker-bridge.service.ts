@@ -51,11 +51,19 @@ interface WorkerArtifact {
   height?: number | null;
 }
 
+interface WorkerJobMetadata {
+  stage_artifacts?: Record<string, WorkerArtifact[]>;
+  stageArtifacts?: Record<string, WorkerArtifact[]>;
+  stage_errors?: Record<string, string>;
+  stageErrors?: Record<string, string>;
+}
+
 interface WorkerJobStatus {
   job_id: string;
   status: string;
   error?: string | null;
   artifacts?: WorkerArtifact[];
+  metadata?: WorkerJobMetadata;
 }
 
 interface RowJobLink {
@@ -396,6 +404,21 @@ function deriveRowStatus(artifacts: WorkerArtifact[]): { status: GenerationStatu
   };
 }
 
+function getStageArtifacts(job: WorkerJobStatus, stage: string): WorkerArtifact[] {
+  const stageArtifacts = job.metadata?.stage_artifacts || job.metadata?.stageArtifacts;
+  const artifacts = stageArtifacts?.[stage];
+  if (Array.isArray(artifacts)) {
+    return artifacts;
+  }
+  return stage === "base" ? job.artifacts || [] : [];
+}
+
+function getStageError(job: WorkerJobStatus, stage: string): string {
+  const stageErrors = job.metadata?.stage_errors || job.metadata?.stageErrors;
+  const message = stageErrors?.[stage];
+  return typeof message === "string" ? message : "";
+}
+
 async function markBoardRows(
   boardId: string,
   updater: (board: StoreData["boards"][number]) => void,
@@ -418,6 +441,8 @@ async function failRows(boardId: string, rowIds: string[], message: string): Pro
         row.status = "FAILED";
         row.errorMessage = message;
         row.outputAssetIds = [];
+        row.poseOutputAssetIds = [];
+        row.faceSwapOutputAssetIds = [];
         row.lastRunAt = nowIso();
       }
     }
@@ -556,8 +581,13 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
   const createdAssets: GeneratedAsset[] = [];
 
   for (const result of statusResults) {
-    const artifacts = result.job.artifacts || [];
-    for (const [index, artifact] of artifacts.entries()) {
+    const stageEntries = [
+      { stage: "base", artifacts: getStageArtifacts(result.job, "base") },
+      { stage: "multipose", artifacts: getStageArtifacts(result.job, "multipose") },
+      { stage: "face_swap", artifacts: getStageArtifacts(result.job, "face_swap") },
+    ];
+    for (const { stage, artifacts } of stageEntries) {
+      for (const [index, artifact] of artifacts.entries()) {
       try {
         const buffer = await downloadArtifact(artifact);
         const fileRecord = await saveGeneratedFile(artifact.name || `${result.rowId}-${index + 1}.webp`, buffer);
@@ -575,6 +605,7 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
           resolution: result.resolution,
           aspectRatio: result.aspectRatio,
           quantity: result.quantity,
+          workflowStage: stage,
           width: artifact.width ?? null,
           height: artifact.height ?? null,
           isSyntheticFailure: Boolean(artifact.synthetic_failure || artifact.syntheticFailure),
@@ -583,6 +614,7 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         });
       } catch {
         continue;
+      }
       }
     }
   }
@@ -601,12 +633,21 @@ async function processBoardGeneration(boardId: string, requestedById: string): P
         continue;
       }
 
-      const rowAssets = createdAssets.filter((asset) => asset.rowId === row.id);
-      const status = deriveRowStatus(result.job.artifacts || []);
+      const rowAssets = createdAssets.filter((asset) => asset.rowId === row.id && asset.workflowStage === "base");
+      const rowPoseAssets = createdAssets.filter((asset) => asset.rowId === row.id && asset.workflowStage === "multipose");
+      const rowFaceSwapAssets = createdAssets.filter((asset) => asset.rowId === row.id && asset.workflowStage === "face_swap");
+      const status = deriveRowStatus(getStageArtifacts(result.job, "base"));
+      const stageErrors = [getStageError(result.job, "multipose"), getStageError(result.job, "face_swap")].filter(Boolean);
 
       row.outputAssetIds = rowAssets.map((asset) => asset.id);
-      row.status = rowAssets.length ? status.status : "FAILED";
-      row.errorMessage = result.job.error || status.errorMessage;
+      row.poseOutputAssetIds = rowPoseAssets.map((asset) => asset.id);
+      row.faceSwapOutputAssetIds = rowFaceSwapAssets.map((asset) => asset.id);
+      row.status = rowAssets.length || rowPoseAssets.length || rowFaceSwapAssets.length
+        ? stageErrors.length
+          ? "PARTIAL"
+          : status.status
+        : "FAILED";
+      row.errorMessage = result.job.error || status.errorMessage || stageErrors.join("; ") || null;
       row.lastRunAt = nowIso();
     }
 
@@ -635,6 +676,8 @@ export async function queueBoardRun(currentUser: AuthUser | null, boardId: strin
     for (const row of board.rows) {
       const readiness = getRowReadiness(board, row);
       row.outputAssetIds = [];
+      row.poseOutputAssetIds = [];
+      row.faceSwapOutputAssetIds = [];
       row.errorMessage = null;
       if (readiness.ready) {
         row.status = "QUEUED";

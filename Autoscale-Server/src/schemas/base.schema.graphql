@@ -150,6 +150,7 @@ type GeneratedAsset {
   resolution: String!
   aspectRatio: String!
   quantity: Int!
+  workflowStage: String!
   width: Int
   height: Int
   isSyntheticFailure: Boolean!
@@ -171,6 +172,8 @@ type WorkspaceRow {
   status: GenerationStatus!
   errorMessage: String
   outputAssets: [GeneratedAsset!]!
+  poseOutputAssets: [GeneratedAsset!]!
+  faceSwapOutputAssets: [GeneratedAsset!]!
   lastRunAt: String
 }
 

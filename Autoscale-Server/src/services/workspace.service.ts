@@ -47,6 +47,13 @@ function normalizeRows(rows: WorkspaceRow[]): WorkspaceRow[] {
       upscale: typeof row.upscale === "boolean" ? row.upscale : false,
       faceSwap: typeof row.faceSwap === "boolean" ? row.faceSwap : false,
       audioReference: row.audioReference ?? null,
+      outputAssetIds: Array.isArray(row.outputAssetIds) ? row.outputAssetIds : [],
+      poseOutputAssetIds: Array.isArray((row as { poseOutputAssetIds?: unknown }).poseOutputAssetIds)
+        ? (row as { poseOutputAssetIds: string[] }).poseOutputAssetIds
+        : [],
+      faceSwapOutputAssetIds: Array.isArray((row as { faceSwapOutputAssetIds?: unknown }).faceSwapOutputAssetIds)
+        ? (row as { faceSwapOutputAssetIds: string[] }).faceSwapOutputAssetIds
+        : [],
     }));
 }
 
@@ -384,6 +391,8 @@ export async function clearBoard(currentUser: AuthUser | null, boardId: string) 
         status: "IDLE",
         errorMessage: null,
         outputAssetIds: [],
+        poseOutputAssetIds: [],
+        faceSwapOutputAssetIds: [],
       })),
     );
     board.updatedAt = nowIso();

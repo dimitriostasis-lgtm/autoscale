@@ -172,9 +172,11 @@ export function ImagePickerModal({ open, slug, assets, boards = [], variant = "i
   const assetModesByBoardId = useMemo(() => new Map(boards.map((board) => [board.id, resolveBoardGalleryMode(board.name)] as const)), [boards]);
   const assetRowSignalsById = useMemo(() => {
     const entries = boards.flatMap((board) =>
-      board.rows.flatMap((row) =>
-        row.outputAssets.map((asset) => [asset.id, { faceSwap: row.faceSwap, poseMultiplier: row.poseMultiplier }] as const),
-      ),
+      board.rows.flatMap((row) => [
+        ...row.outputAssets.map((asset) => [asset.id, { faceSwap: row.faceSwap, poseMultiplier: row.poseMultiplier }] as const),
+        ...row.poseOutputAssets.map((asset) => [asset.id, { faceSwap: row.faceSwap, poseMultiplier: row.poseMultiplier }] as const),
+        ...row.faceSwapOutputAssets.map((asset) => [asset.id, { faceSwap: true, poseMultiplier: row.poseMultiplier }] as const),
+      ]),
     );
 
     return new Map(entries);

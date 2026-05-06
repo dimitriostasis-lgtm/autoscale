@@ -118,6 +118,31 @@ export const BOARD_DETAIL_QUERY = gql`
           createdAt
           width
           height
+          workflowStage
+          isSyntheticFailure
+          failureLabel
+        }
+        poseOutputAssets {
+          id
+          url
+          fileName
+          promptSnapshot
+          createdAt
+          width
+          height
+          workflowStage
+          isSyntheticFailure
+          failureLabel
+        }
+        faceSwapOutputAssets {
+          id
+          url
+          fileName
+          promptSnapshot
+          createdAt
+          width
+          height
+          workflowStage
           isSyntheticFailure
           failureLabel
         }
@@ -324,6 +349,31 @@ export const BOARD_UPDATED_SUBSCRIPTION = gql`
           createdAt
           width
           height
+          workflowStage
+          isSyntheticFailure
+          failureLabel
+        }
+        poseOutputAssets {
+          id
+          url
+          fileName
+          promptSnapshot
+          createdAt
+          width
+          height
+          workflowStage
+          isSyntheticFailure
+          failureLabel
+        }
+        faceSwapOutputAssets {
+          id
+          url
+          fileName
+          promptSnapshot
+          createdAt
+          width
+          height
+          workflowStage
           isSyntheticFailure
           failureLabel
         }

@@ -285,10 +285,20 @@ function normalizeStoreData(rawStore: Partial<StoreData>): StoreData {
           ),
           upscale: isSdxlDefaultWorkspace && typeof (row as { upscale?: unknown }).upscale === "boolean" ? row.upscale : false,
           faceSwap: isFaceSwapWorkspaceLayout ? true : typeof (row as { faceSwap?: unknown }).faceSwap === "boolean" ? row.faceSwap : false,
+          outputAssetIds: Array.isArray(row.outputAssetIds) ? row.outputAssetIds : [],
+          poseOutputAssetIds: Array.isArray((row as { poseOutputAssetIds?: unknown }).poseOutputAssetIds)
+            ? ((row as { poseOutputAssetIds: string[] }).poseOutputAssetIds)
+            : [],
+          faceSwapOutputAssetIds: Array.isArray((row as { faceSwapOutputAssetIds?: unknown }).faceSwapOutputAssetIds)
+            ? ((row as { faceSwapOutputAssetIds: string[] }).faceSwapOutputAssetIds)
+            : [],
         })),
       };
     }),
-    assets: rawStore.assets || [],
+    assets: (rawStore.assets || []).map((asset) => ({
+      ...asset,
+      workflowStage: typeof (asset as { workflowStage?: unknown }).workflowStage === "string" ? (asset as { workflowStage: string }).workflowStage : "base",
+    })),
     platformNotifications: rawStore.platformNotifications || [],
   };
 }
@@ -347,6 +357,8 @@ export function createDefaultRows(count = 4, defaults?: Pick<BoardSettings, "pos
     status: "IDLE",
     errorMessage: null,
     outputAssetIds: [],
+    poseOutputAssetIds: [],
+    faceSwapOutputAssetIds: [],
     lastRunAt: null,
   }));
 }

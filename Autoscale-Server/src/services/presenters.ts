@@ -48,6 +48,14 @@ function presentRow(row: WorkspaceRow, store: StoreData) {
       .map((assetId) => store.assets.find((asset) => asset.id === assetId))
       .filter((asset): asset is GeneratedAsset => Boolean(asset))
       .map(presentAsset),
+    poseOutputAssets: row.poseOutputAssetIds
+      .map((assetId) => store.assets.find((asset) => asset.id === assetId))
+      .filter((asset): asset is GeneratedAsset => Boolean(asset))
+      .map(presentAsset),
+    faceSwapOutputAssets: (row.faceSwapOutputAssetIds || [])
+      .map((assetId) => store.assets.find((asset) => asset.id === assetId))
+      .filter((asset): asset is GeneratedAsset => Boolean(asset))
+      .map(presentAsset),
   };
 }
 
